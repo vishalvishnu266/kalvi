@@ -1,5 +1,6 @@
 mod shared;
 mod view_student;
+mod edit_student_turbo;
 
 use axum::Router;
 use ::shared::middleware::AppState;
@@ -8,4 +9,5 @@ use ::shared::middleware::AppState;
 pub fn routes() -> Router<AppState> {
     Router::new()
         .merge(view_student::routes())
+        .merge(edit_student_turbo::routes())
 }
