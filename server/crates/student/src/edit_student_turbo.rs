@@ -368,7 +368,11 @@ async fn update_student(
     match update_student_name(&pool, id, form.name).await {
         Ok(student) => {
             // Simulate update counter (in real app, this would come from database)
-            let update_number = chrono::Utc::now().timestamp() % 1000;
+            use std::time::{SystemTime, UNIX_EPOCH};
+            let update_number = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_secs() % 1000;
             
             // Return Turbo Stream response
             // This updates multiple parts of the page!
