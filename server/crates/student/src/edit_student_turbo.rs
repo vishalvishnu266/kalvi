@@ -5,14 +5,13 @@
 // 3. Progressive enhancement (works without JavaScript)
 
 use axum::{
-    Router,
+    Form, Router,
     extract::{Extension, Path},
+    http::StatusCode,
     response::{Html, IntoResponse, Response},
     routing::{get, post},
-    Form,
-    http::StatusCode,
 };
-use maud::{DOCTYPE, Markup, html, PreEscaped};
+use maud::{DOCTYPE, Markup, PreEscaped, html};
 use serde::Deserialize;
 use sqlx::SqlitePool;
 
@@ -37,13 +36,11 @@ async fn update_student_name(
     id: i64,
     name: String,
 ) -> Result<Student, sqlx::Error> {
-    sqlx::query_as::<_, Student>(
-        "UPDATE students SET name = ? WHERE id = ? RETURNING id, name"
-    )
-    .bind(&name)
-    .bind(id)
-    .fetch_one(pool)
-    .await
+    sqlx::query_as::<_, Student>("UPDATE students SET name = ? WHERE id = ? RETURNING id, name")
+        .bind(&name)
+        .bind(id)
+        .fetch_one(pool)
+        .await
 }
 
 // ============================================================================
@@ -134,7 +131,7 @@ fn render_demo_page(student: &Student) -> Markup {
                             div.turbo-frame-border {
                                 span.demo-label { "📦 TURBO FRAME #1" }
                                 p.small.text-muted { "This frame updates independently when you click Edit/Save" }
-                                
+
                                 // This is the Turbo Frame that will be replaced
                                 (render_student_profile_frame(student))
                             }
@@ -145,7 +142,7 @@ fn render_demo_page(student: &Student) -> Markup {
                             div.turbo-frame-border {
                                 span.demo-label { "🔄 TURBO STREAM TARGET" }
                                 p.small.text-muted { "This updates via Turbo Stream when you save" }
-                                
+
                                 div id="update-counter" {
                                     div.update-count {
                                         "✅ Ready to update"
@@ -156,7 +153,7 @@ fn render_demo_page(student: &Student) -> Markup {
                             div.turbo-frame-border.mt-4 {
                                 span.demo-label { "📊 ANOTHER STREAM TARGET" }
                                 p.small.text-muted { "This also updates independently" }
-                                
+
                                 div id="last-modified" {
                                     div.alert.alert-secondary {
                                         "⏰ Not modified yet"
@@ -262,7 +259,7 @@ fn render_student_edit_frame(student: &Student) -> Markup {
                     form method="post" action={"/turbo-demo/student/" (student.id)} {
                         div.mb-3 {
                             label.form-label for="name" { "Student Name:" }
-                            input.form-control #name type="text" name="name" 
+                            input.form-control #name type="text" name="name"
                                   value=(student.name) required;
                         }
 
@@ -369,25 +366,26 @@ async fn update_student(
         Ok(student) => {
             // Simulate update counter (in real app, this would come from database)
             use std::time::{SystemTime, UNIX_EPOCH};
-            let update_number = SystemTime::now()
+            let update_number = (SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .unwrap()
-                .as_secs() % 1000;
-            
+                .as_secs()
+                % 1000) as i64;
+
             // Return Turbo Stream response
             // This updates multiple parts of the page!
             (
                 StatusCode::OK,
                 [("Content-Type", "text/vnd.turbo-stream.html")],
-                Html(render_turbo_stream_update(&student, update_number).into_string())
-            ).into_response()
+                Html(render_turbo_stream_update(&student, update_number).into_string()),
+            )
+                .into_response()
         }
-        Err(_) => {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Html("<h1>Failed to update student</h1>".to_string())
-            ).into_response()
-        }
+        Err(_) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Html("<h1>Failed to update student</h1>".to_string()),
+        )
+            .into_response(),
     }
 }
 
@@ -398,10 +396,10 @@ async fn update_student(
 pub fn routes() -> Router<AppState> {
     Router::new()
         // Demo page
-        .route("/turbo-demo/student/:id", get(show_demo_page))
+        .route("/turbo-demo/student/{id}", get(show_demo_page))
         // Turbo Frame endpoints
-        .route("/turbo-demo/student/:id/frame", get(show_student_frame))
-        .route("/turbo-demo/student/:id/edit", get(edit_student_frame))
+        .route("/turbo-demo/student/{id}/frame", get(show_student_frame))
+        .route("/turbo-demo/student/{id}/edit", get(edit_student_frame))
         // Update endpoint (returns Turbo Stream)
-        .route("/turbo-demo/student/:id", post(update_student))
+        .route("/turbo-demo/student/{id}", post(update_student))
 }
