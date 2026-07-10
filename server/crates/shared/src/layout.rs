@@ -1,4 +1,4 @@
-use maud::{html, Markup, PreEscaped, DOCTYPE};
+use maud::{DOCTYPE, Markup, PreEscaped, html};
 
 /// Common HTML head with Bootstrap and optional Hotwire
 pub fn render_head(title: &str, include_hotwire: bool) -> Markup {
@@ -6,23 +6,23 @@ pub fn render_head(title: &str, include_hotwire: bool) -> Markup {
         meta charset="utf-8";
         meta name="viewport" content="width=device-width, initial-scale=1";
         title { (title) }
-        
+
         // Bootstrap CSS
-        link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" 
-             rel="stylesheet" 
-             integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" 
+        link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+             rel="stylesheet"
+             integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
              crossorigin="anonymous";
-        
+
         // Bootstrap Icons (optional)
-        link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" 
+        link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css"
              rel="stylesheet";
-        
+
         @if include_hotwire {
             // Hotwire Turbo
             script type="module" {
                 (PreEscaped("import hotwiredTurbo from 'https://cdn.skypack.dev/@hotwired/turbo';"))
             }
-            
+
             // Stimulus
             script type="module" {
                 (PreEscaped(r#"
@@ -37,8 +37,8 @@ pub fn render_head(title: &str, include_hotwire: bool) -> Markup {
 /// Common Bootstrap footer scripts
 pub fn render_footer_scripts() -> Markup {
     html! {
-        script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" 
-               integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" 
+        script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+               integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
                crossorigin="anonymous" {}
     }
 }
@@ -53,42 +53,42 @@ pub fn render_layout(title: &str, content: Markup, include_hotwire: bool) -> Mar
             }
             body {
                 // Navigation bar
-                nav class="navbar navbar-expand-lg navbar-dark bg-primary" {
-                    div class="container-fluid" {
-                        a class="navbar-brand" href="/" { "ERP System" }
-                        button class="navbar-toggler" type="button" 
-                               data-bs-toggle="collapse" 
+                nav.navbar.navbar-expand-lg.navbar-dark.bg-primary {
+                    div.container-fluid {
+                        a.navbar-brand href="/" { "ERP System" }
+                        button.navbar-toggler type="button"
+                               data-bs-toggle="collapse"
                                data-bs-target="#navbarNav" {
-                            span class="navbar-toggler-icon" {}
+                            span.navbar-toggler-icon {}
                         }
-                        div class="collapse navbar-collapse" id="navbarNav" {
-                            ul class="navbar-nav" {
-                                li class="nav-item" {
-                                    a class="nav-link" href="/students" { "Students" }
+                        div.collapse.navbar-collapse id="navbarNav" {
+                            ul.navbar-nav {
+                                li.nav-item {
+                                    a.nav-link href="/students" { "Students" }
                                 }
-                                li class="nav-item" {
-                                    a class="nav-link" href="/finance" { "Finance" }
+                                li.nav-item {
+                                    a.nav-link href="/finance" { "Finance" }
                                 }
-                                li class="nav-item" {
-                                    a class="nav-link" href="/hr" { "HR" }
+                                li.nav-item {
+                                    a.nav-link href="/hr" { "HR" }
                                 }
                             }
                         }
                     }
                 }
-                
+
                 // Main content
                 main {
                     (content)
                 }
-                
+
                 // Footer
-                footer class="bg-light text-center py-3 mt-5" {
+                footer.bg-light.text-center.py-3.mt-5 {
                     div.container {
-                        p class="text-muted mb-0" { "© 2026 ERP System" }
+                        p.text-muted.mb-0 { "© 2026 ERP System" }
                     }
                 }
-                
+
                 (render_footer_scripts())
             }
         }
@@ -98,18 +98,18 @@ pub fn render_layout(title: &str, content: Markup, include_hotwire: bool) -> Mar
 /// Simple card layout
 pub fn render_card(title: &str, content: Markup, footer: Option<Markup>) -> Markup {
     html! {
-        div class="container mt-5" {
+        div.container.mt-5 {
             div.row {
-                div class="col-md-8 offset-md-2" {
+                div.col-md-8.offset-md-2 {
                     div.card {
-                        div class="card-header bg-primary text-white" {
-                            h2 class="mb-0" { (title) }
+                        div.card-header.bg-primary.text-white {
+                            h2.mb-0 { (title) }
                         }
-                        div class="card-body" {
+                        div.card-body {
                             (content)
                         }
                         @if let Some(footer_content) = footer {
-                            div class="card-footer" {
+                            div.card-footer {
                                 (footer_content)
                             }
                         }

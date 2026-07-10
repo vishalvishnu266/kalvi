@@ -8,16 +8,16 @@
 // - Routes
 
 use axum::{
+    Router,
     extract::{Extension, Path},
     response::{Html, IntoResponse, Json},
     routing::get,
-    Router,
 };
-use maud::{html, Markup, DOCTYPE};
+use maud::{DOCTYPE, Markup, html};
 use sqlx::SqlitePool;
 
-use super::shared::{db, Student};
 use super::AppState;
+use super::shared::{Student, db};
 
 // ============================================================================
 // Database Layer
@@ -52,11 +52,11 @@ fn render_student_profile(student: &Student) -> Markup {
                 meta charset="utf-8";
                 meta name="viewport" content="width=device-width, initial-scale=1";
                 title { "Student Profile - " (student.name) }
-                
+
                 // Bootstrap CSS
-                link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" 
-                     rel="stylesheet" 
-                     integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" 
+                link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+                     rel="stylesheet"
+                     integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
                      crossorigin="anonymous";
             }
             body {
@@ -93,10 +93,10 @@ fn render_student_profile(student: &Student) -> Markup {
                         }
                     }
                 }
-                
+
                 // Bootstrap JS (optional, for interactive components)
-                script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" 
-                       integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" 
+                script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+                       integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
                        crossorigin="anonymous" {}
             }
         }
@@ -111,11 +111,11 @@ fn render_not_found() -> Markup {
                 meta charset="utf-8";
                 meta name="viewport" content="width=device-width, initial-scale=1";
                 title { "Student Not Found" }
-                
+
                 // Bootstrap CSS
-                link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" 
-                     rel="stylesheet" 
-                     integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" 
+                link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+                     rel="stylesheet"
+                     integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
                      crossorigin="anonymous";
             }
             body {
@@ -170,6 +170,6 @@ async fn view_student_json_handler(
 
 pub fn routes() -> Router<AppState> {
     Router::new()
-        .route("/student/:id", get(view_student_html_handler))
-        .route("/api/student/:id", get(view_student_json_handler))
+        .route("/student/{id}", get(view_student_html_handler))
+        .route("/api/student/{id}", get(view_student_json_handler))
 }
