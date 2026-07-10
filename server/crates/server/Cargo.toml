@@ -1,0 +1,16 @@
+[package]
+name = "server"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+axum = "0.8"
+tokio = { version = "1", features = ["full"] }
+maud = { version = "0.26", features = ["axum"] }
+model = { path = "../model" }
+repository = { path = "../repository" }
+controller = { path = "../controller" }
+service = { path = "../service" }
+web = { path = "../web" }
+middleware = { path = "../middleware" }
+sqlx = { version = "0.8", features = ["sqlite"] }

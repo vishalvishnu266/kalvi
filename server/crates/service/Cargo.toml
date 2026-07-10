@@ -1,0 +1,9 @@
+[package]
+name = "service"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+model = { path = "../model" }
+repository = { path = "../repository" }
+sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite"] }
