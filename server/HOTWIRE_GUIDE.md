@@ -103,13 +103,13 @@ fn render_student_profile(student: &Student) -> Markup {
                 
                 // Hotwire Turbo
                 script type="module" {
-                    "import hotwiredTurbo from 'https://cdn.skypack.dev/@hotwired/turbo';"
+                    "import * as Turbo from 'https://cdn.jsdelivr.net/npm/@hotwired/turbo@8.0.4/+esm';"
                 }
                 
                 // Stimulus (optional)
                 script type="module" {
                     r#"
-                    import { Application, Controller } from 'https://cdn.skypack.dev/@hotwired/stimulus';
+                    import { Application, Controller } from 'https://cdn.jsdelivr.net/npm/@hotwired/stimulus@3.2.2/+esm';
                     
                     window.Stimulus = Application.start();
                     

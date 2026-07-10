@@ -274,8 +274,8 @@ async fn view_student_json_handler(
 
 pub fn routes() -> Router<AppState> {
     Router::new()
-        .route("/student/:id", get(view_student_html_handler))
-        .route("/api/student/:id", get(view_student_json_handler))
+        .route("/student/{id}", get(view_student_html_handler))
+        .route("/api/student/{id}", get(view_student_json_handler))
 }
 ```
 

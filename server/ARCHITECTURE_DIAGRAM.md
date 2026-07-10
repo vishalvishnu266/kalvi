@@ -27,7 +27,7 @@
 │  │   Student    │  │   Finance    │  │      HR      │             │
 │  │    Routes    │  │    Routes    │  │    Routes    │             │
 │  │              │  │              │  │              │             │
-│  │ /student/:id │  │  /invoices   │  │  /employees  │             │
+│  │ /student/{id}│  │  /invoices   │  │  /employees  │             │
 │  │ /students    │  │  /payments   │  │   /payroll   │             │
 │  └──────────────┘  └──────────────┘  └──────────────┘             │
 └─────────────────────────────────────────────────────────────────────┘
@@ -146,7 +146,7 @@ project/
         ↓
 
 4. Router
-   - Matches route: /student/:id
+   - Matches route: /student/{id}
    - Routes to student::routes()
         ↓
 

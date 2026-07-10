@@ -64,8 +64,9 @@ fn render_demo_page(student: &Student) -> Markup {
                      crossorigin="anonymous";
 
                 // Hotwire Turbo - This enables all the magic!
+                // Using jsdelivr CDN (same as working Node.js example)
                 script type="module" {
-                    (PreEscaped("import hotwiredTurbo from 'https://cdn.skypack.dev/@hotwired/turbo';"))
+                    (PreEscaped("import * as Turbo from 'https://cdn.jsdelivr.net/npm/@hotwired/turbo@8.0.4/+esm';"))
                 }
 
                 style {

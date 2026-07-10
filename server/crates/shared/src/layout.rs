@@ -18,15 +18,15 @@ pub fn render_head(title: &str, include_hotwire: bool) -> Markup {
              rel="stylesheet";
 
         @if include_hotwire {
-            // Hotwire Turbo
+            // Hotwire Turbo - Using jsdelivr CDN (same as working Node.js example)
             script type="module" {
-                (PreEscaped("import hotwiredTurbo from 'https://cdn.skypack.dev/@hotwired/turbo';"))
+                (PreEscaped("import * as Turbo from 'https://cdn.jsdelivr.net/npm/@hotwired/turbo@8.0.4/+esm';"))
             }
 
             // Stimulus
             script type="module" {
                 (PreEscaped(r#"
-                    import { Application } from 'https://cdn.skypack.dev/@hotwired/stimulus';
+                    import { Application } from 'https://cdn.jsdelivr.net/npm/@hotwired/stimulus@3.2.2/+esm';
                     window.Stimulus = Application.start();
                 "#))
             }
