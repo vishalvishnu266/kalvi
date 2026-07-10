@@ -53,24 +53,24 @@ pub fn render_layout(title: &str, content: Markup, include_hotwire: bool) -> Mar
             }
             body {
                 // Navigation bar
-                nav.navbar.navbar-expand-lg.navbar-dark.bg-primary {
-                    div.container-fluid {
-                        a.navbar-brand href="/" { "ERP System" }
-                        button.navbar-toggler type="button" 
+                nav class="navbar navbar-expand-lg navbar-dark bg-primary" {
+                    div class="container-fluid" {
+                        a class="navbar-brand" href="/" { "ERP System" }
+                        button class="navbar-toggler" type="button" 
                                data-bs-toggle="collapse" 
                                data-bs-target="#navbarNav" {
-                            span.navbar-toggler-icon {}
+                            span class="navbar-toggler-icon" {}
                         }
-                        div.collapse.navbar-collapse#navbarNav {
-                            ul.navbar-nav {
-                                li.nav-item {
-                                    a.nav-link href="/students" { "Students" }
+                        div class="collapse navbar-collapse" id="navbarNav" {
+                            ul class="navbar-nav" {
+                                li class="nav-item" {
+                                    a class="nav-link" href="/students" { "Students" }
                                 }
-                                li.nav-item {
-                                    a.nav-link href="/finance" { "Finance" }
+                                li class="nav-item" {
+                                    a class="nav-link" href="/finance" { "Finance" }
                                 }
-                                li.nav-item {
-                                    a.nav-link href="/hr" { "HR" }
+                                li class="nav-item" {
+                                    a class="nav-link" href="/hr" { "HR" }
                                 }
                             }
                         }
@@ -83,9 +83,9 @@ pub fn render_layout(title: &str, content: Markup, include_hotwire: bool) -> Mar
                 }
                 
                 // Footer
-                footer.bg-light.text-center.py-3.mt-5 {
+                footer class="bg-light text-center py-3 mt-5" {
                     div.container {
-                        p.text-muted.mb-0 { "© 2026 ERP System" }
+                        p class="text-muted mb-0" { "© 2026 ERP System" }
                     }
                 }
                 
@@ -98,18 +98,18 @@ pub fn render_layout(title: &str, content: Markup, include_hotwire: bool) -> Mar
 /// Simple card layout
 pub fn render_card(title: &str, content: Markup, footer: Option<Markup>) -> Markup {
     html! {
-        div.container.mt-5 {
+        div class="container mt-5" {
             div.row {
-                div.col-md-8.offset-md-2 {
+                div class="col-md-8 offset-md-2" {
                     div.card {
-                        div.card-header.bg-primary.text-white {
-                            h2.mb-0 { (title) }
+                        div class="card-header bg-primary text-white" {
+                            h2 class="mb-0" { (title) }
                         }
-                        div.card-body {
+                        div class="card-body" {
                             (content)
                         }
                         @if let Some(footer_content) = footer {
-                            div.card-footer {
+                            div class="card-footer" {
                                 (footer_content)
                             }
                         }

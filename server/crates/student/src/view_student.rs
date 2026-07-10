@@ -60,34 +60,34 @@ fn render_student_profile(student: &Student) -> Markup {
                      crossorigin="anonymous";
             }
             body {
-                div.container.mt-5 {
+                div class="container mt-5" {
                     div.row {
-                        div.col-md-8.offset-md-2 {
+                        div class="col-md-8 offset-md-2" {
                             div.card {
-                                div.card-header.bg-primary.text-white {
-                                    h2.mb-0 { "Student Profile" }
+                                div class="card-header bg-primary text-white" {
+                                    h2 class="mb-0" { "Student Profile" }
                                 }
-                                div.card-body {
-                                    div.row.mb-3 {
-                                        div.col-sm-3 {
+                                div class="card-body" {
+                                    div class="row mb-3" {
+                                        div class="col-sm-3" {
                                             strong { "Student ID:" }
                                         }
-                                        div.col-sm-9 {
+                                        div class="col-sm-9" {
                                             (student.id)
                                         }
                                     }
-                                    div.row.mb-3 {
-                                        div.col-sm-3 {
+                                    div class="row mb-3" {
+                                        div class="col-sm-3" {
                                             strong { "Name:" }
                                         }
-                                        div.col-sm-9 {
+                                        div class="col-sm-9" {
                                             (student.name)
                                         }
                                     }
                                 }
-                                div.card-footer {
-                                    a.btn.btn-secondary href="/students" { "← Back to Students" }
-                                    a.btn.btn-primary.ms-2 href={ "/student/" (student.id) "/edit" } { "Edit Student" }
+                                div class="card-footer" {
+                                    a class="btn btn-secondary" href="/students" { "← Back to Students" }
+                                    a class="btn btn-primary ms-2" href={ "/student/" (student.id) "/edit" } { "Edit Student" }
                                 }
                             }
                         }
@@ -119,14 +119,14 @@ fn render_not_found() -> Markup {
                      crossorigin="anonymous";
             }
             body {
-                div.container.mt-5 {
+                div class="container mt-5" {
                     div.row {
-                        div.col-md-8.offset-md-2 {
-                            div.alert.alert-warning role="alert" {
-                                h4.alert-heading { "Student Not Found" }
+                        div class="col-md-8 offset-md-2" {
+                            div class="alert alert-warning" role="alert" {
+                                h4 class="alert-heading" { "Student Not Found" }
                                 p { "The requested student does not exist in the database." }
                                 hr;
-                                a.btn.btn-primary href="/students" { "← Back to Students" }
+                                a class="btn btn-primary" href="/students" { "← Back to Students" }
                             }
                         }
                     }
