@@ -1,179 +1,63 @@
-# School ERP - Server
+# School ERP — Server
 
-Multi-tenant educational institution management system built with Rust, Axum, Hotwire Turbo, and SQLite.
+Rust workspace containing the multi-tenant school ERP server.
 
-## 🚀 Quick Start
+## Run
 
 ```bash
-cd server
 cargo run
 ```
 
-Visit: `http://localhost:3000`
+Server listens on `http://localhost:3000`.
 
-## 📚 Documentation
+## Workspace
 
-**All documentation is now in the central `docs/` directory.**
+| Crate     | Purpose                                                              |
+|-----------|----------------------------------------------------------------------|
+| `shared`  | `TenantDatabaseManager`, `AppState`, `TenantContext`, tenant middleware, migration runners. |
+| `auth`    | Login/logout/dashboard, session store (in tenant DB), `RequireAuth` extractor, admin seeding. |
+| `tenant`  | Home page + tenant onboarding.                                       |
+| `student` | Placeholder for future student features.                             |
+| `server`  | `main.rs` — wires everything, applies master migrations at startup.  |
 
-👉 **Start here:** [../docs/README.md](../docs/README.md)
+## Migrations
 
-### Key Documents
-- [Getting Started](../docs/guides/GETTING_STARTED.md) - Quick start guide
-- [System Architecture](../docs/architecture/SYSTEM_ARCHITECTURE.md) - How it works
-- [Development Roadmap](../docs/ROADMAP.md) - Future plans
-- [Current Status](../docs/STATUS.md) - What's complete
+All migrations live in [`migrations/`](migrations):
 
-## 📁 Project Structure
+- `migrations/master/` — applied to `master.db` on startup.
+- `migrations/tenant/` — applied to every new `tenant_{slug}.db` the first time it is opened.
 
-```
-server/
-├── crates/
-│   ├── auth/        # Authentication & sessions
-│   ├── tenant/      # Tenant management
-│   ├── student/     # Student features
-│   ├── shared/      # Shared utilities
-│   └── server/      # Application entry point
-│
-├── SEED_ADMIN.sql   # Create test users
-└── README.md        # This file
-```
+Both directories are embedded at compile time using `sqlx::migrate!` and applied via a `Migrator`. sqlx tracks applied versions in the `_sqlx_migrations` table inside each DB, so the calls are safe/idempotent.
 
-## 🛠️ Technology Stack
+To add a new tenant migration, drop a file named `NNNNNN_description.sql` into `migrations/tenant/`. It will be applied automatically to all existing (on next open) and future tenant databases.
 
-- **Axum** - Async web framework
-- **SQLite** - One database per tenant
-- **Maud** - Type-safe HTML templates
-- **Hotwire Turbo** - Progressive enhancement
-- **Custom Sessions** - Direct SQLite storage
-- **bcrypt** - Password hashing
-- **Bootstrap 5** - Modern UI
+## Templates
 
-## 🎯 Key Features
+Askama templates live in [`templates/`](templates) and are compiled into the binary. See `askama.toml`.
 
-✅ **Multi-Tenant Architecture**
-- One database per school/institution
-- Complete data isolation
-- Path-based routing: `/t/{slug}/...`
+- `base.html` includes Bootstrap 5 and Hotwire Turbo 8 (via CDN ES module).
+- Every page template extends `base.html`.
+- All form POSTs use standard `303 See Other` redirects, which Turbo Drive follows transparently.
 
-✅ **Custom Session System**
-- Direct SQLite storage in tenant DB
-- No external dependencies
-- IP and user agent tracking
-- Admin control ready
+## Routes
 
-✅ **Modern UI**
-- Hotwire Turbo for smooth UX
-- Bootstrap 5 responsive design
-- Bootstrap Icons throughout
-- Professional gradients
+| Method | Path                          | Description                          |
+|--------|-------------------------------|--------------------------------------|
+| GET    | `/`                           | Landing page                         |
+| GET    | `/onboard`                    | Onboarding form                      |
+| POST   | `/onboard`                    | Create tenant + seed admin user      |
+| GET    | `/t/{slug}/login`             | Login form                           |
+| POST   | `/t/{slug}/login`             | Authenticate + set session cookie    |
+| POST   | `/t/{slug}/logout`            | Destroy session + clear cookie       |
+| GET    | `/t/{slug}/dashboard`         | Auth-required dashboard              |
 
-✅ **Security**
-- bcrypt password hashing
-- HTTP-only secure cookies
-- Role-based access control
-- Session validation
+## Databases
 
-## 🚦 Available Routes
-
-### Control Plane
-- `GET /` - Landing page
-- `GET /onboard` - Tenant onboarding
-
-### Tenant Routes
-- `GET /t/{slug}/login` - Login page
-- `POST /t/{slug}/login` - Process login
-- `GET /t/{slug}/dashboard` - User dashboard
-- `GET /t/{slug}/logout` - Logout
-
-## 🗄️ Database Architecture
+At runtime the workspace root will contain:
 
 ```
-master.db                  # Tenant registry
-  └─ tenants table
-
-tenant_{slug}.db          # Per-tenant data
-  ├─ users table
-  ├─ sessions table
-  └─ students table
+master.db                # tenant registry
+tenant_<slug>.db         # per-tenant users, sessions, students
 ```
 
-## 🧪 Testing
-
-### 1. Onboard a Tenant
-```
-http://localhost:3000/onboard
-Slug: demo-school
-```
-
-### 2. Seed Admin User
-```bash
-sqlite3 tenant_demo-school.db < SEED_ADMIN.sql
-```
-
-### 3. Login
-```
-http://localhost:3000/t/demo-school/login
-Username: admin
-Password: admin123
-```
-
-## 🆘 Troubleshooting
-
-### Can't start server
-```bash
-cargo clean && cargo build && cargo run
-```
-
-### Can't login
-```bash
-# Verify user exists
-sqlite3 tenant_demo-school.db "SELECT * FROM users;"
-```
-
-### Session issues
-```bash
-# Check active sessions
-sqlite3 tenant_demo-school.db "SELECT * FROM sessions WHERE is_active=1;"
-```
-
-## 📖 Development
-
-### Adding a New Feature
-1. Create file: `crates/{domain}/src/feature_name.rs`
-2. Register in `lib.rs`
-3. Follow patterns in existing code
-4. See [Feature Development Guide](../docs/guides/FEATURE_DEVELOPMENT.md)
-
-### Using Hotwire Turbo
-- See [Hotwire Guide](../docs/guides/HOTWIRE_GUIDE.md)
-- Use Turbo Frames for inline editing
-- Use Turbo Streams for multiple updates
-
-## 🔮 Next Steps
-
-See [Development Roadmap](../docs/ROADMAP.md) for priorities:
-
-**Phase 1: Student Management** (Next)
-- List students with search/filter
-- Add student form
-- View student profile
-- Edit student
-- Delete student
-
-**Phase 2: User Management**
-- User list (admin only)
-- Create/edit users
-- Activate/deactivate
-
-**Phase 3: Session Management**
-- Active sessions dashboard
-- Force logout
-- Login history
-
-## 📄 License
-
-MIT
-
----
-
-**For complete documentation, see [../docs/](../docs/)**
+All `.db*` files are gitignored.

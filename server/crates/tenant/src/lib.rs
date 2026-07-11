@@ -1,9 +1,9 @@
-mod onboarding;
+pub mod models;
 mod home;
-mod shared;
+mod onboarding;
 
 use axum::Router;
-use ::shared::middleware::AppState;
+use shared::AppState;
 
 pub fn routes() -> Router<AppState> {
     Router::new()

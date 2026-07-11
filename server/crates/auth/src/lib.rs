@@ -1,22 +1,20 @@
-mod shared;
-mod session;
-mod cookie_manager;
-mod session_middleware;
-mod cleanup;
+pub mod models;
+pub mod session;
+pub mod session_middleware;
+pub mod extractors;
+pub mod seed;
+
 mod login;
 mod logout;
 mod dashboard;
-mod middleware;
-pub mod seed;
 
-pub use middleware::{RequireAuth, OptionalAuth};
-pub use shared::{User, UserRole};
-pub use session::{Session, SessionManager, SessionConfig};
+pub use extractors::RequireAuth;
+pub use models::{User, Session};
 pub use session_middleware::session_middleware;
-pub use cleanup::{start_cleanup_task, init_session_tables};
+pub use seed::create_admin_user;
 
 use axum::Router;
-use ::shared::middleware::AppState;
+use shared::AppState;
 
 pub fn routes() -> Router<AppState> {
     Router::new()

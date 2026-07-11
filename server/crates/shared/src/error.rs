@@ -7,6 +7,7 @@ use axum::{
 pub enum AppError {
     Database(sqlx::Error),
     NotFound,
+    BadRequest(String),
 }
 
 impl From<sqlx::Error> for AppError {
@@ -17,11 +18,13 @@ impl From<sqlx::Error> for AppError {
 
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
-        let (status, message) = match self {
-            AppError::Database(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Database error"),
-            AppError::NotFound => (StatusCode::NOT_FOUND, "Resource not found"),
-        };
-
-        (status, message).into_response()
+        match self {
+            AppError::Database(err) => {
+                eprintln!("database error: {err:?}");
+                (StatusCode::INTERNAL_SERVER_ERROR, "Database error").into_response()
+            }
+            AppError::NotFound => (StatusCode::NOT_FOUND, "Not found").into_response(),
+            AppError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg).into_response(),
+        }
     }
 }

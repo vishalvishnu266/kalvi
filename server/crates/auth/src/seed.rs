@@ -1,30 +1,24 @@
-// Utility to seed initial admin user for testing
+use bcrypt::{hash, DEFAULT_COST};
 use sqlx::SqlitePool;
-use crate::shared::{UserRole, password, db};
 
-/// Create a default admin user for testing
-pub async fn create_default_admin(pool: &SqlitePool) -> Result<(), Box<dyn std::error::Error>> {
-    // Check if admin already exists
-    if db::username_exists(pool, "admin").await? {
-        println!("ℹ️  Default admin user already exists");
-        return Ok(());
-    }
-    
-    // Create admin user
-    let password_hash = password::hash_password("admin123")?;
-    
-    db::create_user(
-        pool,
-        "admin",
-        "admin@school.edu",
-        &password_hash,
-        UserRole::Admin,
-    ).await?;
-    
-    println!("✅ Created default admin user:");
-    println!("   Username: admin");
-    println!("   Password: admin123");
-    println!("   ⚠️  Please change this password after first login!");
-    
+/// Insert an admin user with a bcrypt-hashed password.
+/// If the username already exists, this is a no-op.
+pub async fn create_admin_user(
+    pool: &SqlitePool,
+    username: &str,
+    password: &str,
+) -> Result<(), String> {
+    let hashed = hash(password, DEFAULT_COST).map_err(|e| format!("bcrypt error: {e}"))?;
+
+    sqlx::query(
+        "INSERT OR IGNORE INTO users (username, password_hash, role, is_active)
+         VALUES (?, ?, 'admin', 1)",
+    )
+    .bind(username)
+    .bind(hashed)
+    .execute(pool)
+    .await
+    .map_err(|e| format!("db error: {e}"))?;
+
     Ok(())
 }

@@ -1,45 +1,28 @@
-// Feature: User Logout
-// Simple logout functionality that clears session
-
 use axum::{
-    Router,
-    response::{IntoResponse, Redirect, Response},
-    routing::get,
     extract::Extension,
+    http::HeaderMap,
+    response::{IntoResponse, Redirect, Response},
+    routing::post,
+    Router,
 };
+use shared::{AppState, TenantContext};
 use sqlx::SqlitePool;
 
-use crate::session::{Session, SessionManager};
-use crate::cookie_manager;
-use ::shared::middleware::AppState;
+use crate::session;
 
-// ============================================================================
-// HTTP Handlers
-// ============================================================================
-
-async fn logout_handler(
+async fn process_logout(
     Extension(pool): Extension<SqlitePool>,
-    Extension(tenant_context): Extension<::shared::middleware::TenantContext>,
-    Extension(session): Extension<Session>,
+    Extension(ctx): Extension<TenantContext>,
+    headers: HeaderMap,
 ) -> Response {
-    // Revoke session in database
-    let session_manager = SessionManager::new(pool);
-    let _ = session_manager.revoke_session(&session.id).await;
-    
-    // Create redirect response
-    let mut response = Redirect::to(&format!("/t/{}/login", tenant_context.slug)).into_response();
-    
-    // Clear session cookie
-    cookie_manager::clear_session_cookie(&mut response);
-    
-    response
+    if let Some(session_id) = session::extract_session_cookie(&headers) {
+        let _ = session::delete_session(&pool, &session_id).await;
+    }
+    let mut resp = Redirect::to(&format!("/t/{}/login", ctx.slug)).into_response();
+    session::clear_session_cookie(&mut resp);
+    resp
 }
 
-// ============================================================================
-// Routes
-// ============================================================================
-
 pub fn routes() -> Router<AppState> {
-    Router::new()
-        .route("/t/{tenant_slug}/logout", get(logout_handler))
+    Router::new().route("/t/{tenant_slug}/logout", post(process_logout))
 }

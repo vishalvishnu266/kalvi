@@ -1,9 +1,9 @@
 [workspace]
+resolver = "2"
 members = [
     "crates/shared",
-    "crates/student",
-    "crates/tenant",
     "crates/auth",
+    "crates/tenant",
+    "crates/student",
     "crates/server",
 ]
-resolver = "2"
