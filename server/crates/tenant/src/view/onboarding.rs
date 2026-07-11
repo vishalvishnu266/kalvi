@@ -1,5 +1,5 @@
 use shared::web::html::{Html, e};
-use shared::web::layout::base;
+use shared::web::layout::{base, base_with_theme};
 use shared::web::styles::*;
 
 pub fn form_page(error: Option<String>) -> Html {
@@ -106,9 +106,11 @@ pub fn success_page(slug: &str, name: &str) -> Html {
         </div>
     "#;
 
-    Html(template.to_string())
+    let content = Html(template.to_string())
         .replace("name", &e(name))
         .replace("slug", &e(slug))
         .replace("CARD", CARD)
-        .replace("BTN_PRIMARY", BTN_PRIMARY)
+        .replace("BTN_PRIMARY", BTN_PRIMARY);
+        
+    base("Institution Created", Html("".into()), content)
 }

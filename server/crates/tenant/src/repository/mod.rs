@@ -30,3 +30,18 @@ pub async fn insert_tenant(pool: &SqlitePool, t: NewTenant<'_>) -> Result<Tenant
         .fetch_one(pool)
         .await
 }
+
+pub async fn update_theme(
+    pool: &SqlitePool,
+    slug: &str,
+    primary_color: &str,
+    dark_mode: bool,
+) -> Result<(), sqlx::Error> {
+    sqlx::query("UPDATE tenants SET primary_color = ?, dark_mode = ? WHERE slug = ?")
+        .bind(primary_color)
+        .bind(dark_mode)
+        .bind(slug)
+        .execute(pool)
+        .await?;
+    Ok(())
+}

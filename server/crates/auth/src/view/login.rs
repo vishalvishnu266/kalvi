@@ -1,8 +1,9 @@
 use shared::web::html::{Html, e};
-use shared::web::layout::base;
+use shared::web::layout::base_with_theme;
 use shared::web::styles::*;
+use shared::TenantContext;
 
-pub fn login_page(tenant_slug: &str, error: Option<String>) -> Html {
+pub fn login_page(ctx: &TenantContext, error: Option<String>) -> Html {
     let error_html = match error {
         Some(msg) => format!(
             r#"<div class="{}">
@@ -61,5 +62,11 @@ pub fn login_page(tenant_slug: &str, error: Option<String>) -> Html {
         .replace("INPUT", INPUT)
         .replace("BTN_PRIMARY", BTN_PRIMARY);
 
-    base(&format!("Login - {}", tenant_slug), Html("".into()), content)
+    base_with_theme(
+        &format!("Login - {}", ctx.slug),
+        Html("".into()),
+        content,
+        &ctx.primary_color,
+        ctx.dark_mode,
+    )
 }

@@ -13,6 +13,8 @@ pub struct TenantContext {
     pub slug: String,
     pub database_name: String,
     pub name: String,
+    pub primary_color: String,
+    pub dark_mode: bool,
 }
 
 #[derive(sqlx::FromRow)]
@@ -21,6 +23,8 @@ struct TenantRow {
     name: String,
     database_name: String,
     is_active: bool,
+    primary_color: String,
+    dark_mode: bool,
 }
 
 pub async fn tenant_middleware(
@@ -57,9 +61,12 @@ pub async fn tenant_middleware(
                     slug: tenant.slug.clone(),
                     database_name: tenant.database_name.clone(),
                     name: tenant.name.clone(),
+                    primary_color: tenant.primary_color.clone(),
+                    dark_mode: tenant.dark_mode,
                 };
+                // ONLY insert the tenant pool to avoid overwriting and confusion.
+                // The master pool can be accessed via AppState if needed.
                 req.extensions_mut().insert(tenant_pool);
-                req.extensions_mut().insert(master_pool);
                 req.extensions_mut().insert(ctx);
                 next.run(req).await
             }
@@ -77,7 +84,7 @@ async fn get_tenant_by_slug(
     slug: &str,
 ) -> Result<Option<TenantRow>, sqlx::Error> {
     sqlx::query_as::<_, TenantRow>(
-        "SELECT slug, name, database_name, is_active FROM tenants WHERE slug = ?",
+        "SELECT slug, name, database_name, is_active, primary_color, dark_mode FROM tenants WHERE slug = ?",
     )
     .bind(slug)
     .fetch_optional(pool)

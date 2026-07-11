@@ -1,11 +1,12 @@
 use shared::web::html::{Html, e};
-use shared::web::layout::base;
+use shared::web::layout::base_with_theme;
 use shared::web::styles::*;
+use shared::TenantContext;
 
-pub fn dashboard_page(tenant_slug: &str, username: &str) -> Html {
+pub fn dashboard_page(ctx: &TenantContext, username: &str) -> Html {
     // language=html
     let template = r#"
-        <nav class="bg-indigo-600">
+        <nav class="bg-[var(--primary-color)]">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex items-center justify-between h-16">
                     <div class="flex items-center">
@@ -16,6 +17,9 @@ pub fn dashboard_page(tenant_slug: &str, username: &str) -> Html {
                         <div class="flex items-center text-white text-sm font-medium">
                             <i data-lucide="user-circle" class="h-5 w-5 mr-2"></i> {{username}}
                         </div>
+                        <a href="/t/{{tenant_slug}}/settings" class="{{NAV_LINK}} mr-2">
+                            <i data-lucide="settings" class="h-4 w-4 mr-2"></i> Settings
+                        </a>
                         <form action="/t/{{tenant_slug}}/logout" method="POST">
                             <button type="submit" class="{{NAV_LINK}}">
                                 <i data-lucide="log-out" class="h-4 w-4 mr-2"></i> Logout
@@ -62,8 +66,16 @@ pub fn dashboard_page(tenant_slug: &str, username: &str) -> Html {
         </main>
     "#;
 
-    Html(template.to_string())
-        .replace("tenant_slug", &e(tenant_slug))
+    let content = Html(template.to_string())
+        .replace("tenant_slug", &e(&ctx.slug))
         .replace("username", &e(username))
-        .replace("NAV_LINK", NAV_LINK)
+        .replace("NAV_LINK", NAV_LINK);
+
+    base_with_theme(
+        &format!("Dashboard - {}", ctx.slug),
+        Html("".into()),
+        content,
+        &ctx.primary_color,
+        ctx.dark_mode,
+    )
 }

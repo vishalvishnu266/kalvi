@@ -12,12 +12,12 @@ use crate::repository;
 use crate::session;
 use crate::view::login::login_page;
 
-fn render_login(tenant_slug: &str, error: Option<String>) -> Response {
-    login_page(tenant_slug, error).into_response()
+fn render_login(ctx: &TenantContext, error: Option<String>) -> Response {
+    login_page(ctx, error).into_response()
 }
 
 pub async fn show_login(Extension(ctx): Extension<TenantContext>) -> Response {
-    render_login(&ctx.slug, None)
+    render_login(&ctx, None)
 }
 
 #[derive(Debug, Deserialize)]
@@ -34,14 +34,14 @@ pub async fn process_login(
 ) -> Response {
     let user = match repository::get_user_by_username(&pool, form.username.trim()).await {
         Ok(Some(u)) => u,
-        Ok(None) => return render_login(&ctx.slug, Some("Invalid username or password".into())),
+        Ok(None) => return render_login(&ctx, Some("Invalid username or password".into())),
         Err(_) => {
-            return render_login(&ctx.slug, Some("Server error, please try again".into()))
+            return render_login(&ctx, Some("Server error, please try again".into()))
         }
     };
 
     if !user.is_active {
-        return render_login(&ctx.slug, Some("This account is inactive".into()));
+        return render_login(&ctx, Some("This account is inactive".into()));
     }
 
     let ok = bcrypt::verify(&form.password, &user.password_hash).unwrap_or(false);

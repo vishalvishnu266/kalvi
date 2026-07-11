@@ -16,6 +16,8 @@ fn render_form(error: Option<String>) -> Response {
 }
 
 fn render_success(slug: &str, name: &str) -> Response {
+    // For success page, we don't have the context yet, so we use default theme
+    // or we could fetch the tenant from DB. For simplicity, use default.
     success_page(slug, name).into_response()
 }
 

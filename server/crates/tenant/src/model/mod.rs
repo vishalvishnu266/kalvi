@@ -10,6 +10,8 @@ pub struct Tenant {
     pub address: String,
     pub database_name: String,
     pub is_active: bool,
+    pub primary_color: String,
+    pub dark_mode: bool,
     pub created_at: String,
 }
 
