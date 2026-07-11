@@ -30,18 +30,19 @@ impl IntoHtml for Html {
 
 impl IntoHtml for String {
     fn into_html(self) -> Html {
-        Html(escape(&self))
+        Html(self)
     }
 }
 
 impl IntoHtml for &str {
     fn into_html(self) -> Html {
-        Html(escape(self))
+        Html(self.to_string())
     }
 }
 
 /// Escapes special HTML characters to prevent XSS.
-pub fn escape(input: &str) -> String {
+/// Use this to wrap dynamic user data.
+pub fn e(input: &str) -> String {
     input
         .replace('&', "&amp;")
         .replace('<', "&lt;")
@@ -49,6 +50,8 @@ pub fn escape(input: &str) -> String {
         .replace('"', "&quot;")
         .replace('\'', "&#39;")
 }
+
+pub use e as escape;
 
 /// A macro for composing HTML from multiple parts.
 #[macro_export]

@@ -3,4 +3,4 @@ pub mod html;
 pub mod layout;
 pub mod middleware;
 
-pub use html::{Html, IntoHtml, escape};
+pub use html::{Html, IntoHtml, escape, e};
