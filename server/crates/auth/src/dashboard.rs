@@ -7,7 +7,7 @@ use axum::{
     response::{Html, IntoResponse},
     routing::get,
 };
-use maud::{DOCTYPE, Markup, html};
+use maud::{DOCTYPE, Markup, PreEscaped, html};
 
 use crate::middleware::RequireAuth;
 use ::shared::middleware::AppState;

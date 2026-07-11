@@ -4,7 +4,6 @@ use axum::{
     response::{IntoResponse, Redirect},
 };
 use sqlx::SqlitePool;
-use async_trait::async_trait;
 
 use crate::shared::{User, db};
 use crate::session::Session;
@@ -12,7 +11,6 @@ use crate::session::Session;
 /// Extractor that requires authentication
 pub struct RequireAuth(pub User);
 
-#[async_trait]
 impl<S> FromRequestParts<S> for RequireAuth
 where
     S: Send + Sync,
@@ -83,7 +81,6 @@ where
 /// Optional auth - doesn't require authentication but provides user if available
 pub struct OptionalAuth(pub Option<User>);
 
-#[async_trait]
 impl<S> FromRequestParts<S> for OptionalAuth
 where
     S: Send + Sync,

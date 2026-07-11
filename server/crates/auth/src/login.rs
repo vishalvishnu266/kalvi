@@ -3,7 +3,8 @@
 
 use axum::{
     Router,
-    extract::{Extension, Query, Request},
+    extract::{Extension, Query},
+    http::HeaderMap,
     response::{Html, IntoResponse, Redirect, Response},
     routing::{get, post},
     Form,
@@ -223,12 +224,12 @@ struct LoginFormWithRedirect {
 async fn process_login(
     Extension(pool): Extension<SqlitePool>,
     Extension(tenant_context): Extension<::shared::middleware::TenantContext>,
-    req: Request,
+    headers: HeaderMap,
     Form(form): Form<LoginFormWithRedirect>,
 ) -> Response {
-    // Extract IP and user agent
-    let ip_address = cookie_manager::extract_client_ip(&req);
-    let user_agent = cookie_manager::extract_user_agent(&req);
+    // Extract IP and user agent from headers
+    let ip_address = cookie_manager::extract_client_ip_from_headers(&headers);
+    let user_agent = cookie_manager::extract_user_agent_from_headers(&headers);
 
     match authenticate_user(&pool, form.login.clone(), ip_address, user_agent).await {
         Ok((_user, session)) => {

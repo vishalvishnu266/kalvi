@@ -2,7 +2,7 @@
 // Handles setting/clearing session cookies with proper security
 
 use axum::{
-    http::{header, HeaderValue, Request},
+    http::{header, HeaderMap, HeaderValue, Request},
     response::Response,
 };
 use cookie::{Cookie, SameSite};
@@ -58,8 +58,18 @@ pub fn clear_session_cookie(response: &mut Response) {
 
 /// Extract client IP address from request
 pub fn extract_client_ip<B>(req: &Request<B>) -> Option<String> {
+    extract_client_ip_from_headers(req.headers())
+}
+
+/// Extract user agent from request
+pub fn extract_user_agent<B>(req: &Request<B>) -> Option<String> {
+    extract_user_agent_from_headers(req.headers())
+}
+
+/// Extract client IP address from headers
+pub fn extract_client_ip_from_headers(headers: &HeaderMap) -> Option<String> {
     // Try X-Forwarded-For header first (if behind proxy)
-    if let Some(forwarded) = req.headers().get("x-forwarded-for") {
+    if let Some(forwarded) = headers.get("x-forwarded-for") {
         if let Ok(forwarded_str) = forwarded.to_str() {
             // Get first IP from comma-separated list
             if let Some(ip) = forwarded_str.split(',').next() {
@@ -67,21 +77,20 @@ pub fn extract_client_ip<B>(req: &Request<B>) -> Option<String> {
             }
         }
     }
-    
+
     // Try X-Real-IP header
-    if let Some(real_ip) = req.headers().get("x-real-ip") {
+    if let Some(real_ip) = headers.get("x-real-ip") {
         if let Ok(ip_str) = real_ip.to_str() {
             return Some(ip_str.to_string());
         }
     }
-    
-    // Fallback to connection info (not available in axum middleware easily)
+
     None
 }
 
-/// Extract user agent from request
-pub fn extract_user_agent<B>(req: &Request<B>) -> Option<String> {
-    req.headers()
+/// Extract user agent from headers
+pub fn extract_user_agent_from_headers(headers: &HeaderMap) -> Option<String> {
+    headers
         .get(header::USER_AGENT)
         .and_then(|h| h.to_str().ok())
         .map(|s| s.to_string())
