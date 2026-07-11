@@ -1,7 +1,7 @@
 use axum::{
     extract::Extension,
     http::HeaderMap,
-    response::{IntoResponse, Redirect, Response},
+    response::{Html, IntoResponse, Redirect, Response},
     routing::{get, post},
     Form, Router,
 };
@@ -14,7 +14,7 @@ use crate::session;
 use crate::view::login::login_page;
 
 fn render_login(tenant_slug: &str, error: Option<String>) -> Response {
-    login_page(tenant_slug, error).into_response()
+    Html(login_page(tenant_slug, error).into_string()).into_response()
 }
 
 pub async fn show_login(Extension(ctx): Extension<TenantContext>) -> Response {

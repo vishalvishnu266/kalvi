@@ -1,5 +1,5 @@
 use axum::{
-    response::{IntoResponse, Response},
+    response::{Html, IntoResponse, Response},
     routing::get,
     Router,
 };
@@ -7,7 +7,7 @@ use shared::AppState;
 use crate::view::home::home_page;
 
 pub async fn show_home() -> Response {
-    home_page().into_response()
+    Html(home_page().into_string()).into_response()
 }
 
 pub fn routes() -> Router<AppState> {

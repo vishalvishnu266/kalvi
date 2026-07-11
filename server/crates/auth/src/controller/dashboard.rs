@@ -1,6 +1,6 @@
 use axum::{
     extract::Extension,
-    response::{IntoResponse, Response},
+    response::{Html, IntoResponse, Response},
     routing::get,
     Router,
 };
@@ -13,7 +13,7 @@ pub async fn show_dashboard(
     RequireAuth(user): RequireAuth,
     Extension(ctx): Extension<TenantContext>,
 ) -> Response {
-    dashboard_page(&ctx.slug, &user.username).into_response()
+    Html(dashboard_page(&ctx.slug, &user.username).into_string()).into_response()
 }
 
 pub fn routes() -> Router<AppState> {
