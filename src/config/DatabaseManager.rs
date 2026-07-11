@@ -6,10 +6,10 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 /// Migrations for the master database (tenant registry).
-pub static MASTER_MIGRATOR: Migrator = sqlx::migrate!("../../migrations/master");
+pub static MASTER_MIGRATOR: Migrator = sqlx::migrate!("./migrations/master");
 
 /// Migrations for each per-tenant database.
-pub static TENANT_MIGRATOR: Migrator = sqlx::migrate!("../../migrations/tenant");
+pub static TENANT_MIGRATOR: Migrator = sqlx::migrate!("./migrations/tenant");
 
 pub struct TenantDatabaseManager {
     master_pool: SqlitePool,
