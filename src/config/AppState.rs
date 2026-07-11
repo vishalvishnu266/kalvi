@@ -1,7 +1,6 @@
-use super::DatabaseManager::TenantDatabaseManager;
-use std::sync::Arc;
+use crate::config::DatabaseConfig::DatabaseConfig;
 
 #[derive(Clone)]
 pub struct AppState {
-    pub db_manager: Arc<TenantDatabaseManager>,
+    pub db: DatabaseConfig,
 }

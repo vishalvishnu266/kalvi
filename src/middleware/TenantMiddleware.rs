@@ -1,75 +1,70 @@
-use crate::config::AppState::AppState;
 use axum::{
-    extract::{Request, State},
-    http::StatusCode,
+    body::Body,
+    extract::State,
+    http::{Request, StatusCode},
     middleware::Next,
-    response::{IntoResponse, Response},
+    response::{Response, Redirect},
 };
+use crate::config::AppState::AppState;
+use crate::repository::TenantRepository::TenantRepository;
+use crate::model::Tenant::Tenant;
+use crate::util::SessionUtil;
 use sqlx::SqlitePool;
 
-/// Info about the current tenant, injected into request extensions.
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct TenantContext {
-    pub slug: String,
-    pub database_name: String,
-    pub name: String,
-    pub primary_color: String,
-    pub dark_mode: bool,
+    pub tenant: Tenant,
+    pub pool: SqlitePool,
 }
-
-use crate::repositories::TenantRepository;
 
 pub async fn tenant_middleware(
     State(state): State<AppState>,
-    mut req: Request,
+    mut req: Request<Body>,
     next: Next,
-) -> Response {
+) -> Result<Response, StatusCode> {
     let path = req.uri().path().to_string();
-
-    // Ensure path starts with /t/ and has at least one segment after it
+    
+    // Check if it's a tenant path
     if path.starts_with("/t/") {
-        let segments: Vec<&str> = path.trim_start_matches('/').split('/').collect();
+        let segments: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
         if segments.len() < 2 {
-            return (StatusCode::BAD_REQUEST, "Missing tenant slug").into_response();
+            // Redirect to common login if just /t/
+            return Ok(Redirect::to("/login").into_response());
         }
+        
         let slug = segments[1];
-        if slug.is_empty() {
-            return (StatusCode::BAD_REQUEST, "Missing tenant slug").into_response();
-        }
-
-        let master_pool = state.db_manager.master_pool();
-
-        let tenant = match TenantRepository::get_tenant_by_slug(&master_pool, slug).await {
+        let tenant = match TenantRepository::find_by_slug(&state.db.master_pool, slug).await {
             Ok(Some(t)) => t,
-            Ok(None) => {
-                return (StatusCode::NOT_FOUND, format!("Tenant '{}' not found", slug))
-                    .into_response();
-            }
-            Err(_) => return StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+            _ => return Ok(Redirect::to("/login").into_response()), // Tenant not found
         };
+            
+        let pool = state.db.get_tenant_pool(&tenant.database_name)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            
+        req.extensions_mut().insert(TenantContext {
+            tenant: tenant.clone(),
+            pool,
+        });
 
-        if !tenant.is_active {
-            return (StatusCode::FORBIDDEN, "Tenant is inactive").into_response();
-        }
-
-        match state.db_manager.tenant_pool(&tenant.database_name).await {
-            Ok(tenant_pool) => {
-                let ctx = TenantContext {
-                    slug: tenant.slug.clone(),
-                    database_name: tenant.database_name.clone(),
-                    name: tenant.name.clone(),
-                    primary_color: tenant.primary_color.clone(),
-                    dark_mode: tenant.dark_mode,
-                };
-                req.extensions_mut().insert(tenant_pool);
-                req.extensions_mut().insert(ctx);
-                next.run(req).await
+        // Ensure user is redirected to login if accessing tenant path without auth
+        // (Except for the login path itself)
+        if !path.contains("/login") {
+            let session_id = SessionUtil::get_session_id(req.headers());
+            if session_id.is_none() {
+                return Ok(Redirect::to(&format!("/t/{}/login", tenant.slug)).into_response());
             }
-            Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
         }
-    } else {
-        let master_pool = state.db_manager.master_pool();
-        req.extensions_mut().insert(master_pool);
-        next.run(req).await
+    } else if path.starts_with("/onboard") || path.starts_with("/saas/") {
+        // SaaS Owner paths - requires "saas_" session
+        if path.starts_with("/onboard") {
+             let session_id = SessionUtil::get_session_id(req.headers());
+             match session_id {
+                 Some(sid) if sid.starts_with("saas_") => {},
+                 _ => return Ok(Redirect::to("/saas/login").into_response()),
+             }
+        }
     }
+    
+    Ok(next.run(req).await)
 }
