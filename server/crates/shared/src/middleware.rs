@@ -1,6 +1,6 @@
 use crate::TenantDatabaseManager;
 use axum::{
-    extract::{Request, State, Path},
+    extract::{Request, State},
     middleware::Next,
     response::{IntoResponse, Response},
     http::StatusCode,
@@ -113,7 +113,10 @@ async fn get_tenant_by_slug(
         .await
 }
 
+/// Only the fields actively used by request routing are read here; the rest
+/// are included so the row can be deserialized by sqlx from `SELECT *`.
 #[derive(sqlx::FromRow)]
+#[allow(dead_code)]
 struct TenantRecord {
     id: i64,
     slug: String,

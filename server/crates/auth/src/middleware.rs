@@ -1,14 +1,13 @@
 use axum::{
-    extract::{Request, FromRequestParts},
+    extract::FromRequestParts,
     http::StatusCode,
     response::{IntoResponse, Redirect},
 };
 use sqlx::SqlitePool;
 use async_trait::async_trait;
 
-use crate::shared::{User, UserRole, db};
-use crate::session::{Session, SessionManager};
-use crate::cookie_manager;
+use crate::shared::{User, db};
+use crate::session::Session;
 
 /// Extractor that requires authentication
 pub struct RequireAuth(pub User);

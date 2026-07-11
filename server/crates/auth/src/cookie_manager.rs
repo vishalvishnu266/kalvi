@@ -6,7 +6,6 @@ use axum::{
     response::Response,
 };
 use cookie::{Cookie, SameSite};
-use std::time::Duration;
 
 const COOKIE_NAME: &str = "session_id";
 const SESSION_DURATION_SECS: u64 = 24 * 3600; // 24 hours

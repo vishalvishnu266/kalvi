@@ -1,7 +1,7 @@
 // Session middleware - loads session from cookie and injects into request
 
 use axum::{
-    extract::{Request, State},
+    extract::Request,
     middleware::Next,
     response::Response,
 };
@@ -24,14 +24,14 @@ pub async fn session_middleware(
             return next.run(req).await;
         }
     };
-    
+
     // Extract session ID from cookie
     let session_id = cookie_manager::extract_session_id(&req);
-    
+
     if let Some(id) = session_id {
         // Try to load session from database
         let session_manager = SessionManager::new(pool.clone());
-        
+
         if let Ok(Some(session)) = session_manager.get_session(&id).await {
             // Validate session
             if session.is_valid() {
@@ -41,31 +41,12 @@ pub async fn session_middleware(
                 tokio::spawn(async move {
                     let _ = session_manager_clone.touch_session(&id_clone).await;
                 });
-                
+
                 // Inject session into request
                 req.extensions_mut().insert(session);
             }
         }
     }
-    
+
     next.run(req).await
-}
-
-// Make SessionManager cloneable for background tasks
-impl Clone for SessionManager {
-    fn clone(&self) -> Self {
-        Self {
-            pool: self.pool.clone(),
-            config: self.config.clone(),
-        }
-    }
-}
-
-impl Clone for crate::session::SessionConfig {
-    fn clone(&self) -> Self {
-        Self {
-            duration: self.duration,
-            update_interval: self.update_interval,
-        }
-    }
 }

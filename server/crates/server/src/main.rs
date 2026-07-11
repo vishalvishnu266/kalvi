@@ -10,8 +10,12 @@ async fn main() {
             .await
             .expect("Failed to initialize database manager")
     );
-    
+
     let state = AppState { db_manager: db_manager.clone() };
+
+    // Start the background task that periodically removes expired sessions
+    // from every active tenant database.
+    let _cleanup_handle = auth::start_cleanup_task(db_manager.clone());
 
     let app = Router::new()
         .merge(tenant::routes())      // Tenant onboarding routes (control plane)
@@ -33,6 +37,7 @@ async fn main() {
     println!("📊 Dashboard: http://localhost:3000/t/{{tenant-slug}}/dashboard");
     println!();
     println!("ℹ️  Custom session system active!");
+    println!("🧹 Expired-session cleanup runs hourly in the background");
     println!("💡 Each tenant has isolated users, sessions, and data");
     axum::serve(listener, app).await.unwrap();
 }

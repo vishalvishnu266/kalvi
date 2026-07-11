@@ -3,10 +3,11 @@
 
 use axum::{
     Router,
+    extract::Extension,
     response::{Html, IntoResponse},
     routing::get,
 };
-use maud::{DOCTYPE, Markup, html, PreEscaped};
+use maud::{DOCTYPE, Markup, html};
 
 use crate::middleware::RequireAuth;
 use ::shared::middleware::AppState;
@@ -150,7 +151,7 @@ fn render_dashboard(user: &crate::shared::User, tenant_slug: &str) -> Markup {
                                 i class="bi bi-person-circle me-2" {}
                                 (user.username)
                             }
-                            a href="#" class="btn btn-outline-danger btn-sm logout-btn" {
+                            a href=(format!("/t/{}/logout", tenant_slug)) class="btn btn-outline-danger btn-sm logout-btn" {
                                 i class="bi bi-box-arrow-right me-1" {}
                                 "Logout"
                             }
@@ -335,15 +336,6 @@ fn render_dashboard(user: &crate::shared::User, tenant_slug: &str) -> Markup {
                 script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
                        integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
                        crossorigin="anonymous" {}
-                
-                script {
-                    (PreEscaped(format!(r#"
-                    document.querySelector('.logout-btn').addEventListener('click', function(e) {{
-                        e.preventDefault();
-                        window.location.href = '/t/{}/logout';
-                    }});
-                    "#, tenant_slug)))
-                }
             }
         }
     }

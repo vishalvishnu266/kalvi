@@ -44,6 +44,7 @@ pub struct SessionWithUser {
 }
 
 /// Session configuration
+#[derive(Debug, Clone)]
 pub struct SessionConfig {
     pub duration: Duration,
     pub update_interval: Duration,
@@ -59,6 +60,7 @@ impl Default for SessionConfig {
 }
 
 /// Session Manager - handles all session operations
+#[derive(Clone)]
 pub struct SessionManager {
     pool: SqlitePool,
     config: SessionConfig,
