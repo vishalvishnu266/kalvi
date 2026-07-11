@@ -13,5 +13,5 @@ validator = { version = "0.18", features = ["derive"] }
 shared = { path = "../shared" }
 auth = { path = "../auth" }
 chrono = "0.4"
-lazy_static = "1.4"
+once_cell = "1.19"
 regex = "1.10"

@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 use validator::Validate;
-use chrono::{DateTime, Utc};
+use once_cell::sync::Lazy;
+use regex::Regex;
 
 /// Core Tenant model
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
@@ -37,9 +38,8 @@ pub struct TenantOnboardingForm {
     pub address: String,
 }
 
-lazy_static::lazy_static! {
-    static ref SLUG_REGEX: regex::Regex = regex::Regex::new(r"^[a-z0-9]+(?:-[a-z0-9]+)*$").unwrap();
-}
+static SLUG_REGEX: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"^[a-z0-9]+(?:-[a-z0-9]+)*$").unwrap());
 
 /// Database operations for tenants (stored in master database)
 pub mod db {
