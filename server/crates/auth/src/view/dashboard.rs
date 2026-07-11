@@ -1,68 +1,89 @@
-use maud::{html, Markup};
-use shared::base;
+use shared::web::html::{Html, IntoHtml};
+use shared::html;
+use shared::web::layout::base;
 
-pub fn dashboard_page(tenant_slug: &str, username: &str) -> Markup {
-    base(
-        &format!("Dashboard - {}", tenant_slug),
-        html! {},
-        html! {
-            nav.navbar.navbar_expand_lg.navbar_dark.bg_primary {
-                div.container_fluid {
-                    a.navbar_brand href=(format!("/t/{}/dashboard", tenant_slug)) {
-                        i.bi.bi_mortarboard.me_2 {} (tenant_slug)
-                    }
-                    div.d_flex.align_items_center {
-                        span.text_white.me_3 {
-                            i.bi.bi_person_circle.me_1 {} (username)
-                        }
-                        form.d_inline action=(format!("/t/{}/logout", tenant_slug)) method="post" {
-                            button.btn.btn_outline_light.btn_sm type="submit" {
-                                i.bi.bi_box_arrow_right.me_1 {} "Logout"
-                            }
-                        }
-                    }
-                }
-            }
+pub fn dashboard_page(tenant_slug: &str, username: &str) -> Html {
+    let navbar = html!(
+        "<nav class=\"bg-indigo-600\">",
+            "<div class=\"max-w-7xl mx-auto px-4 sm:px-6 lg:px-8\">",
+                "<div class=\"flex items-center justify-between h-16\">",
+                    "<div class=\"flex items-center\">",
+                        "<div class=\"flex-shrink-0\">",
+                            "<i data-lucide=\"graduation-cap\" class=\"h-8 w-8 text-white\"></i>",
+                        "</div>",
+                        "<div class=\"hidden md:block\">",
+                            "<div class=\"ml-10 flex items-baseline space-x-4\">",
+                                "<span class=\"text-white font-bold\">", tenant_slug, "</span>",
+                            "</div>",
+                        "</div>",
+                    "</div>",
+                    "<div class=\"flex items-center space-x-4\">",
+                        "<div class=\"flex items-center text-white text-sm font-medium\">",
+                            "<i data-lucide=\"user-circle\" class=\"h-5 w-5 mr-2\"></i>",
+                            username,
+                        "</div>",
+                        "<form action=\"/t/", tenant_slug, "/logout\" method=\"POST\">",
+                            "<button type=\"submit\" class=\"bg-indigo-700 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-800 flex items-center\">",
+                                "<i data-lucide=\"log-out\" class=\"h-4 w-4 mr-2\"></i> Logout",
+                            "</button>",
+                        "</form>",
+                    "</div>",
+                "</div>",
+            "</div>",
+        "</nav>"
+    );
 
-            div.container.py_5 {
-                div.row {
-                    div.col_12 {
-                        h1.mb_4 { "Welcome, " (username) " 👋" }
-                        p.lead.text_muted {
-                            "You are logged in to the " strong { (tenant_slug) } " workspace."
-                        }
-                        div.row.mt_4.g_3 {
-                            div.col_md_4 {
-                                div.card.h_100 {
-                                    div.card_body {
-                                        h5.card_title { "👨‍🎓 Students" }
-                                        p.card_text.text_muted { "Manage student records." }
-                                        span.badge.bg_secondary { "Coming soon" }
-                                    }
-                                }
-                            }
-                            div.col_md_4 {
-                                div.card.h_100 {
-                                    div.card_body {
-                                        h5.card_title { "👥 Users" }
-                                        p.card_text.text_muted { "Manage tenant users." }
-                                        span.badge.bg_secondary { "Coming soon" }
-                                    }
-                                }
-                            }
-                            div.col_md_4 {
-                                div.card.h_100 {
-                                    div.card_body {
-                                        h5.card_title { "📊 Reports" }
-                                        p.card_text.text_muted { "Analytics and insights." }
-                                        span.badge.bg_secondary { "Coming soon" }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    )
+    let content = html!(
+        navbar,
+        "<main class=\"max-w-7xl mx-auto py-10 sm:px-6 lg:px-8\">",
+            "<div class=\"px-4 py-6 sm:px-0\">",
+                "<h1 class=\"text-3xl font-bold text-gray-900\">Welcome back, ", username, "!</h1>",
+                "<p class=\"mt-2 text-gray-600\">Manage your school activities here.</p>",
+
+                "<div class=\"mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3\">",
+                    // Card 1
+                    "<div class=\"bg-white overflow-hidden shadow rounded-lg border border-gray-200\">",
+                        "<div class=\"p-5\">",
+                            "<div class=\"flex items-center\">",
+                                "<div class=\"flex-shrink-0 bg-blue-500 rounded-md p-3\">",
+                                    "<i data-lucide=\"users\" class=\"h-6 w-6 text-white\"></i>",
+                                "</div>",
+                                "<div class=\"ml-5 w-0 flex-1\">",
+                                    "<dl>",
+                                        "<dt class=\"text-sm font-medium text-gray-500 truncate\">Students</dt>",
+                                        "<dd class=\"text-lg font-medium text-gray-900\">Manage Records</dd>",
+                                    "</dl>",
+                                "</div>",
+                            "</div>",
+                        "</div>",
+                        "<div class=\"bg-gray-50 px-5 py-3\">",
+                            "<div class=\"text-sm text-indigo-700 font-medium\">Coming soon</div>",
+                        "</div>",
+                    "</div>",
+                    
+                    // Card 2
+                    "<div class=\"bg-white overflow-hidden shadow rounded-lg border border-gray-200\">",
+                        "<div class=\"p-5\">",
+                            "<div class=\"flex items-center\">",
+                                "<div class=\"flex-shrink-0 bg-green-500 rounded-md p-3\">",
+                                    "<i data-lucide=\"settings\" class=\"h-6 w-6 text-white\"></i>",
+                                "</div>",
+                                "<div class=\"ml-5 w-0 flex-1\">",
+                                    "<dl>",
+                                        "<dt class=\"text-sm font-medium text-gray-500 truncate\">Settings</dt>",
+                                        "<dd class=\"text-lg font-medium text-gray-900\">Configuration</dd>",
+                                    "</dl>",
+                                "</div>",
+                            "</div>",
+                        "</div>",
+                        "<div class=\"bg-gray-50 px-5 py-3\">",
+                            "<div class=\"text-sm text-indigo-700 font-medium\">Coming soon</div>",
+                        "</div>",
+                    "</div>",
+                "</div>",
+            "</div>",
+        "</main>"
+    );
+
+    base(&format!("Dashboard - {}", tenant_slug), Html("".to_string()), content)
 }

@@ -1,6 +1,6 @@
 use axum::{
     extract::{Extension, State},
-    response::{Html, IntoResponse, Response},
+    response::{IntoResponse, Response},
     routing::{get, post},
     Form, Router,
 };
@@ -13,11 +13,11 @@ use crate::repository;
 use crate::view::onboarding::{form_page, success_page};
 
 fn render_form(error: Option<String>) -> Response {
-    Html(form_page(error).into_string()).into_response()
+    form_page(error).into_response()
 }
 
 fn render_success(slug: &str, name: &str) -> Response {
-    Html(success_page(slug, name).into_string()).into_response()
+    success_page(slug, name).into_response()
 }
 
 pub async fn show_form() -> Response {
