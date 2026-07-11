@@ -4,12 +4,16 @@ use axum::{
 };
 use serde::Deserialize;
 use crate::middleware::TenantMiddleware::TenantContext;
+use crate::models::UserModel::User;
 use sqlx::SqlitePool;
 
 use crate::repositories::TenantRepository;
 use crate::views::SettingsView;
 
-pub async fn show_settings(Extension(ctx): Extension<TenantContext>) -> Response {
+pub async fn show_settings(
+    Extension(_user): Extension<User>,
+    Extension(ctx): Extension<TenantContext>
+) -> Response {
     SettingsView::render_settings(&ctx, None).into_response()
 }
 
@@ -20,6 +24,7 @@ pub struct ThemeForm {
 }
 
 pub async fn update_settings(
+    Extension(_user): Extension<User>,
     Extension(master_pool): Extension<SqlitePool>,
     Extension(mut ctx): Extension<TenantContext>,
     Form(form): Form<ThemeForm>,

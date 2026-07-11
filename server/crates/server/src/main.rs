@@ -11,7 +11,7 @@ mod config;
 use axum::middleware as axum_middleware;
 use crate::config::DatabaseManager::TenantDatabaseManager;
 use crate::config::AppState::AppState;
-use crate::middleware::{TenantMiddleware, SessionMiddleware};
+use crate::middleware::{TenantMiddleware, SessionMiddleware, AuthenticationMiddleware};
 use std::sync::Arc;
 
 #[tokio::main]
@@ -27,6 +27,8 @@ async fn main() {
     };
 
     let app = routes::app_routes()
+        // Auth check runs after session extraction
+        .layer(axum_middleware::from_fn(AuthenticationMiddleware::require_auth_middleware))
         .layer(axum_middleware::from_fn_with_state(state.clone(), SessionMiddleware::session_middleware))
         .layer(axum_middleware::from_fn_with_state(state.clone(), TenantMiddleware::tenant_middleware))
         .with_state(state);
