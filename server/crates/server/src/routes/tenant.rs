@@ -2,14 +2,14 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use shared::AppState;
-use tenant::controller::{home, onboarding, settings};
+use crate::config::AppState::AppState;
+use crate::controllers::{HomeController, OnboardingController, SettingsController};
 
 pub fn routes() -> Router<AppState> {
     Router::new()
-        .route("/", get(home::show_home))
-        .route("/onboard", get(onboarding::show_form))
-        .route("/onboard", post(onboarding::submit_form))
-        .route("/t/{tenant_slug}/settings", get(settings::show_settings))
-        .route("/t/{tenant_slug}/settings", post(settings::update_settings))
+        .route("/", get(HomeController::show_home))
+        .route("/onboard", get(OnboardingController::show_form))
+        .route("/onboard", post(OnboardingController::submit_form))
+        .route("/t/{tenant_slug}/settings", get(SettingsController::show_settings))
+        .route("/t/{tenant_slug}/settings", post(SettingsController::update_settings))
 }

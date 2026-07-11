@@ -1,7 +1,17 @@
 mod routes;
+mod controllers;
+mod models;
+mod repositories;
+mod views;
+mod services;
+mod middleware;
+mod web_utils;
+mod config;
 
-use axum::{middleware as axum_middleware};
-use shared::{AppState, TenantDatabaseManager};
+use axum::middleware as axum_middleware;
+use crate::config::DatabaseManager::TenantDatabaseManager;
+use crate::config::AppState::AppState;
+use crate::middleware::{TenantMiddleware, SessionMiddleware};
 use std::sync::Arc;
 
 #[tokio::main]
@@ -17,23 +27,11 @@ async fn main() {
     };
 
     let app = routes::app_routes()
-        // Both middlewares now use from_fn_with_state for a uniform syntax.
-        // Middleware layers are applied bottom-up: tenant lookup happens first.
-        .layer(axum_middleware::from_fn_with_state(state.clone(), shared::session_middleware))
-        .layer(axum_middleware::from_fn_with_state(state.clone(), shared::tenant_middleware))
+        .layer(axum_middleware::from_fn_with_state(state.clone(), SessionMiddleware::session_middleware))
+        .layer(axum_middleware::from_fn_with_state(state.clone(), TenantMiddleware::tenant_middleware))
         .with_state(state);
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
-        .await
-        .expect("failed to bind");
-
-    println!("🚀 School ERP running at http://localhost:3000");
-    println!();
-    println!("  Home:      http://localhost:3000/");
-    println!("  Onboard:   http://localhost:3000/onboard");
-    println!("  Login:     http://localhost:3000/t/<slug>/login");
-    println!("  Dashboard: http://localhost:3000/t/<slug>/dashboard");
-    println!();
-
-    axum::serve(listener, app).await.expect("server error");
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    println!("Server running on http://localhost:3000");
+    axum::serve(listener, app).await.unwrap();
 }

@@ -1,8 +1,5 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/shared",
-    "crates/auth",
-    "crates/tenant",
     "crates/server",
 ]

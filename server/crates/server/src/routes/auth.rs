@@ -2,13 +2,13 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use shared::AppState;
-use auth::controller::{login, logout, dashboard};
+use crate::config::AppState::AppState;
+use crate::controllers::{LoginController, LogoutController, DashboardController};
 
 pub fn routes() -> Router<AppState> {
     Router::new()
-        .route("/t/{tenant_slug}/login", get(login::show_login))
-        .route("/t/{tenant_slug}/login", post(login::process_login))
-        .route("/t/{tenant_slug}/logout", post(logout::process_logout))
-        .route("/t/{tenant_slug}/dashboard", get(dashboard::show_dashboard))
+        .route("/t/{tenant_slug}/login", get(LoginController::show_login))
+        .route("/t/{tenant_slug}/login", post(LoginController::process_login))
+        .route("/t/{tenant_slug}/logout", post(LogoutController::process_logout))
+        .route("/t/{tenant_slug}/dashboard", get(DashboardController::show_dashboard))
 }
