@@ -242,18 +242,27 @@ Done! ✅
 
 ---
 
-## 📊 Multi-Tenancy
+## 📊 Multi-Tenancy (Educational Focus)
 
-Built-in header-based tenant routing:
+**Architecture**: One SQLite database per school for maximum simplicity and security.
 
 ```bash
-# Request for tenant "company1"
-curl -H "X-Tenant-ID: company1" http://localhost:3000/student/1
+# Each school gets its own isolated database
+curl -H "X-Tenant-ID: springfield-high" http://localhost:3000/student/1
+# Uses: springfield-high.db
 
-# Different database pool automatically used
+curl -H "X-Tenant-ID: lakeside-academy" http://localhost:3000/student/1
+# Uses: lakeside-academy.db
 ```
 
-Middleware in `shared/src/middleware.rs` handles everything. Each tenant gets isolated SQLite database.
+**Benefits for Educational ERP:**
+- 🔒 Perfect data isolation (no cross-school data leaks)
+- 🚀 Fast queries (no `school_id` filtering needed)
+- 🤖 AI-friendly (simpler code, less context)
+- 💾 Independent backups per school
+- 🎯 Solo-dev friendly (less complexity)
+
+**See [ARCHITECTURE_DECISION.md](ARCHITECTURE_DECISION.md) for full analysis of multi-school scenarios.**
 
 ---
 

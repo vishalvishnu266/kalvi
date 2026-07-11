@@ -553,10 +553,22 @@ student/src/view_student.rs  ← Everything in one file
 
 ### Why Multi-Tenancy by Default?
 
-- **Header-based**: `X-Tenant-ID` header
-- **Database per tenant**: Isolated data
-- **Zero code changes**: Middleware handles it
-- **Optional**: Works without header (uses default DB)
+**Architecture Decision: One DB per School** (for Educational ERP)
+
+- **Header-based**: `X-Tenant-ID` header identifies the school
+- **Database per school**: Each school gets isolated SQLite database
+- **Zero code changes**: Middleware handles routing automatically
+- **AI-friendly**: Pool is already scoped to correct school (no `school_id` filtering)
+- **Security**: Physical data isolation prevents cross-school contamination
+- **Optional**: Works without header (uses default/test DB)
+
+**Key Insight**: For educational institutions, this is simpler and safer than having multiple schools share one database with `school_id` columns everywhere.
+
+**See [ARCHITECTURE_DECISION.md](ARCHITECTURE_DECISION.md) for full analysis, including:**
+- Why one DB per school beats multi-school per tenant
+- How to handle multi-school owners (application-level aggregation)
+- RBAC implementation strategies
+- Performance considerations
 
 ---
 
