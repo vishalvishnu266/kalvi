@@ -45,3 +45,15 @@ pub async fn update_theme(
         .await?;
     Ok(())
 }
+
+pub async fn get_tenant_by_slug(
+    pool: &SqlitePool,
+    slug: &str,
+) -> Result<Option<Tenant>, sqlx::Error> {
+    sqlx::query_as::<_, Tenant>(
+        "SELECT * FROM tenants WHERE slug = ?",
+    )
+    .bind(slug)
+    .fetch_optional(pool)
+    .await
+}

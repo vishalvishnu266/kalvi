@@ -1,4 +1,4 @@
-mod routes;
+mod Routes;
 mod controllers;
 mod models;
 mod repositories;
@@ -26,7 +26,7 @@ async fn main() {
         db_manager: db_manager.clone(),
     };
 
-    let app = routes::app_routes()
+    let app = Routes::app_routes()
         // Auth check runs after session extraction
         .layer(axum_middleware::from_fn(AuthenticationMiddleware::require_auth_middleware))
         .layer(axum_middleware::from_fn_with_state(state.clone(), SessionMiddleware::session_middleware))

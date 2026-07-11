@@ -17,15 +17,7 @@ pub struct TenantContext {
     pub dark_mode: bool,
 }
 
-#[derive(sqlx::FromRow)]
-struct TenantRow {
-    slug: String,
-    name: String,
-    database_name: String,
-    is_active: bool,
-    primary_color: String,
-    dark_mode: bool,
-}
+use crate::repositories::TenantRepository;
 
 pub async fn tenant_middleware(
     State(state): State<AppState>,
@@ -42,7 +34,7 @@ pub async fn tenant_middleware(
 
         let master_pool = state.db_manager.master_pool();
 
-        let tenant = match get_tenant_by_slug(&master_pool, slug).await {
+        let tenant = match TenantRepository::get_tenant_by_slug(&master_pool, slug).await {
             Ok(Some(t)) => t,
             Ok(None) => {
                 return (StatusCode::NOT_FOUND, format!("Tenant '{}' not found", slug))
@@ -75,16 +67,4 @@ pub async fn tenant_middleware(
         req.extensions_mut().insert(master_pool);
         next.run(req).await
     }
-}
-
-async fn get_tenant_by_slug(
-    pool: &SqlitePool,
-    slug: &str,
-) -> Result<Option<TenantRow>, sqlx::Error> {
-    sqlx::query_as::<_, TenantRow>(
-        "SELECT slug, name, database_name, is_active, primary_color, dark_mode FROM tenants WHERE slug = ?",
-    )
-    .bind(slug)
-    .fetch_optional(pool)
-    .await
 }

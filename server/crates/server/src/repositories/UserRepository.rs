@@ -79,3 +79,20 @@ pub async fn delete_session(pool: &SqlitePool, session_id: &str) -> Result<(), s
         .await?;
     Ok(())
 }
+
+pub async fn create_user(
+    pool: &SqlitePool,
+    username: &str,
+    password_hash: &str,
+    role: &str,
+) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        "INSERT INTO users (username, password_hash, role, is_active) VALUES (?, ?, ?, 1)",
+    )
+    .bind(username)
+    .bind(password_hash)
+    .bind(role)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
