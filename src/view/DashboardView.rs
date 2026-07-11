@@ -72,7 +72,8 @@ pub fn render_dashboard(tenant: &Tenant, user: &User) -> String {
         </div>"#,
         logo_char = tenant.name.chars().next().unwrap_or('K'),
         tenant_name = tenant.name,
-        username = user.full_name.as_deref().unwrap_or(&user.username)
+        username = user.full_name.as_deref().unwrap_or(&user.username),
+        slug = tenant.slug
     );
 
     let ctx = LayoutContext {

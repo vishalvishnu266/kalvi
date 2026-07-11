@@ -25,13 +25,21 @@ impl UserRepository {
     }
 
     pub async fn find_session(pool: &SqlitePool, session_id: &str) -> Result<Option<(Session, User)>, sqlx::Error> {
-        let row = sqlx::query_as::<_, (Session, User)>(
-            "SELECT s.*, u.* FROM sessions s JOIN users u ON s.user_id = u.id WHERE s.id = ? AND s.expires_at > CURRENT_TIMESTAMP"
-        )
-        .bind(session_id)
-        .fetch_optional(pool)
-        .await?;
-        Ok(row)
+        let session = sqlx::query_as::<_, Session>("SELECT * FROM sessions WHERE id = ? AND expires_at > CURRENT_TIMESTAMP")
+            .bind(session_id)
+            .fetch_optional(pool)
+            .await?;
+            
+        match session {
+            Some(s) => {
+                let user = sqlx::query_as::<_, User>("SELECT * FROM users WHERE id = ?")
+                    .bind(s.user_id)
+                    .fetch_one(pool)
+                    .await?;
+                Ok(Some((s, user)))
+            },
+            None => Ok(None),
+        }
     }
 
     pub async fn delete_session(pool: &SqlitePool, session_id: &str) -> Result<(), sqlx::Error> {

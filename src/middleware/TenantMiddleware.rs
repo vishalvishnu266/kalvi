@@ -3,7 +3,7 @@ use axum::{
     extract::State,
     http::{Request, StatusCode},
     middleware::Next,
-    response::{Response, Redirect},
+    response::{Response, Redirect, IntoResponse},
 };
 use crate::config::AppState::AppState;
 use crate::repository::TenantRepository::TenantRepository;
@@ -38,7 +38,7 @@ pub async fn tenant_middleware(
             _ => return Ok(Redirect::to("/login").into_response()), // Tenant not found
         };
             
-        let pool = state.db.get_tenant_pool(&tenant.database_name)
+        let pool: SqlitePool = state.db.get_tenant_pool(&tenant.database_name)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
             

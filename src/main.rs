@@ -16,20 +16,22 @@ use crate::config::AppState::AppState;
 use crate::config::DatabaseConfig::DatabaseConfig;
 use crate::controller::*;
 use crate::middleware::TenantMiddleware::tenant_middleware;
+use crate::middleware::AuthMiddleware::auth_middleware;
 
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
 
-    let db_config = DatabaseConfig::new().await.expect("Failed to initialize database");
+    let db_config: DatabaseConfig = DatabaseConfig::new().await.expect("Failed to initialize database");
     let state = AppState { db: db_config };
 
     let tenant_routes = Router::new()
         .route("/dashboard", get(DashboardController::show_dashboard))
         .route("/settings", get(SettingsController::show_settings).post(SettingsController::process_settings))
-        .route("/logout", post(LogoutController::process_tenant_logout));
+        .route("/logout", post(LogoutController::process_tenant_logout))
+        .layer(axum_middleware::from_fn(auth_middleware));
 
-    let app = Router::new()
+    let app: Router = Router::new()
         .route("/", get(HomeController::show_home))
         .route("/login", get(LoginController::show_common_login).post(LoginController::process_common_login))
         .route("/logout", post(LogoutController::process_logout))
