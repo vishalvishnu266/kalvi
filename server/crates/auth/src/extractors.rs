@@ -6,7 +6,8 @@ use axum::{
 use shared::TenantContext;
 use sqlx::SqlitePool;
 
-use crate::models::{self, Session, User};
+use crate::model::{Session, User};
+use crate::repository;
 
 /// Extractor: requires an authenticated user in the current tenant.
 /// Redirects to the tenant login page on failure.
@@ -37,7 +38,7 @@ where
             .cloned()
             .ok_or_else(|| Redirect::to(&login_url).into_response())?;
 
-        let user = models::get_user_by_id(&pool, session.user_id)
+        let user = repository::get_user_by_id(&pool, session.user_id)
             .await
             .map_err(|_| Redirect::to(&login_url).into_response())?
             .ok_or_else(|| Redirect::to(&login_url).into_response())?;

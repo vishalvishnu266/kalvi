@@ -1,8 +1,7 @@
-use askama::Template;
 use axum::{
     extract::Extension,
-    http::{HeaderMap, StatusCode},
-    response::{Html, IntoResponse, Redirect, Response},
+    http::HeaderMap,
+    response::{IntoResponse, Redirect, Response},
     routing::{get, post},
     Form, Router,
 };
@@ -10,47 +9,31 @@ use serde::Deserialize;
 use shared::{AppState, TenantContext};
 use sqlx::SqlitePool;
 
-use crate::models;
+use crate::repository;
 use crate::session;
-
-#[derive(Template)]
-#[template(path = "auth/login.html")]
-struct LoginTemplate<'a> {
-    tenant_slug: &'a str,
-    error: Option<String>,
-}
+use crate::view::login::login_page;
 
 fn render_login(tenant_slug: &str, error: Option<String>) -> Response {
-    let tmpl = LoginTemplate {
-        tenant_slug,
-        error,
-    };
-    match tmpl.render() {
-        Ok(html) => Html(html).into_response(),
-        Err(err) => {
-            eprintln!("template error: {err:?}");
-            (StatusCode::INTERNAL_SERVER_ERROR, "Template error").into_response()
-        }
-    }
+    login_page(tenant_slug, error).into_response()
 }
 
-async fn show_login(Extension(ctx): Extension<TenantContext>) -> Response {
+pub async fn show_login(Extension(ctx): Extension<TenantContext>) -> Response {
     render_login(&ctx.slug, None)
 }
 
 #[derive(Debug, Deserialize)]
-struct LoginForm {
-    username: String,
-    password: String,
+pub struct LoginForm {
+    pub username: String,
+    pub password: String,
 }
 
-async fn process_login(
+pub async fn process_login(
     Extension(pool): Extension<SqlitePool>,
     Extension(ctx): Extension<TenantContext>,
     headers: HeaderMap,
     Form(form): Form<LoginForm>,
 ) -> Response {
-    let user = match models::get_user_by_username(&pool, form.username.trim()).await {
+    let user = match repository::get_user_by_username(&pool, form.username.trim()).await {
         Ok(Some(u)) => u,
         Ok(None) => return render_login(&ctx.slug, Some("Invalid username or password".into())),
         Err(_) => {
@@ -70,7 +53,7 @@ async fn process_login(
     let ip = session::extract_client_ip(&headers);
     let ua = session::extract_user_agent(&headers);
 
-    let sess = match session::create_session(&pool, user.id, ip, ua).await {
+    let sess = match repository::create_session(&pool, user.id, ip, ua).await {
         Ok(s) => s,
         Err(_) => return render_login(&ctx.slug, Some("Failed to create session".into())),
     };

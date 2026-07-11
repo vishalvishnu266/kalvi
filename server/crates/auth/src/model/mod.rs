@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use sqlx::SqlitePool;
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct User {
@@ -20,21 +19,4 @@ pub struct Session {
     pub user_agent: Option<String>,
     pub created_at: String,
     pub expires_at: String,
-}
-
-pub async fn get_user_by_username(
-    pool: &SqlitePool,
-    username: &str,
-) -> Result<Option<User>, sqlx::Error> {
-    sqlx::query_as::<_, User>("SELECT * FROM users WHERE username = ?")
-        .bind(username)
-        .fetch_optional(pool)
-        .await
-}
-
-pub async fn get_user_by_id(pool: &SqlitePool, id: i64) -> Result<Option<User>, sqlx::Error> {
-    sqlx::query_as::<_, User>("SELECT * FROM users WHERE id = ?")
-        .bind(id)
-        .fetch_optional(pool)
-        .await
 }

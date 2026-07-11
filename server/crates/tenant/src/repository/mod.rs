@@ -1,18 +1,5 @@
-use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
-
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
-pub struct Tenant {
-    pub id: i64,
-    pub slug: String,
-    pub name: String,
-    pub contact_email: String,
-    pub contact_phone: String,
-    pub address: String,
-    pub database_name: String,
-    pub is_active: bool,
-    pub created_at: String,
-}
+use crate::model::{Tenant, NewTenant};
 
 pub async fn slug_exists(pool: &SqlitePool, slug: &str) -> Result<bool, sqlx::Error> {
     let row: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM tenants WHERE slug = ?")
@@ -20,14 +7,6 @@ pub async fn slug_exists(pool: &SqlitePool, slug: &str) -> Result<bool, sqlx::Er
         .fetch_one(pool)
         .await?;
     Ok(row.0 > 0)
-}
-
-pub struct NewTenant<'a> {
-    pub slug: &'a str,
-    pub name: &'a str,
-    pub contact_email: &'a str,
-    pub contact_phone: &'a str,
-    pub address: &'a str,
 }
 
 pub async fn insert_tenant(pool: &SqlitePool, t: NewTenant<'_>) -> Result<Tenant, sqlx::Error> {

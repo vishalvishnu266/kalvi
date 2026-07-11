@@ -1,12 +1,11 @@
-pub mod models;
-mod home;
-mod onboarding;
+pub mod controller;
+pub mod model;
+pub mod repository;
+pub mod view;
 
 use axum::Router;
 use shared::AppState;
 
 pub fn routes() -> Router<AppState> {
-    Router::new()
-        .merge(home::routes())
-        .merge(onboarding::routes())
+    controller::routes()
 }

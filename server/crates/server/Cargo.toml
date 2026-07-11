@@ -7,5 +7,7 @@ edition = "2021"
 shared = { path = "../shared" }
 tenant = { path = "../tenant" }
 auth = { path = "../auth" }
+student = { path = "../student" }
 axum = "0.8"
 tokio = { version = "1", features = ["full"] }
+tower-http = { version = "0.6", features = ["fs"] }

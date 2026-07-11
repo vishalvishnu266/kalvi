@@ -1,8 +1,6 @@
-use askama::Template;
 use axum::{
     extract::{Extension, State},
-    http::StatusCode,
-    response::{Html, IntoResponse, Response},
+    response::{IntoResponse, Response},
     routing::{get, post},
     Form, Router,
 };
@@ -10,62 +8,34 @@ use serde::Deserialize;
 use shared::AppState;
 use sqlx::SqlitePool;
 
-use crate::models::{self, NewTenant};
-
-// ---------- Templates ----------
-
-#[derive(Template)]
-#[template(path = "onboarding/form.html")]
-struct OnboardingForm {
-    error: Option<String>,
-}
-
-#[derive(Template)]
-#[template(path = "onboarding/success.html")]
-struct OnboardingSuccess<'a> {
-    slug: &'a str,
-    name: &'a str,
-}
+use crate::model::NewTenant;
+use crate::repository;
+use crate::view::onboarding::{form_page, success_page};
 
 fn render_form(error: Option<String>) -> Response {
-    match (OnboardingForm { error }).render() {
-        Ok(html) => Html(html).into_response(),
-        Err(err) => {
-            eprintln!("template error: {err:?}");
-            (StatusCode::INTERNAL_SERVER_ERROR, "Template error").into_response()
-        }
-    }
+    form_page(error).into_response()
 }
 
 fn render_success(slug: &str, name: &str) -> Response {
-    let tmpl = OnboardingSuccess { slug, name };
-    match tmpl.render() {
-        Ok(html) => Html(html).into_response(),
-        Err(err) => {
-            eprintln!("template error: {err:?}");
-            (StatusCode::INTERNAL_SERVER_ERROR, "Template error").into_response()
-        }
-    }
+    success_page(slug, name).into_response()
 }
 
-// ---------- Handlers ----------
-
-async fn show_form() -> Response {
+pub async fn show_form() -> Response {
     render_form(None)
 }
 
 #[derive(Debug, Deserialize)]
-struct OnboardForm {
-    slug: String,
-    name: String,
-    contact_email: String,
-    contact_phone: String,
-    address: String,
-    admin_username: String,
-    admin_password: String,
+pub struct OnboardForm {
+    pub slug: String,
+    pub name: String,
+    pub contact_email: String,
+    pub contact_phone: String,
+    pub address: String,
+    pub admin_username: String,
+    pub admin_password: String,
 }
 
-async fn submit_form(
+pub async fn submit_form(
     Extension(master_pool): Extension<SqlitePool>,
     State(state): State<AppState>,
     Form(form): Form<OnboardForm>,
@@ -80,7 +50,7 @@ async fn submit_form(
         ));
     }
 
-    match models::slug_exists(&master_pool, &slug).await {
+    match repository::slug_exists(&master_pool, &slug).await {
         Ok(true) => return render_form(Some(format!("Slug '{slug}' is already taken"))),
         Err(err) => {
             eprintln!("slug_exists error: {err:?}");
@@ -89,7 +59,7 @@ async fn submit_form(
         Ok(false) => {}
     }
 
-    let tenant = match models::insert_tenant(
+    let tenant = match repository::insert_tenant(
         &master_pool,
         NewTenant {
             slug: &slug,
@@ -108,7 +78,6 @@ async fn submit_form(
         }
     };
 
-    // Provision the tenant database (runs tenant migrations).
     let tenant_pool = match state.db_manager.tenant_pool(&tenant.database_name).await {
         Ok(p) => p,
         Err(err) => {

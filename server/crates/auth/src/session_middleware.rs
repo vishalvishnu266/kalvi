@@ -16,7 +16,7 @@ use crate::session;
 pub async fn session_middleware(mut req: Request, next: Next) -> Response {
     if let Some(session_id) = session::extract_session_cookie(req.headers()) {
         if let Some(pool) = req.extensions().get::<SqlitePool>().cloned() {
-            if let Ok(Some(sess)) = session::get_valid_session(&pool, &session_id).await {
+            if let Ok(Some(sess)) = crate::repository::get_valid_session(&pool, &session_id).await {
                 req.extensions_mut().insert(sess);
             }
         }
