@@ -6,8 +6,7 @@ use axum::{
 use shared::TenantContext;
 use sqlx::SqlitePool;
 
-use crate::models::{self, User};
-use crate::session::Session;
+use crate::models::{self, Session, User};
 
 /// Extractor: requires an authenticated user in the current tenant.
 /// Redirects to the tenant login page on failure.
