@@ -26,6 +26,9 @@ async fn main() {
     let state = AppState { db: db_config };
 
     let tenant_routes = Router::new()
+        .route("/", get(|axum::extract::Path(slug): axum::extract::Path<String>| async move {
+            axum::response::Redirect::to(&format!("/t/{}/dashboard", slug))
+        }))
         .route("/dashboard", get(DashboardController::show_dashboard))
         .route("/settings", get(SettingsController::show_settings).post(SettingsController::process_settings))
         .route("/logout", post(LogoutController::process_tenant_logout))

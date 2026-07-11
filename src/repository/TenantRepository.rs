@@ -31,4 +31,10 @@ impl TenantRepository {
             .await?;
         Ok(())
     }
+
+    pub async fn list_all(pool: &SqlitePool) -> Result<Vec<Tenant>, sqlx::Error> {
+        sqlx::query_as::<_, Tenant>("SELECT * FROM tenants")
+            .fetch_all(pool)
+            .await
+    }
 }

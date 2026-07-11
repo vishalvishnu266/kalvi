@@ -1,6 +1,6 @@
 use axum::{
     extract::{Extension, Form, State},
-    response::{Html, IntoResponse},
+    response::{Html, IntoResponse, Redirect},
 };
 use serde::Deserialize;
 use crate::config::AppState::AppState;
@@ -27,12 +27,9 @@ pub async fn process_settings(
     
     match TenantRepository::update_settings(&state.db.master_pool, &ctx.tenant.slug, &form.primary_color, dark_mode).await {
         Ok(_) => {
-            // Update context in-memory if needed or let refresh handle it
-            let mut updated_tenant = ctx.tenant.clone();
-            updated_tenant.primary_color = form.primary_color;
-            updated_tenant.dark_mode = dark_mode;
-            Html(SettingsView::render_settings(&updated_tenant, Some("Settings updated successfully!".to_string())))
+            // Redirect to dashboard on success to show changes reflected
+            Redirect::to(&format!("/t/{}/dashboard", ctx.tenant.slug)).into_response()
         }
-        Err(_) => Html(SettingsView::render_settings(&ctx.tenant, Some("Failed to update settings".to_string()))),
+        Err(_) => Html(SettingsView::render_settings(&ctx.tenant, Some("Failed to update settings".to_string()))).into_response(),
     }
 }
