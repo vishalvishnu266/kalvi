@@ -1,4 +1,4 @@
-use crate::TenantDatabaseManager;
+use crate::AppState;
 use axum::{
     extract::{Request, State},
     http::StatusCode,
@@ -6,13 +6,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use sqlx::SqlitePool;
-use std::sync::Arc;
 
-/// Application state shared across all handlers.
-#[derive(Clone)]
-pub struct AppState {
-    pub db_manager: Arc<TenantDatabaseManager>,
-}
 
 /// Info about the current tenant, injected into request extensions.
 #[derive(Debug, Clone)]
