@@ -2,8 +2,7 @@ use axum::{
     extract::Extension,
     http::HeaderMap,
     response::{IntoResponse, Redirect, Response},
-    routing::{get, post},
-    Form, Router,
+    Form,
 };
 use serde::Deserialize;
 use shared::{AppState, TenantContext};
@@ -63,8 +62,3 @@ pub async fn process_login(
     resp
 }
 
-pub fn routes() -> Router<AppState> {
-    Router::new()
-        .route("/t/{tenant_slug}/login", get(show_login))
-        .route("/t/{tenant_slug}/login", post(process_login))
-}

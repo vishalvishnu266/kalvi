@@ -1,5 +1,7 @@
-use axum::{middleware as axum_middleware, Router};
-use shared::{tenant_middleware, AppState, TenantDatabaseManager};
+mod routes;
+
+use axum::{middleware as axum_middleware};
+use shared::{AppState, TenantDatabaseManager};
 use std::sync::Arc;
 
 #[tokio::main]
@@ -14,16 +16,11 @@ async fn main() {
         db_manager: db_manager.clone(),
     };
 
-    let app = Router::new()
-        .merge(tenant::routes())
-        .merge(auth::routes())
-        // Session middleware needs the tenant pool, so it runs *after*
-        // the tenant middleware (middleware layers are applied bottom-up).
-        .layer(axum_middleware::from_fn(auth::session_middleware))
-        .layer(axum_middleware::from_fn_with_state(
-            state.clone(),
-            tenant_middleware,
-        ))
+    let app = routes::app_routes()
+        // Both middlewares now use from_fn_with_state for a uniform syntax.
+        // Middleware layers are applied bottom-up: tenant lookup happens first.
+        .layer(axum_middleware::from_fn_with_state(state.clone(), shared::session_middleware))
+        .layer(axum_middleware::from_fn_with_state(state.clone(), shared::tenant_middleware))
         .with_state(state);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")

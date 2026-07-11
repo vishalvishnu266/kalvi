@@ -2,8 +2,6 @@ use axum::{
     extract::Extension,
     http::HeaderMap,
     response::{IntoResponse, Redirect, Response},
-    routing::post,
-    Router,
 };
 use shared::{AppState, TenantContext};
 use sqlx::SqlitePool;
@@ -24,6 +22,3 @@ pub async fn process_logout(
     resp
 }
 
-pub fn routes() -> Router<AppState> {
-    Router::new().route("/t/{tenant_slug}/logout", post(process_logout))
-}

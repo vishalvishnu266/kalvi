@@ -7,7 +7,6 @@ use axum::{
 };
 use sqlx::SqlitePool;
 
-
 /// Info about the current tenant, injected into request extensions.
 #[derive(Debug, Clone)]
 pub struct TenantContext {
@@ -16,14 +15,14 @@ pub struct TenantContext {
     pub name: String,
 }
 
-/// Path-based tenant middleware.
-///
-/// For paths starting with `/t/{slug}/...` it:
-///   1. Looks up the tenant in the master DB by `slug`.
-///   2. Opens (or reuses) the tenant DB pool.
-///   3. Injects the tenant `SqlitePool` and a `TenantContext` into request extensions.
-///
-/// For any other path it injects the master `SqlitePool`.
+#[derive(sqlx::FromRow)]
+struct TenantRow {
+    slug: String,
+    name: String,
+    database_name: String,
+    is_active: bool,
+}
+
 pub async fn tenant_middleware(
     State(state): State<AppState>,
     mut req: Request,
@@ -83,12 +82,4 @@ async fn get_tenant_by_slug(
     .bind(slug)
     .fetch_optional(pool)
     .await
-}
-
-#[derive(sqlx::FromRow)]
-struct TenantRow {
-    slug: String,
-    name: String,
-    database_name: String,
-    is_active: bool,
 }

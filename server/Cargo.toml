@@ -4,6 +4,5 @@ members = [
     "crates/shared",
     "crates/auth",
     "crates/tenant",
-    "crates/student",
     "crates/server",
 ]

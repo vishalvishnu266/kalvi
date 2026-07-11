@@ -1,8 +1,7 @@
 use axum::{
     extract::{Extension, State},
     response::{IntoResponse, Response},
-    routing::{get, post},
-    Form, Router,
+    Form,
 };
 use serde::Deserialize;
 use shared::AppState;
@@ -98,8 +97,3 @@ pub async fn submit_form(
     render_success(&tenant.slug, &tenant.name)
 }
 
-pub fn routes() -> Router<AppState> {
-    Router::new()
-        .route("/onboard", get(show_form))
-        .route("/onboard", post(submit_form))
-}

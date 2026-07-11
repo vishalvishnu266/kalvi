@@ -1,8 +1,6 @@
 use axum::{
     extract::Extension,
     response::{IntoResponse, Response},
-    routing::get,
-    Router,
 };
 use shared::{AppState, TenantContext};
 
@@ -16,6 +14,3 @@ pub async fn show_dashboard(
     dashboard_page(&ctx.slug, &user.username).into_response()
 }
 
-pub fn routes() -> Router<AppState> {
-    Router::new().route("/t/{tenant_slug}/dashboard", get(show_dashboard))
-}
