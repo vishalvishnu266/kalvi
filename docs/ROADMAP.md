@@ -10,7 +10,7 @@ Prioritised list of what to build next.
 - `GET/POST /t/{slug}/students/{id}/edit` — edit
 - `POST /t/{slug}/students/{id}/delete` — delete
 
-Migrations: extend `migrations/tenant/20260711000003_create_students.sql` or add a new migration with additional columns as fields are needed.
+Migrations: extend `db/migrations/tenant/20260711000003_create_students.sql` or add a new migration with additional columns as fields are needed.
 
 ## Phase 2 — User management (admin only)
 

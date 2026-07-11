@@ -12,7 +12,7 @@ Users live in the tenant DB (`users` table). Each user has:
 
 ## Login
 
-- `GET /t/{slug}/login` renders `templates/auth/login.html`.
+- `GET /t/{slug}/login` renders the login view.
 - `POST /t/{slug}/login` reads `username` + `password`, verifies against the tenant `users` table, creates a session and sets the cookie, then redirects to `/t/{slug}/dashboard`.
 
 ## Logout
@@ -21,24 +21,8 @@ Users live in the tenant DB (`users` table). Each user has:
 
 ## Protecting a route
 
-Add the `RequireAuth` extractor to a handler:
-
-```rust
-use auth::RequireAuth;
-use axum::extract::Extension;
-use shared::TenantContext;
-
-async fn my_page(
-    RequireAuth(user): RequireAuth,
-    Extension(ctx): Extension<TenantContext>,
-) -> Response {
-    // user.username, user.role, ...
-    // ctx.slug, ctx.database_name, ...
-}
-```
-
-If the request has no valid session, the extractor returns `Redirect::to("/t/{slug}/login")`.
+Add the `AuthenticationMiddleware` or use the `Session` extension. For simple protection, we use `AuthenticationMiddleware::require_auth_middleware`.
 
 ## Seeding an admin outside onboarding
 
-Call `auth::create_admin_user(&tenant_pool, "username", "password")`. It uses `INSERT OR IGNORE`, so calling it twice with the same username is a no-op.
+Call `AuthService::create_admin_user(&tenant_pool, "username", "password")`. It uses `INSERT OR IGNORE`, so calling it twice with the same username is a no-op.

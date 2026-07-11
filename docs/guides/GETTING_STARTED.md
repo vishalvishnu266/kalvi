@@ -8,11 +8,10 @@
 ## Run
 
 ```bash
-cd server
 cargo run
 ```
 
-- Master DB (`master.db`) is created and master migrations are applied on startup.
+- Master DB (`db/master.db`) is created and master migrations are applied on startup.
 - Server listens on `0.0.0.0:3000`.
 
 ## First demo
@@ -32,9 +31,9 @@ cargo run
 ## What was created on disk
 
 ```
-server/
+db/
 ├── master.db              # tenant registry
-└── tenant_demo.db         # your first tenant DB (users/sessions/students)
+└── demo.db                # your first tenant DB (users/sessions/students)
 ```
 
 ## Adding another tenant

@@ -6,10 +6,10 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 /// Migrations for the master database (tenant registry).
-pub static MASTER_MIGRATOR: Migrator = sqlx::migrate!("./migrations/master");
+pub static MASTER_MIGRATOR: Migrator = sqlx::migrate!("./db/migrations/master");
 
 /// Migrations for each per-tenant database.
-pub static TENANT_MIGRATOR: Migrator = sqlx::migrate!("./migrations/tenant");
+pub static TENANT_MIGRATOR: Migrator = sqlx::migrate!("./db/migrations/tenant");
 
 pub struct TenantDatabaseManager {
     master_pool: SqlitePool,
@@ -19,7 +19,7 @@ pub struct TenantDatabaseManager {
 impl TenantDatabaseManager {
     pub async fn new() -> Result<Self, sqlx::Error> {
         let master_options = SqliteConnectOptions::new()
-            .filename("master.db")
+            .filename("db/master.db")
             .create_if_missing(true)
             .journal_mode(SqliteJournalMode::Wal)
             .synchronous(SqliteSynchronous::Normal);
@@ -54,7 +54,7 @@ impl TenantDatabaseManager {
             return Ok(pool.clone());
         }
 
-        let filename = format!("{}.db", database_name);
+        let filename = format!("db/{}.db", database_name);
         let options = SqliteConnectOptions::new()
             .filename(Path::new(&filename))
             .create_if_missing(true)

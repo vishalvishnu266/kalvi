@@ -9,8 +9,8 @@ _Last updated: 2026-07-11 (post-rewrite)_
 - Tenant onboarding form that provisions a new tenant DB and seeds an admin user (username & password captured from the form)
 - Login / logout / dashboard flow
 - Cookie-based sessions stored in the tenant DB
-- `RequireAuth` extractor (native axum 0.8 `FromRequestParts`)
-- Askama templates with a shared `base.html` and Hotwire Turbo loaded via CDN
+- `RequireAuth` check in middleware
+- HTML rendering via raw strings with a shared layout and Hotwire Turbo loaded via CDN
 
 ## 🚧 In progress / open
 

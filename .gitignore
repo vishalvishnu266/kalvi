@@ -4,7 +4,6 @@
 target/
 **/target/
 Cargo.lock
-!server/Cargo.lock          # keep lockfile for the binary workspace
 **/*.rs.bk
 *.pdb
 

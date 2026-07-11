@@ -10,7 +10,7 @@ pub async fn slug_exists(pool: &SqlitePool, slug: &str) -> Result<bool, sqlx::Er
 }
 
 pub async fn insert_tenant(pool: &SqlitePool, t: NewTenant<'_>) -> Result<Tenant, sqlx::Error> {
-    let database_name = format!("tenant_{}", t.slug);
+    let database_name = format!("{}", t.slug);
 
     sqlx::query(
         "INSERT INTO tenants (slug, name, contact_email, contact_phone, address, database_name)

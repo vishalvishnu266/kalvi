@@ -23,9 +23,9 @@ CREATE TABLE sessions (
 
 ## Flow
 
-1. **Login** — after password verification, `session::create_session` inserts a row and returns the `Session`. The handler sets the cookie via `session::set_session_cookie` and issues a `303` redirect to the dashboard.
-2. **Any subsequent request** — `session_middleware` reads the cookie, calls `session::get_valid_session` (which enforces `expires_at > now`), and injects the `Session` into request extensions.
-3. **RequireAuth** — the extractor pulls the `Session` and tenant pool, then loads the `User`. On any failure it returns `Redirect::to("/t/{slug}/login")`.
+1. **Login** — after password verification, `SessionUtils::create_session` inserts a row and returns the `Session`. The handler sets the cookie via `SessionUtils::set_session_cookie` and issues a `303` redirect to the dashboard.
+2. **Any subsequent request** — `SessionMiddleware` reads the cookie, calls `SessionUtils::get_valid_session` (which enforces `expires_at > now`), and injects the `Session` into request extensions.
+3. **AuthenticationMiddleware** — verifies the session from extensions. On failure it redirects to login.
 4. **Logout** — deletes the row and clears the cookie.
 
 ## Cleanup

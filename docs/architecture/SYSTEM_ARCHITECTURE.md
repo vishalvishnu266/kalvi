@@ -43,8 +43,8 @@
 
 ## Templates
 
-Askama templates in `server/templates/` are compiled into the binary. `base.html` provides the Bootstrap + Hotwire Turbo shell. All feature templates extend it.
+Templates are currently implemented as raw strings with Tailwind CSS in `src/views/`. `LayoutView.rs` provides the base shell.
 
 ## Migrations
 
-`sqlx::migrate!("../../migrations/master")` and `sqlx::migrate!("../../migrations/tenant")` (paths relative to the `shared` crate) embed the SQL files at compile time. `MASTER_MIGRATOR` runs once during `TenantDatabaseManager::new()`. `TENANT_MIGRATOR` runs the first time each tenant pool is opened.
+`sqlx::migrate!("./db/migrations/master")` and `sqlx::migrate!("./db/migrations/tenant")` embed the SQL files at compile time. `MASTER_MIGRATOR` runs once during `TenantDatabaseManager::new()`. `TENANT_MIGRATOR` runs the first time each tenant pool is opened.
