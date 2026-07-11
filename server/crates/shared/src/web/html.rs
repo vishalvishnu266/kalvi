@@ -17,6 +17,15 @@ impl IntoResponse for Html {
     }
 }
 
+impl Html {
+    /// Replaces placeholders like {{key}} with values.
+    /// This allows using a single raw string for better IDE support.
+    pub fn replace(mut self, key: &str, value: &str) -> Self {
+        self.0 = self.0.replace(&format!("{{{{{}}}}}", key), value);
+        self
+    }
+}
+
 /// A trait for things that can be converted into HTML.
 pub trait IntoHtml {
     fn into_html(self) -> Html;
