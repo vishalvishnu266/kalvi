@@ -12,7 +12,8 @@ use sqlx::SqlitePool;
 pub async fn require_auth_middleware(mut req: Request, next: Next) -> Response {
     let path = req.uri().path().to_string();
     
-    // 1. Skip auth check for login pages
+    // 1. Skip auth check for login and public root paths
+    // We only protect paths that are actually institution-specific (like /dashboard, /settings)
     if path.contains("/login") || !path.starts_with("/t/") {
         return next.run(req).await;
     }

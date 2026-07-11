@@ -26,8 +26,13 @@ pub async fn tenant_middleware(
 ) -> Response {
     let path = req.uri().path().to_string();
 
-    if let Some(rest) = path.strip_prefix("/t/") {
-        let slug = rest.split('/').next().unwrap_or("");
+    // Ensure path starts with /t/ and has at least one segment after it
+    if path.starts_with("/t/") {
+        let segments: Vec<&str> = path.trim_start_matches('/').split('/').collect();
+        if segments.len() < 2 {
+            return (StatusCode::BAD_REQUEST, "Missing tenant slug").into_response();
+        }
+        let slug = segments[1];
         if slug.is_empty() {
             return (StatusCode::BAD_REQUEST, "Missing tenant slug").into_response();
         }
