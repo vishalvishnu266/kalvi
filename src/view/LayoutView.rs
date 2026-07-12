@@ -19,7 +19,7 @@ impl Default for LayoutContext {
 pub fn render_layout(ctx: LayoutContext, content: String) -> String {
     // Using simple multi-line string with comment for IDE injection
     format!(
-        /* html */
+        //language=HTML
         r#"<!DOCTYPE html>
 <html lang="en">
 <head>

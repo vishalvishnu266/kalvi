@@ -3,7 +3,7 @@ use crate::view::LayoutView::{render_layout, LayoutContext};
 pub fn render_common_login(error: Option<String>) -> String {
     let error_alert = match error {
         Some(err) => format!(
-            /* html */
+            //language=HTML
             r#"<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 text-sm">{err}</div>"#,
             err = err
         ),
@@ -11,7 +11,7 @@ pub fn render_common_login(error: Option<String>) -> String {
     };
 
     let content = format!(
-        /* html */
+        //language=HTML
         r#"<div class="min-h-screen flex items-center justify-center p-4 md:p-6">
             <div class="max-w-md w-full p-8 bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border dark:border-slate-800">
                 <div class="flex flex-col items-center mb-8">

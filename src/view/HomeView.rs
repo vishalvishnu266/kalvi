@@ -2,7 +2,7 @@ use crate::view::LayoutView::{render_layout, LayoutContext};
 
 pub fn render() -> String {
     let content = format!(
-        /* html */
+        //language=HTML
         r#"<div class="flex flex-col items-center justify-center min-h-screen p-6 text-center relative overflow-hidden">
             <!-- Background Gradient Blurs -->
             <div class="absolute top-0 left-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>

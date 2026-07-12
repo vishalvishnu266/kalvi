@@ -4,7 +4,7 @@ use crate::model::Tenant::Tenant;
 pub fn render_settings(tenant: &Tenant, success: Option<String>) -> String {
     let success_alert = match success {
         Some(msg) => format!(
-            /* html */
+            //language=HTML
             r#"<div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">{msg}</div>"#,
             msg = msg
         ),
@@ -12,7 +12,7 @@ pub fn render_settings(tenant: &Tenant, success: Option<String>) -> String {
     };
 
     let content = format!(
-        /* html */
+        //language=HTML
         r#"<nav class="bg-white dark:bg-slate-900/80 backdrop-blur-md border-b dark:border-slate-800 px-4 md:px-6 py-4 flex items-center sticky top-0 z-50">
             <a href="/{slug}/dashboard" class="p-2 mr-4 text-slate-500 hover:text-primary transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">

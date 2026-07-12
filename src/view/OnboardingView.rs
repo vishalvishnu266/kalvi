@@ -3,7 +3,7 @@ use crate::view::LayoutView::{render_layout, LayoutContext};
 pub fn render_form(error: Option<String>) -> String {
     let error_alert = match error {
         Some(err) => format!(
-            /* html */
+            //language=HTML
             r#"<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
                 <span class="block sm:inline">{err}</span>
             </div>"#,
@@ -13,7 +13,7 @@ pub fn render_form(error: Option<String>) -> String {
     };
 
     let content = format!(
-        /* html */
+        //language=HTML
         r#"<div class="min-h-screen flex items-center justify-center p-4 md:p-6">
             <div class="max-w-lg w-full p-8 bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border dark:border-slate-800">
                 <div class="flex flex-col items-center mb-8">
@@ -72,7 +72,7 @@ pub fn render_form(error: Option<String>) -> String {
 
 pub fn render_success(slug: &str, name: &str) -> String {
     let content = format!(
-        /* html */
+        //language=HTML
         r#"<div class="max-w-md mx-auto my-12 p-8 bg-white dark:bg-slate-800 rounded-xl shadow-2xl text-center">
             <div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
