@@ -1,2 +1,2 @@
 pub mod TenantMiddleware;
-pub mod AuthMiddleware;
+pub mod AppMiddleware;

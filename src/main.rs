@@ -15,8 +15,7 @@ use std::net::SocketAddr;
 use crate::config::AppState::AppState;
 use crate::config::DatabaseConfig::DatabaseConfig;
 use crate::controller::*;
-use crate::middleware::TenantMiddleware::tenant_middleware;
-use crate::middleware::AuthMiddleware::auth_middleware;
+use crate::middleware::AppMiddleware::app_middleware;
 
 #[tokio::main]
 async fn main() {
@@ -31,8 +30,7 @@ async fn main() {
     let tenant_web_routes = Router::new()
         .route("/dashboard", get(DashboardController::show_dashboard))
         .route("/settings", get(SettingsController::show_settings).post(SettingsController::process_settings))
-        .route("/logout", post(LogoutController::process_tenant_logout))
-        .layer(axum_middleware::from_fn(auth_middleware));
+        .route("/logout", post(LogoutController::process_tenant_logout));
 
     let app: Router = Router::new()
         // Public Routes
@@ -52,7 +50,7 @@ async fn main() {
         .route("/{slug}/login", get(LoginController::show_login).post(LoginController::process_login))
         
         // Global Middlewares
-        .layer(axum_middleware::from_fn_with_state(state.clone(), tenant_middleware))
+        .layer(axum_middleware::from_fn_with_state(state.clone(), app_middleware))
         .fallback(|| async { axum::response::Redirect::to("/") })
         .with_state(state);
 
