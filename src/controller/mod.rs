@@ -5,3 +5,4 @@ pub mod DashboardController;
 pub mod SaasController;
 pub mod SettingsController;
 pub mod LogoutController;
+pub mod ApiController;

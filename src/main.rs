@@ -25,25 +25,35 @@ async fn main() {
     let db_config: DatabaseConfig = DatabaseConfig::new().await.expect("Failed to initialize database");
     let state = AppState { db: db_config };
 
-    let tenant_routes = Router::new()
-        .route("/", get(|axum::extract::Path(slug): axum::extract::Path<String>| async move {
-            axum::response::Redirect::to(&format!("/t/{}/dashboard", slug))
-        }))
+    let tenant_api_routes = Router::new()
+        .route("/health", get(ApiController::health));
+
+    let tenant_web_routes = Router::new()
         .route("/dashboard", get(DashboardController::show_dashboard))
         .route("/settings", get(SettingsController::show_settings).post(SettingsController::process_settings))
         .route("/logout", post(LogoutController::process_tenant_logout))
         .layer(axum_middleware::from_fn(auth_middleware));
 
     let app: Router = Router::new()
+        // Public Routes
         .route("/", get(HomeController::show_home))
         .route("/login", get(LoginController::show_common_login).post(LoginController::process_common_login))
         .route("/logout", post(LogoutController::process_logout))
+        .route("/registration", get(OnboardingController::show_form).post(OnboardingController::submit_form))
+        .route("/pages/*path", get(|| async { axum::response::Html("<h1>Public Page Placeholder</h1>") }))
+        
+        // SaaS Control Plane
         .route("/saas/onboard", get(SaasController::show_onboard).post(SaasController::process_onboard))
         .route("/saas/login", get(SaasController::show_login).post(SaasController::process_login))
-        .route("/onboard", get(OnboardingController::show_form).post(OnboardingController::submit_form))
-        .nest("/t/{slug}", tenant_routes)
-        .route("/t/{slug}/login", get(LoginController::show_login).post(LoginController::process_login))
+        
+        // Tenant Routes (/{slug})
+        .nest("/{slug}/api", tenant_api_routes)
+        .nest("/{slug}", tenant_web_routes)
+        .route("/{slug}/login", get(LoginController::show_login).post(LoginController::process_login))
+        
+        // Global Middlewares
         .layer(axum_middleware::from_fn_with_state(state.clone(), tenant_middleware))
+        .fallback(|| async { axum::response::Redirect::to("/") })
         .with_state(state);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));

@@ -24,35 +24,36 @@ pub async fn tenant_middleware(
 ) -> Result<Response, StatusCode> {
     let path = req.uri().path().to_string();
     
-    // Check if it's a tenant path
-    if path.starts_with("/t/") {
-        let segments: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
-        if segments.len() < 2 {
-            // Redirect to common login if just /t/
-            return Ok(Redirect::to("/login").into_response());
-        }
-        
-        let slug = segments[1];
-        let tenant = match TenantRepository::find_by_slug(&state.db.master_pool, slug).await {
-            Ok(Some(t)) => t,
-            _ => return Ok(Redirect::to("/login").into_response()), // Tenant not found
-        };
-            
-        let pool: SqlitePool = state.db.get_tenant_pool(&tenant.database_name)
-            .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-            
-        req.extensions_mut().insert(TenantContext {
-            tenant: tenant.clone(),
-            pool,
-        });
+    // Reserved public/control-plane paths
+    let reserved = ["/login", "/registration", "/pages", "/saas", "/onboard", "/favicon.ico", "/static"];
+    let is_reserved = reserved.iter().any(|r| path.starts_with(r)) || path == "/";
 
-        // Ensure user is redirected to login if accessing tenant path without auth
-        // (Except for the login path itself)
-        if !path.contains("/login") {
-            let session_id = SessionUtil::get_session_id(req.headers());
-            if session_id.is_none() {
-                return Ok(Redirect::to(&format!("/t/{}/login", tenant.slug)).into_response());
+    if !is_reserved {
+        let segments: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
+        if let Some(slug) = segments.first() {
+            let tenant = match TenantRepository::find_by_slug(&state.db.master_pool, slug).await {
+                Ok(Some(t)) => t,
+                _ => return Ok(next.run(req).await), // Let it fall through to 404 or other handlers
+            };
+                
+            let pool: SqlitePool = state.db.get_tenant_pool(&tenant.database_name)
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+                
+            req.extensions_mut().insert(TenantContext {
+                tenant: tenant.clone(),
+                pool,
+            });
+
+            // If accessing tenant root /{slug}, ensure we handle redirect to dashboard or login
+            // Note: Auth check for sub-routes like /dashboard is handled by auth_middleware
+            if path == format!("/{}", slug) || path == format!("/{}/", slug) {
+                let session_id = SessionUtil::get_session_id(req.headers());
+                if session_id.is_some() {
+                    return Ok(Redirect::to(&format!("/{}/dashboard", slug)).into_response());
+                } else {
+                    return Ok(Redirect::to(&format!("/{}/login", slug)).into_response());
+                }
             }
         }
     } else if path.starts_with("/onboard") || path.starts_with("/saas/") {

@@ -33,7 +33,7 @@ pub async fn process_tenant_logout(
         let _ = UserRepository::delete_session(&ctx.pool, &session_id).await;
     }
 
-    let mut response = Redirect::to(&format!("/t/{}/login", ctx.tenant.slug)).into_response();
+    let mut response = Redirect::to(&format!("/{}/login", ctx.tenant.slug)).into_response();
     SessionUtil::clear_session_cookie(&mut response);
     response
 }

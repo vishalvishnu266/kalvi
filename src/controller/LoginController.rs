@@ -68,8 +68,9 @@ pub async fn process_common_login(
         return Html(CommonLoginView::render_common_login(Some("Failed to create session".to_string()))).into_response();
     }
 
-    let mut response = Redirect::to(&format!("/t/{}/dashboard", tenant.slug)).into_response();
+    let mut response = Redirect::to(&format!("/{}/dashboard", tenant.slug)).into_response();
     SessionUtil::set_session_cookie(&mut response, &session_id);
+    SessionUtil::set_tenant_cookie(&mut response, &tenant.slug);
     response
 }
 
@@ -105,7 +106,8 @@ pub async fn process_login(
         return Html(LoginView::render_login(&ctx.tenant, Some("Failed to create session".to_string()))).into_response();
     }
 
-    let mut response = Redirect::to(&format!("/t/{}/dashboard", ctx.tenant.slug)).into_response();
+    let mut response = Redirect::to(&format!("/{}/dashboard", ctx.tenant.slug)).into_response();
     SessionUtil::set_session_cookie(&mut response, &session_id);
+    SessionUtil::set_tenant_cookie(&mut response, &ctx.tenant.slug);
     response
 }

@@ -19,11 +19,14 @@ pub async fn auth_middleware(
     if let Some(sid) = session_id {
         if let Ok(Some((_session, user))) = UserRepository::find_session(&ctx.pool, &sid).await {
             req.extensions_mut().insert(user);
-            return Ok(next.run(req).await);
+            let mut response = next.run(req).await;
+            // Production Tip: Ensure the tenant hint is always present for the root-level redirect
+            SessionUtil::set_tenant_cookie(&mut response, &ctx.tenant.slug);
+            return Ok(response);
         }
     }
 
     // Redirect to login if not authenticated
-    let login_url = format!("/t/{}/login", ctx.tenant.slug);
+    let login_url = format!("/{}/login", ctx.tenant.slug);
     Ok(Redirect::to(&login_url).into_response())
 }

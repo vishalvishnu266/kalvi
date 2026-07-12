@@ -12,16 +12,16 @@ pub async fn show_home(
     State(state): State<AppState>,
     headers: HeaderMap,
 ) -> impl IntoResponse {
-    // Check if user has a session
-    if let Some(session_id) = SessionUtil::get_session_id(&headers) {
-        // Find which tenant this session belongs to
-        if let Ok(tenants) = TenantRepository::list_all(&state.db.master_pool).await {
-            for tenant in tenants {
-                if let Ok(tenant_pool) = state.db.get_tenant_pool(&tenant.database_name).await {
-                    if let Ok(Some(_)) = UserRepository::find_session(&tenant_pool, &session_id).await {
-                        // Found the session, redirect to tenant dashboard
-                        return Redirect::to(&format!("/t/{}/dashboard", tenant.slug)).into_response();
-                    }
+    // Check if user has a session and a tenant hint
+    let session_id = SessionUtil::get_session_id(&headers);
+    let tenant_hint = SessionUtil::get_tenant_slug(&headers);
+
+    if let (Some(sid), Some(slug)) = (session_id, tenant_hint) {
+        // Efficiency: directly check the hinted tenant
+        if let Ok(Some(tenant)) = TenantRepository::find_by_slug(&state.db.master_pool, &slug).await {
+            if let Ok(tenant_pool) = state.db.get_tenant_pool(&tenant.database_name).await {
+                if let Ok(Some(_)) = UserRepository::find_session(&tenant_pool, &sid).await {
+                    return Redirect::to(&format!("/{}/dashboard", tenant.slug)).into_response();
                 }
             }
         }
