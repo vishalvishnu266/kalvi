@@ -7,13 +7,12 @@ use axum::{
 use crate::middleware::TenantMiddleware::TenantContext;
 use crate::repository::UserRepository::UserRepository;
 use crate::util::SessionUtil;
-use crate::model::User::User;
 
 pub async fn auth_middleware(
     mut req: Request<Body>,
     next: Next,
 ) -> Result<Response, StatusCode> {
-    let ctx = req.extensions().get::<TenantContext>().ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
+    let ctx = req.extensions().get::<TenantContext>().cloned().ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
     let session_id = SessionUtil::get_session_id(req.headers());
     
     if let Some(sid) = session_id {

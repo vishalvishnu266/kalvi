@@ -9,7 +9,7 @@ use crate::repository::UserRepository::UserRepository;
 use crate::util::SessionUtil;
 
 pub async fn process_logout(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     headers: HeaderMap,
 ) -> impl IntoResponse {
     if let Some(session_id) = SessionUtil::get_session_id(&headers) {

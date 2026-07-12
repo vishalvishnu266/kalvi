@@ -40,7 +40,7 @@ async fn main() {
         .route("/login", get(LoginController::show_common_login).post(LoginController::process_common_login))
         .route("/logout", post(LogoutController::process_logout))
         .route("/registration", get(OnboardingController::show_form).post(OnboardingController::submit_form))
-        .route("/pages/*path", get(|| async { axum::response::Html("<h1>Public Page Placeholder</h1>") }))
+        .route("/pages/{*path}", get(|| async { axum::response::Html("<h1>Public Page Placeholder</h1>") }))
         
         // SaaS Control Plane
         .route("/saas/onboard", get(SaasController::show_onboard).post(SaasController::process_onboard))

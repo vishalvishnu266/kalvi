@@ -5,7 +5,7 @@ use crate::model::User::User;
 pub fn render_dashboard(tenant: &Tenant, user: &User) -> String {
     let content = format!(
         /* html */
-        r#"<nav class="bg-white dark:bg-slate-900/80 backdrop-blur-md border-b dark:border-slate-800 px-4 md:px-6 py-4 flex justify-between items-center sticky top-0 z-50">
+        r###"<nav class="bg-white dark:bg-slate-900/80 backdrop-blur-md border-b dark:border-slate-800 px-4 md:px-6 py-4 flex justify-between items-center sticky top-0 z-50">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-primary/20">
                     {logo_char}
@@ -87,7 +87,7 @@ pub fn render_dashboard(tenant: &Tenant, user: &User) -> String {
                     <!-- More buttons can be added here -->
                 </div>
             </div>
-        </main>"#,
+        </main>"###,
         logo_char = tenant.name.chars().next().unwrap_or('K'),
         tenant_name = tenant.name,
         username = user.full_name.as_deref().unwrap_or(&user.username),
