@@ -94,10 +94,21 @@ pub fn render_layout(ctx: LayoutContext, content: String) -> String {
     <script>
         // language=javascript
         (function() {{
+            const userDark = {dark_mode};
             const savedTheme = localStorage.getItem('theme');
             const savedColor = localStorage.getItem('primary-color');
+            const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
             
-            if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {{
+            let isDark = false;
+            if (savedTheme) {{
+                isDark = savedTheme === 'dark';
+            }} else {{
+                isDark = userDark || systemDark;
+            }}
+            
+            console.log('Theme init:', {{savedTheme, userDark, systemDark, isDark}});
+            
+            if (isDark) {{
                 document.documentElement.classList.add('dark');
             }}
             
@@ -127,7 +138,6 @@ pub fn render_layout(ctx: LayoutContext, content: String) -> String {
             }};
 
             const themeToggle = document.getElementById('theme-toggle');
-            const themeToggle = document.getElementById('theme-toggle');
             if (themeToggle) {{
                 themeToggle.addEventListener('click', () => {{
                     const isDark = document.documentElement.classList.toggle('dark');
@@ -156,6 +166,7 @@ pub fn render_layout(ctx: LayoutContext, content: String) -> String {
 </html>"#,
         title = ctx.title,
         primary_color = ctx.primary_color,
+        dark_mode = ctx.dark_mode,
         content = content
     )
 }
