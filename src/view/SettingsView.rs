@@ -13,22 +13,20 @@ pub fn render_settings(tenant: &Tenant, success: Option<String>) -> String {
 
     let content = format!(
         /* html */
-        r#"<nav class="bg-white dark:bg-slate-800 border-b dark:border-slate-700 px-6 py-4 flex justify-between items-center">
-            <div class="flex items-center gap-4">
-                <a href="/t/{slug}/dashboard" class="text-slate-500 hover:text-primary transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                    </svg>
-                </a>
-                <h1 class="text-xl font-bold">Settings</h1>
-            </div>
+        r#"<nav class="bg-white dark:bg-slate-900/80 backdrop-blur-md border-b dark:border-slate-800 px-4 md:px-6 py-4 flex items-center sticky top-0 z-50">
+            <a href="/{slug}/dashboard" class="p-2 mr-4 text-slate-500 hover:text-primary transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+            </a>
+            <h1 class="text-xl font-bold text-slate-900 dark:text-white">Settings</h1>
         </nav>
 
-        <div class="max-w-2xl mx-auto p-8">
+        <div class="max-w-2xl mx-auto p-4 md:p-8">
             {success_alert}
-            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border dark:border-slate-700 p-8">
+            <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border dark:border-slate-800 p-6 md:p-8">
                 <h2 class="text-2xl font-bold mb-6">Personalization</h2>
-                <form action="/t/{slug}/settings" method="POST" class="space-y-6">
+                <form action="/{slug}/settings" method="POST" class="space-y-6">
                     <div>
                         <label class="block text-sm font-semibold mb-2">Primary Color</label>
                         <div class="flex items-center gap-4">
@@ -48,7 +46,7 @@ pub fn render_settings(tenant: &Tenant, success: Option<String>) -> String {
                         </label>
                     </div>
 
-                    <button type="submit" class="w-full bg-primary text-white font-bold py-3 rounded-lg shadow-md hover:opacity-90 transition-all">
+                    <button type="submit" class="w-full bg-primary hover:bg-primary-600 text-white font-bold py-4 rounded-2xl shadow-xl shadow-primary/20 transition-all transform hover:-translate-y-1 active:scale-95">
                         Save Preferences
                     </button>
                 </form>

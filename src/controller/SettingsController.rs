@@ -28,7 +28,7 @@ pub async fn process_settings(
     match TenantRepository::update_settings(&state.db.master_pool, &ctx.tenant.slug, &form.primary_color, dark_mode).await {
         Ok(_) => {
             // Redirect to dashboard on success to show changes reflected
-            Redirect::to(&format!("/t/{}/dashboard", ctx.tenant.slug)).into_response()
+            Redirect::to(&format!("/{}/dashboard", ctx.tenant.slug)).into_response()
         }
         Err(_) => Html(SettingsView::render_settings(&ctx.tenant, Some("Failed to update settings".to_string()))).into_response(),
     }

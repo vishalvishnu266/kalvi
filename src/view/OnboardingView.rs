@@ -14,32 +14,55 @@ pub fn render_form(error: Option<String>) -> String {
 
     let content = format!(
         /* html */
-        r#"<div class="max-w-md mx-auto my-12 p-8 bg-white dark:bg-slate-800 rounded-xl shadow-2xl">
-            <h2 class="text-3xl font-bold mb-6 text-center text-slate-900 dark:text-white">Institutional Onboarding</h2>
-            {error_alert}
-            <form action="/onboard" method="POST" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium mb-1">Institution Name</label>
-                    <input type="text" name="name" required class="w-full px-4 py-2 rounded-lg border dark:bg-slate-700 dark:border-slate-600 focus:ring-2 focus:ring-primary outline-none">
+        r#"<div class="min-h-screen flex items-center justify-center p-4 md:p-6">
+            <div class="max-w-lg w-full p-8 bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border dark:border-slate-800">
+                <div class="flex flex-col items-center mb-8">
+                    <div class="w-16 h-16 bg-primary/10 text-primary rounded-2xl flex items-center justify-center font-bold text-3xl mb-4 shadow-inner">
+                        O
+                    </div>
+                    <h2 class="text-3xl font-bold text-slate-900 dark:text-white">New Institution</h2>
+                    <p class="text-slate-500 dark:text-slate-400 font-medium text-center">Set up your isolated ERP workspace</p>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium mb-1">Slug (URL friendly name)</label>
-                    <input type="text" name="slug" required placeholder="demo-school" class="w-full px-4 py-2 rounded-lg border dark:bg-slate-700 dark:border-slate-600 focus:ring-2 focus:ring-primary outline-none">
+
+                {error_alert}
+
+                <form action="/registration" method="POST" class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400 mb-2">Institution Name</label>
+                            <input type="text" name="name" required class="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 dark:bg-slate-950 dark:text-white focus:ring-2 focus:ring-primary outline-none transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-xs uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400 mb-2">Slug</label>
+                            <input type="text" name="slug" required placeholder="demo-school" class="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 dark:bg-slate-950 dark:text-white focus:ring-2 focus:ring-primary outline-none transition-all">
+                        </div>
+                    </div>
+                    
+                    <div class="relative py-4">
+                        <div class="absolute inset-0 flex items-center"><span class="w-full border-t dark:border-slate-800"></span></div>
+                        <div class="relative flex justify-center text-xs uppercase"><span class="bg-white dark:bg-slate-900 px-2 text-slate-500 font-bold">Admin Credentials</span></div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400 mb-2">Admin Username</label>
+                            <input type="text" name="admin_username" required class="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 dark:bg-slate-950 dark:text-white focus:ring-2 focus:ring-primary outline-none transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-xs uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400 mb-2">Admin Password</label>
+                            <input type="password" name="admin_password" required class="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 dark:bg-slate-950 dark:text-white focus:ring-2 focus:ring-primary outline-none transition-all">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full bg-primary hover:bg-primary-600 text-white font-bold py-4 rounded-2xl shadow-xl shadow-primary/20 transition-all transform hover:-translate-y-1 active:scale-95">
+                        Initialize Institution
+                    </button>
+                </form>
+
+                <div class="mt-8 text-center">
+                    <a href="/" class="text-sm text-slate-500 hover:text-primary transition-colors">← Back to home</a>
                 </div>
-                <hr class="my-6 border-slate-200 dark:border-slate-700">
-                <h3 class="text-lg font-semibold mb-2">Admin Account</h3>
-                <div>
-                    <label class="block text-sm font-medium mb-1">Admin Username</label>
-                    <input type="text" name="admin_username" required class="w-full px-4 py-2 rounded-lg border dark:bg-slate-700 dark:border-slate-600 focus:ring-2 focus:ring-primary outline-none">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium mb-1">Admin Password</label>
-                    <input type="password" name="admin_password" required class="w-full px-4 py-2 rounded-lg border dark:bg-slate-700 dark:border-slate-600 focus:ring-2 focus:ring-primary outline-none">
-                </div>
-                <button type="submit" class="w-full bg-primary hover:opacity-90 text-white font-bold py-3 px-4 rounded-lg transition-all mt-6 shadow-md">
-                    Initialize Institution
-                </button>
-            </form>
+            </div>
         </div>"#,
         error_alert = error_alert
     );
@@ -60,8 +83,8 @@ pub fn render_success(slug: &str, name: &str) -> String {
             <p class="text-slate-600 dark:text-slate-400 mb-8">
                 <strong>{name}</strong> has been successfully initialized. You can now log in to your tenant dashboard.
             </p>
-            <a href="/t/{slug}/login" class="inline-block bg-primary hover:opacity-90 text-white font-bold py-3 px-8 rounded-lg shadow-md transition-all">
-                Go to Login
+            <a href="/{slug}/login" class="inline-block bg-primary hover:bg-primary-600 text-white font-bold py-4 px-10 rounded-2xl shadow-xl shadow-primary/20 transition-all transform hover:-translate-y-1 active:scale-95">
+                Go to Dashboard Login
             </a>
         </div>"#,
         slug = slug,

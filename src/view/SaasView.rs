@@ -12,26 +12,36 @@ pub fn render_onboard(error: Option<String>) -> String {
 
     let content = format!(
         /* html */
-        r#"<div class="max-w-md mx-auto my-12 p-8 bg-white dark:bg-slate-800 rounded-xl shadow-2xl">
-            <h2 class="text-3xl font-bold mb-6 text-center">SaaS Owner Setup</h2>
-            {error_alert}
-            <form action="/saas/onboard" method="POST" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium mb-1">Username</label>
-                    <input type="text" name="username" required class="w-full px-4 py-2 rounded-lg border dark:bg-slate-700 dark:border-slate-600 focus:ring-2 focus:ring-primary outline-none">
+        r#"<div class="min-h-screen flex items-center justify-center p-4 md:p-6">
+            <div class="max-w-md w-full p-8 bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border dark:border-slate-800">
+                <div class="flex flex-col items-center mb-8">
+                    <div class="w-16 h-16 bg-primary/10 text-primary rounded-2xl flex items-center justify-center font-bold text-3xl mb-4 shadow-inner">
+                        S
+                    </div>
+                    <h2 class="text-3xl font-bold text-slate-900 dark:text-white">Control Plane</h2>
+                    <p class="text-slate-500 dark:text-slate-400 font-medium text-center">Platform Owner Setup</p>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium mb-1">Full Name</label>
-                    <input type="text" name="full_name" required class="w-full px-4 py-2 rounded-lg border dark:bg-slate-700 dark:border-slate-600 focus:ring-2 focus:ring-primary outline-none">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium mb-1">Password</label>
-                    <input type="password" name="password" required class="w-full px-4 py-2 rounded-lg border dark:bg-slate-700 dark:border-slate-600 focus:ring-2 focus:ring-primary outline-none">
-                </div>
-                <button type="submit" class="w-full bg-primary text-white font-bold py-3 rounded-lg mt-6 shadow-md hover:opacity-90">
-                    Create SaaS Admin
-                </button>
-            </form>
+
+                {error_alert}
+
+                <form action="/saas/onboard" method="POST" class="space-y-4">
+                    <div>
+                        <label class="block text-xs uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400 mb-2">Username</label>
+                        <input type="text" name="username" required class="w-full px-4 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 dark:bg-slate-950 dark:text-white focus:ring-2 focus:ring-primary outline-none transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-xs uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400 mb-2">Full Name</label>
+                        <input type="text" name="full_name" required class="w-full px-4 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 dark:bg-slate-950 dark:text-white focus:ring-2 focus:ring-primary outline-none transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-xs uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400 mb-2">Password</label>
+                        <input type="password" name="password" required class="w-full px-4 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 dark:bg-slate-950 dark:text-white focus:ring-2 focus:ring-primary outline-none transition-all">
+                    </div>
+                    <button type="submit" class="w-full bg-primary hover:bg-primary-600 text-white font-bold py-4 rounded-2xl mt-6 shadow-xl shadow-primary/20 transition-all transform hover:-translate-y-1 active:scale-95">
+                        Initialize SaaS Admin
+                    </button>
+                </form>
+            </div>
         </div>"#,
         error_alert = error_alert
     );
@@ -51,22 +61,36 @@ pub fn render_login(error: Option<String>) -> String {
 
     let content = format!(
         /* html */
-        r#"<div class="max-w-md mx-auto my-24 p-8 bg-white dark:bg-slate-800 rounded-xl shadow-2xl">
-            <h2 class="text-3xl font-bold mb-6 text-center">SaaS Owner Login</h2>
-            {error_alert}
-            <form action="/saas/login" method="POST" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium mb-1">Username</label>
-                    <input type="text" name="username" required class="w-full px-4 py-2 rounded-lg border dark:bg-slate-700 dark:border-slate-600 focus:ring-2 focus:ring-primary outline-none">
+        r#"<div class="min-h-screen flex items-center justify-center p-4 md:p-6">
+            <div class="max-w-md w-full p-8 bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border dark:border-slate-800">
+                <div class="flex flex-col items-center mb-8">
+                    <div class="w-16 h-16 bg-primary/10 text-primary rounded-2xl flex items-center justify-center font-bold text-3xl mb-4 shadow-inner">
+                        S
+                    </div>
+                    <h2 class="text-3xl font-bold text-slate-900 dark:text-white">Admin Login</h2>
+                    <p class="text-slate-500 dark:text-slate-400 font-medium text-center">Platform Control Plane</p>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium mb-1">Password</label>
-                    <input type="password" name="password" required class="w-full px-4 py-2 rounded-lg border dark:bg-slate-700 dark:border-slate-600 focus:ring-2 focus:ring-primary outline-none">
+
+                {error_alert}
+
+                <form action="/saas/login" method="POST" class="space-y-4">
+                    <div>
+                        <label class="block text-xs uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400 mb-2">Username</label>
+                        <input type="text" name="username" required class="w-full px-4 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 dark:bg-slate-950 dark:text-white focus:ring-2 focus:ring-primary outline-none transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-xs uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400 mb-2">Password</label>
+                        <input type="password" name="password" required class="w-full px-4 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 dark:bg-slate-950 dark:text-white focus:ring-2 focus:ring-primary outline-none transition-all">
+                    </div>
+                    <button type="submit" class="w-full bg-primary hover:bg-primary-600 text-white font-bold py-4 rounded-2xl mt-6 shadow-xl shadow-primary/20 transition-all transform hover:-translate-y-1 active:scale-95">
+                        Sign In to Control Plane
+                    </button>
+                </form>
+
+                <div class="mt-8 text-center">
+                    <a href="/" class="text-sm text-slate-500 hover:text-primary transition-colors">← Back to home</a>
                 </div>
-                <button type="submit" class="w-full bg-primary text-white font-bold py-3 rounded-lg mt-6 shadow-md hover:opacity-90">
-                    Sign In
-                </button>
-            </form>
+            </div>
         </div>"#,
         error_alert = error_alert
     );

@@ -17,16 +17,14 @@ impl Default for LayoutContext {
 }
 
 pub fn render_layout(ctx: LayoutContext, content: String) -> String {
-    let dark_class = if ctx.dark_mode { "dark" } else { "" };
-    
     // Using simple multi-line string with comment for IDE injection
     format!(
         /* html */
         r#"<!DOCTYPE html>
-<html lang="en" class="{dark_class}">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>{title}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script type="module">
@@ -34,11 +32,16 @@ pub fn render_layout(ctx: LayoutContext, content: String) -> String {
         window.Turbo = Turbo;
     </script>
     <script>
+        // language=javascript
         tailwind.config = {{
             darkMode: 'class',
             theme: {{
                 extend: {{
                     colors: {{
+                        slate: {{
+                            950: '#020617', // Deeper black
+                            900: '#0f172a',
+                        }},
                         primary: {{
                             DEFAULT: 'var(--primary-color)',
                             50: 'color-mix(in srgb, var(--primary-color), white 90%)',
@@ -58,45 +61,99 @@ pub fn render_layout(ctx: LayoutContext, content: String) -> String {
         }}
     </script>
     <style>
+        /* language=css */
         :root {{
             --primary-color: {primary_color};
+            --primary-color-rgb: 59, 130, 246; /* Default blue, updated by JS */
         }}
-        /* Fallbacks for non-tailwind elements if any */
+        
+        .dark {{
+            color-scheme: dark;
+        }}
+
+        body {{
+            background: radial-gradient(circle at top left, rgba(var(--primary-color-rgb), 0.05), transparent 40%),
+                        radial-gradient(circle at bottom right, rgba(var(--primary-color-rgb), 0.05), transparent 40%);
+        }}
+
+        .dark body {{
+            background: radial-gradient(circle at top left, rgba(var(--primary-color-rgb), 0.1), transparent 40%),
+                        linear-gradient(to bottom, #0f172a, #020617);
+        }}
+
+        /* Custom scrollbar for a polished look */
+        ::-webkit-scrollbar {{ width: 8px; }}
+        ::-webkit-scrollbar-track {{ background: transparent; }}
+        ::-webkit-scrollbar-thumb {{ background: #cbd5e1; border-radius: 10px; }}
+        .dark ::-webkit-scrollbar-thumb {{ background: #334155; }}
+
         .bg-primary {{ background-color: var(--primary-color); }}
         .text-primary {{ color: var(--primary-color); }}
         .border-primary {{ border-color: var(--primary-color); }}
     </style>
     <script>
-        // Synchronize theme and colors when Turbo loads a new body
-        document.addEventListener('turbo:load', () => {{
-            const body = document.body;
-            const isDark = body.dataset.darkMode === 'true';
-            const primaryColor = body.dataset.primaryColor;
-
-            if (isDark) {{
+        // language=javascript
+        (function() {{
+            const savedTheme = localStorage.getItem('theme');
+            const savedColor = localStorage.getItem('primary-color');
+            
+            if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {{
                 document.documentElement.classList.add('dark');
-            }} else {{
-                document.documentElement.classList.remove('dark');
+            }}
+            
+            function updatePrimaryColor(color) {{
+                document.documentElement.style.setProperty('--primary-color', color);
+                // Simple hex to rgb conversion
+                const r = parseInt(color.slice(1, 3), 16);
+                const g = parseInt(color.slice(3, 5), 16);
+                const b = parseInt(color.slice(5, 7), 16);
+                document.documentElement.style.setProperty('--primary-color-rgb', `${{r}}, ${{g}}, ${{b}}`);
             }}
 
-            if (primaryColor) {{
-                document.documentElement.style.setProperty('--primary-color', primaryColor);
+            if (savedColor) {{
+                updatePrimaryColor(savedColor);
+            }} else {{
+                updatePrimaryColor('{primary_color}');
             }}
+        }})();
+
+        document.addEventListener('turbo:load', () => {{
+            const updatePrimaryColor = (color) => {{
+                document.documentElement.style.setProperty('--primary-color', color);
+                const r = parseInt(color.slice(1, 3), 16);
+                const g = parseInt(color.slice(3, 5), 16);
+                const b = parseInt(color.slice(5, 7), 16);
+                document.documentElement.style.setProperty('--primary-color-rgb', `${{r}}, ${{g}}, ${{b}}`);
+            }};
+
+            const themeToggle = document.getElementById('theme-toggle');
+            const themeToggle = document.getElementById('theme-toggle');
+            if (themeToggle) {{
+                themeToggle.addEventListener('click', () => {{
+                    const isDark = document.documentElement.classList.toggle('dark');
+                    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+                }});
+            }}
+
+            const colorPickers = document.querySelectorAll('.color-picker');
+            colorPickers.forEach(picker => {{
+                picker.addEventListener('click', (e) => {{
+                    const color = e.target.dataset.color;
+                    if (color) {{
+                        updatePrimaryColor(color);
+                        localStorage.setItem('primary-color', color);
+                    }}
+                }});
+            }});
         }});
     </script>
 </head>
-<body 
-    class="bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 min-h-screen transition-colors duration-200"
-    data-dark-mode="{dark_mode}"
-    data-primary-color="{primary_color}"
->
-    <div id="app-container">
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen transition-colors duration-300">
+    <div id="app-container" class="relative">
         {content}
     </div>
 </body>
 </html>"#,
-        dark_class = dark_class,
-        dark_mode = ctx.dark_mode,
         title = ctx.title,
         primary_color = ctx.primary_color,
         content = content
