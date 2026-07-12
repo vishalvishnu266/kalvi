@@ -33,7 +33,7 @@ pub async fn tenant_middleware(
         if let Some(slug) = segments.first() {
             let tenant = match TenantRepository::find_by_slug(&state.db.master_pool, slug).await {
                 Ok(Some(t)) => t,
-                _ => return Ok(next.run(req).await), // Let it fall through to 404 or other handlers
+                _ => return Ok(Redirect::to("/").into_response()),
             };
                 
             let pool: SqlitePool = state.db.get_tenant_pool(&tenant.database_name)
