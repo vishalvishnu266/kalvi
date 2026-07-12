@@ -4,7 +4,7 @@ use axum::{
     http::HeaderMap,
 };
 use crate::config::AppState::AppState;
-use crate::middleware::TenantMiddleware::TenantContext;
+use crate::middleware::AppMiddleware::TenantContext;
 use crate::repository::UserRepository::UserRepository;
 use crate::util::SessionUtil;
 

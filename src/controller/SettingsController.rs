@@ -4,7 +4,7 @@ use axum::{
 };
 use serde::Deserialize;
 use crate::config::AppState::AppState;
-use crate::middleware::TenantMiddleware::TenantContext;
+use crate::middleware::AppMiddleware::TenantContext;
 use crate::repository::TenantRepository::TenantRepository;
 use crate::view::SettingsView;
 

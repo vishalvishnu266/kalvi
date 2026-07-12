@@ -7,7 +7,7 @@ use bcrypt::verify;
 use uuid::Uuid;
 use chrono::{Utc, Duration};
 use crate::config::AppState::AppState;
-use crate::middleware::TenantMiddleware::TenantContext;
+use crate::middleware::AppMiddleware::TenantContext;
 use crate::repository::{UserRepository::UserRepository, TenantRepository::TenantRepository};
 use crate::model::User::Session;
 use crate::view::{LoginView, CommonLoginView};
