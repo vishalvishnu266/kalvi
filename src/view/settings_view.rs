@@ -2,14 +2,44 @@ use crate::view::{render_layout, LayoutContext};
 use crate::model::Tenant;
 
 pub fn render_settings(tenant: &Tenant, success: Option<String>) -> String {
-    let success_alert = match success {
-        Some(msg) => format!(
-            //language=HTML
-            r#"<div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">{msg}</div>"#,
-            msg = msg
-        ),
-        None => "".to_string(),
-    };
+    use crate::view::components;
+    let success_alert = success.map(|msg| components::alert(&msg, false)).unwrap_or_default();
+
+    let form_content = format!(
+        r#"{success_alert}
+        <div class="space-y-6">
+            <p class="text-sm text-slate-500 italic mb-4">Note: These personalization settings are stored locally in your browser and only affect your current device.</p>
+            
+            <div>
+                <label class="block text-sm font-semibold mb-4 ml-1">My Accent Color</label>
+                <div class="flex items-center gap-4 bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border dark:border-slate-800">
+                    <input type="color" name="user_primary_color" class="w-12 h-12 rounded-xl cursor-pointer border-none bg-transparent">
+                    <button onclick="localStorage.removeItem('kalvi_primary_color'); location.reload();" class="text-xs text-slate-400 hover:text-primary underline transition-colors">Reset to Brand Default</button>
+                </div>
+            </div>
+            
+            <div class="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border dark:border-slate-800">
+                <div>
+                    <p class="font-bold">Dark Mode</p>
+                    <p class="text-sm text-slate-500">Switch between light and dark themes</p>
+                </div>
+                <button id="theme-toggle" class="px-6 py-2 bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-xl text-sm font-bold hover:bg-primary hover:text-white transition-all shadow-sm">
+                    Toggle Mode
+                </button>
+            </div>
+
+            <div class="pt-6 border-t dark:border-slate-800">
+                <button onclick="localStorage.removeItem('kalvi_theme'); localStorage.removeItem('kalvi_primary_color'); location.reload();" class="w-full py-4 text-slate-400 text-xs uppercase font-bold tracking-widest hover:text-red-400 transition-colors">
+                    Clear all local overrides
+                </button>
+            </div>
+        </div>"#;
+        slug = tenant.slug,
+        primary_color = tenant.primary_color,
+        dark_mode_checked = if tenant.dark_mode { "checked" } else { "" },
+        success_alert = success_alert,
+        submit_button = components::button_primary("Save Preferences", true)
+    );
 
     let content = format!(
         //language=HTML
@@ -22,47 +52,12 @@ pub fn render_settings(tenant: &Tenant, success: Option<String>) -> String {
             <h1 class="text-xl font-bold text-slate-900 dark:text-white">Settings</h1>
         </nav>
 
-        <div class="max-w-2xl mx-auto p-4 md:p-8">
-            {success_alert}
-            <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border dark:border-slate-800 p-6 md:p-8">
-                <h2 class="text-2xl font-bold mb-6">Personalization</h2>
-                <form action="/web/{slug}/settings" method="POST" class="space-y-6">
-                    <div>
-                        <label class="block text-sm font-semibold mb-2">Primary Color</label>
-                        <div class="flex items-center gap-4">
-                            <input type="color" name="primary_color" value="{primary_color}" class="w-12 h-12 rounded cursor-pointer">
-                            <input type="text" name="primary_color_hex" value="{primary_color}" readonly class="bg-slate-50 dark:bg-slate-700 px-3 py-2 rounded text-sm font-mono">
-                        </div>
-                    </div>
-                    
-                    <div class="flex items-center justify-between py-4 border-t dark:border-slate-700">
-                        <div>
-                            <p class="font-semibold">Dark Mode</p>
-                            <p class="text-sm text-slate-500">Switch between light and dark themes</p>
-                        </div>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" name="dark_mode" value="true" {dark_mode_checked} class="sr-only peer">
-                            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-primary"></div>
-                        </label>
-                    </div>
-
-                    <button type="submit" class="w-full bg-primary hover:bg-primary-600 text-white font-bold py-4 rounded-2xl shadow-xl shadow-primary/20 transition-all transform hover:-translate-y-1 active:scale-95">
-                        Save Preferences
-                    </button>
-                </form>
-            </div>
-        </div>
-        <script>
-            const colorInput = document.querySelector('input[name="primary_color"]');
-            const hexInput = document.querySelector('input[name="primary_color_hex"]');
-            colorInput.addEventListener('input', (e) => {{
-                hexInput.value = e.target.value;
-            }});
-        </script>"#,
+        <main class="max-w-2xl mx-auto p-4 md:p-8">
+            <h2 class="text-2xl font-bold mb-8">Personalization</h2>
+            {card}
+        </main>"#,
         slug = tenant.slug,
-        primary_color = tenant.primary_color,
-        dark_mode_checked = if tenant.dark_mode { "checked" } else { "" },
-        success_alert = success_alert
+        card = components::card(form_content)
     );
 
     let ctx = LayoutContext {

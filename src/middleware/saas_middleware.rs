@@ -1,19 +1,17 @@
 use axum::{
     body::Body,
-    http::{Request, StatusCode},
+    http::Request,
     middleware::Next,
     response::{IntoResponse, Redirect, Response},
 };
-use crate::util::SessionUtil;
+use crate::util::{SessionUtil, AppError};
 
 pub async fn saas_middleware(
     req: Request<Body>,
     next: Next,
-) -> Result<Response, StatusCode> {
+) -> Result<Response, AppError> {
     let path = req.uri().path();
     
-    // SaaS Owner paths - requires "saas_" session
-    // Allow access to login, but protect everything else under /saas/
     let is_saas_login = path == "/saas/login" || path == "/saas/login/";
     
     if path.starts_with("/saas/") && !is_saas_login {

@@ -1,17 +1,28 @@
 use axum::{
     routing::{get, post},
     Router,
+    extract::State,
     middleware as axum_middleware,
 };
 use crate::config::AppState;
 use crate::controller::*;
-use crate::middleware::{tenant_middleware, auth_middleware, saas_middleware};
+use crate::middleware::{tenant_middleware, auth_middleware, saas_middleware, security_middleware, request_id_middleware, csrf_middleware, admin_only_middleware, rate_limit_middleware::rate_limit_middleware};
+use axum::middleware as ax_middleware;
+use tower_http::cors::{Any, CorsLayer};
+use http::Method;
 
 pub fn create_router(state: AppState) -> Router {
+    let cors = CorsLayer::new()
+        // In real production, replace Any with specific origins
+        .allow_origin(Any) 
+        .allow_methods([Method::GET, Method::POST, Method::PATCH, Method::DELETE])
+        .allow_headers(Any);
+
     // 1. SaaS Routes (Control Plane)
     let saas_routes = Router::new()
         .route("/onboard", get(saas_controller::show_onboard).post(saas_controller::process_onboard))
         .route("/login", get(saas_controller::show_login).post(saas_controller::process_login))
+        .layer(axum_middleware::from_fn_with_state(state.clone(), rate_limit_middleware))
         .layer(axum_middleware::from_fn_with_state(state.clone(), saas_middleware));
 
     // 2. Tenant API Routes (Protected)
@@ -27,22 +38,33 @@ pub fn create_router(state: AppState) -> Router {
     // Protected Web Routes
     let tenant_web_protected = Router::new()
         .route("/dashboard", get(dashboard_controller::show_dashboard))
-        .route("/settings", get(settings_controller::show_settings).post(settings_controller::process_settings))
+        .route("/settings", get(settings_controller::show_settings).post(settings_controller::process_settings)
+            .layer(axum_middleware::from_fn(admin_only_middleware)))
         .route("/logout", post(logout_controller::process_tenant_logout))
         .layer(axum_middleware::from_fn(auth_middleware));
 
     // Combined Tenant Web
     let tenant_web_routes = Router::new()
         .merge(tenant_web_public)
-        .merge(tenant_web_protected);
+        .merge(tenant_web_protected)
+        .layer(axum_middleware::from_fn_with_state(state.clone(), rate_limit_middleware));
 
     // 4. Public and Root-level routes
     let public_routes = Router::new()
+        .route("/health", get(|State(state): State<AppState>| async move {
+            let db_ok = state.db.check_health().await;
+            if db_ok {
+                axum::Json(serde_json::json!({ "status": "ok", "timestamp": chrono::Utc::now() }))
+            } else {
+                axum::Json(serde_json::json!({ "status": "error", "message": "database unavailable" }))
+            }
+        }))
         .route("/", get(home_controller::show_home))
         .route("/contact", get(home_controller::show_contact))
         .route("/login", get(login_controller::show_common_login).post(login_controller::process_common_login))
         .route("/logout", post(logout_controller::process_logout))
-        .route("/registration", get(onboarding_controller::show_form).post(onboarding_controller::submit_form));
+        .route("/registration", get(onboarding_controller::show_form).post(onboarding_controller::submit_form))
+        .layer(axum_middleware::from_fn_with_state(state.clone(), rate_limit_middleware));
 
     // 5. Tenant Routes (Data Plane)
     // We group these so we can apply the tenant_middleware once to both
@@ -57,5 +79,10 @@ pub fn create_router(state: AppState) -> Router {
         .merge(public_routes)
         .merge(tenant_routes)
         .fallback(|| async { axum::response::Redirect::to("/") })
+        // GLOBAL PRODUCTION MIDDLEWARES
+        .layer(ax_middleware::from_fn(security_middleware))
+        .layer(ax_middleware::from_fn(csrf_middleware))
+        .layer(ax_middleware::from_fn(request_id_middleware))
+        .layer(cors)
         .with_state(state)
 }

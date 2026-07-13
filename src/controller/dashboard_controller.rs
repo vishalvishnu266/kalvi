@@ -5,10 +5,11 @@ use axum::{
 use crate::middleware::TenantContext;
 use crate::model::User;
 use crate::view::DashboardView;
+use crate::util::AppError;
 
 pub async fn show_dashboard(
     Extension(ctx): Extension<TenantContext>,
     Extension(user): Extension<User>,
-) -> Html<String> {
-    Html(DashboardView::render_dashboard(&ctx.tenant, &user))
+) -> Result<Html<String>, AppError> {
+    Ok(Html(DashboardView::render_dashboard(&ctx.tenant, &user)))
 }

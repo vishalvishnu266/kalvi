@@ -1,40 +1,48 @@
-use sqlx::SqlitePool;
+use sqlx::{Sqlite, Executor, SqlitePool};
 use crate::model::Tenant;
 
 pub struct TenantRepository;
 
 impl TenantRepository {
-    pub async fn find_by_slug(pool: &SqlitePool, slug: &str) -> Result<Option<Tenant>, sqlx::Error> {
+    pub async fn find_by_slug<'a, E>(executor: E, slug: &str) -> Result<Option<Tenant>, sqlx::Error> 
+    where E: Executor<'a, Database = Sqlite>
+    {
         sqlx::query_as::<_, Tenant>("SELECT * FROM tenants WHERE slug = ?")
             .bind(slug)
-            .fetch_optional(pool)
+            .fetch_optional(executor)
             .await
     }
 
-    pub async fn save(pool: &SqlitePool, slug: &str, name: &str, db_name: &str) -> Result<Tenant, sqlx::Error> {
+    pub async fn save<'a, E>(executor: E, slug: &str, name: &str, db_name: &str) -> Result<Tenant, sqlx::Error> 
+    where E: Executor<'a, Database = Sqlite> + Copy
+    {
         sqlx::query("INSERT INTO tenants (slug, name, database_name) VALUES (?, ?, ?)")
             .bind(slug)
             .bind(name)
             .bind(db_name)
-            .execute(pool)
+            .execute(executor)
             .await?;
             
-        Self::find_by_slug(pool, slug).await.map(|t| t.unwrap())
+        Ok(Self::find_by_slug(executor, slug).await?.unwrap())
     }
 
-    pub async fn update_settings(pool: &SqlitePool, slug: &str, primary_color: &str, dark_mode: bool) -> Result<(), sqlx::Error> {
+    pub async fn update_settings<'a, E>(executor: E, slug: &str, primary_color: &str, dark_mode: bool) -> Result<(), sqlx::Error> 
+    where E: Executor<'a, Database = Sqlite>
+    {
         sqlx::query("UPDATE tenants SET primary_color = ?, dark_mode = ? WHERE slug = ?")
             .bind(primary_color)
             .bind(dark_mode)
             .bind(slug)
-            .execute(pool)
+            .execute(executor)
             .await?;
         Ok(())
     }
 
-    pub async fn list_all(pool: &SqlitePool) -> Result<Vec<Tenant>, sqlx::Error> {
+    pub async fn list_all<'a, E>(executor: E) -> Result<Vec<Tenant>, sqlx::Error> 
+    where E: Executor<'a, Database = Sqlite>
+    {
         sqlx::query_as::<_, Tenant>("SELECT * FROM tenants")
-            .fetch_all(pool)
+            .fetch_all(executor)
             .await
     }
 }

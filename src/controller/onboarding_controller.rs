@@ -1,17 +1,24 @@
 use axum::{
     extract::{State, Form},
-    response::{Html, IntoResponse},
+    response::{Html, IntoResponse, Response},
 };
 use serde::Deserialize;
+use validator::Validate;
 use crate::config::AppState;
 use crate::view::OnboardingView;
 use crate::service::TenantService;
+use crate::util::AppError;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Validate)]
 pub struct OnboardForm {
+    #[validate(length(min = 3, message = "Name must be at least 3 characters"))]
     pub name: String,
+    #[validate(length(min = 3, message = "Slug must be at least 3 characters"))]
+    #[validate(regex(path = *crate::util::html_util::SLUG_REGEX, message = "Invalid slug format"))]
     pub slug: String,
+    #[validate(length(min = 3, message = "Username must be at least 3 characters"))]
     pub admin_username: String,
+    #[validate(length(min = 8, message = "Password must be at least 8 characters"))]
     pub admin_password: String,
 }
 
@@ -22,15 +29,16 @@ pub async fn show_form() -> Html<String> {
 pub async fn submit_form(
     State(state): State<AppState>,
     Form(form): Form<OnboardForm>,
-) -> impl IntoResponse {
-    match TenantService::create_tenant(
+) -> Result<Response, AppError> {
+    form.validate().map_err(|e| AppError::Internal(e.to_string()))?;
+    
+    let tenant = TenantService::create_tenant(
         &state,
         &form.name,
         &form.slug,
         &form.admin_username,
         &form.admin_password,
-    ).await {
-        Ok(tenant) => Html(OnboardingView::render_success(&tenant.slug, &tenant.name)).into_response(),
-        Err(e) => Html(OnboardingView::render_form(Some(e))).into_response(),
-    }
+    ).await?;
+    
+    Ok(Html(OnboardingView::render_success(&tenant.slug, &tenant.name)).into_response())
 }

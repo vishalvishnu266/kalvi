@@ -20,6 +20,9 @@ async-trait = "0.1"
 tower = "0.5"
 http = "1.1"
 dotenvy = "0.15"
+validator = { version = "0.19", features = ["derive"] }
+once_cell = "1.19"
+regex = "1.10"
 
 [build-dependencies]
 # No build deps needed for now

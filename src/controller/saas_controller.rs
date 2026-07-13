@@ -1,11 +1,11 @@
 use axum::{
     extract::{State, Form},
-    response::{Html, IntoResponse, Redirect},
+    response::{Html, IntoResponse, Redirect, Response},
 };
 use serde::Deserialize;
 use crate::config::AppState;
 use crate::view::SaasView;
-use crate::util::SessionUtil;
+use crate::util::{SessionUtil, AppError};
 use crate::service::SaasService;
 
 #[derive(Deserialize)]
@@ -32,11 +32,9 @@ pub async fn show_onboard(State(state): State<AppState>) -> impl IntoResponse {
 pub async fn process_onboard(
     State(state): State<AppState>,
     Form(form): Form<SaasOnboardForm>,
-) -> impl IntoResponse {
-    match SaasService::onboard_owner(&state.db.master_pool, &form.username, &form.password, &form.full_name).await {
-        Ok(_) => Redirect::to("/saas/login").into_response(),
-        Err(e) => Html(SaasView::render_onboard(Some(e))).into_response(),
-    }
+) -> Result<Response, AppError> {
+    SaasService::onboard_owner(&state.db.master_pool, &form.username, &form.password, &form.full_name).await?;
+    Ok(Redirect::to("/saas/login").into_response())
 }
 
 pub async fn show_login() -> Html<String> {
@@ -46,15 +44,14 @@ pub async fn show_login() -> Html<String> {
 pub async fn process_login(
     State(state): State<AppState>,
     Form(form): Form<SaasLoginForm>,
-) -> impl IntoResponse {
-    match SaasService::authenticate(&state.db.master_pool, &form.username, &form.password).await {
-        Ok(Some(_owner)) => {
+) -> Result<Response, AppError> {
+    match SaasService::authenticate(&state.db.master_pool, &form.username, &form.password).await? {
+        Some(_owner) => {
             let session_id = SaasService::generate_session_id();
             let mut response = Redirect::to("/onboard").into_response();
             SessionUtil::set_session_cookie(&mut response, &session_id);
-            response
+            Ok(response)
         }
-        Ok(None) => Html(SaasView::render_login(Some("Invalid credentials".to_string()))).into_response(),
-        Err(e) => Html(SaasView::render_login(Some(e))).into_response(),
+        None => Ok(Html(SaasView::render_login(Some("Invalid credentials".to_string()))).into_response()),
     }
 }

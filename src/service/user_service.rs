@@ -4,6 +4,7 @@ use uuid::Uuid;
 use chrono::{Utc, Duration};
 use crate::model::{User, Session};
 use crate::repository::UserRepository;
+use crate::util::AppError;
 
 pub struct UserService;
 
@@ -12,10 +13,8 @@ impl UserService {
         pool: &SqlitePool,
         username: &str,
         password: &str,
-    ) -> Result<Option<User>, String> {
-        let user = UserRepository::find_by_username(pool, username)
-            .await
-            .map_err(|_| "Database error".to_string())?;
+    ) -> Result<Option<User>, AppError> {
+        let user = UserRepository::find_by_username(pool, username).await?;
 
         if let Some(u) = user {
             if verify(password, &u.password_hash).unwrap_or(false) {
@@ -28,7 +27,7 @@ impl UserService {
     pub async fn create_session(
         pool: &SqlitePool,
         user_id: i64,
-    ) -> Result<String, String> {
+    ) -> Result<String, AppError> {
         let session_id = Uuid::new_v4().to_string();
         let session = Session {
             id: session_id.clone(),
@@ -39,9 +38,7 @@ impl UserService {
             created_at: None,
         };
 
-        UserRepository::save_session(pool, &session)
-            .await
-            .map_err(|_| "Failed to create session".to_string())?;
+        UserRepository::save_session(pool, &session).await?;
 
         Ok(session_id)
     }

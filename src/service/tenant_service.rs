@@ -3,12 +3,13 @@ use bcrypt::{hash, DEFAULT_COST};
 use crate::model::Tenant;
 use crate::repository::{TenantRepository, UserRepository};
 use crate::config::AppState;
+use crate::util::AppError;
 
 pub struct TenantService;
 
 impl TenantService {
-    pub async fn find_by_slug(state: &AppState, slug: &str) -> Result<Option<Tenant>, sqlx::Error> {
-        TenantRepository::find_by_slug(&state.db.master_pool, slug).await
+    pub async fn find_by_slug(state: &AppState, slug: &str) -> Result<Option<Tenant>, AppError> {
+        Ok(TenantRepository::find_by_slug(&state.db.master_pool, slug).await?)
     }
 
     pub async fn get_tenant_for_session(
@@ -34,40 +35,50 @@ impl TenantService {
         slug: &str,
         admin_username: &str,
         admin_password: &str,
-    ) -> Result<Tenant, String> {
+    ) -> Result<Tenant, AppError> {
         let slug = slug.trim().to_lowercase();
-        if slug.is_empty() || name.trim().is_empty() {
-            return Err("All fields are required".to_string());
+        
+        // 1. Logic Validation (Outside Transaction for speed)
+        if !slug.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
+            return Err(AppError::Internal("Slug must only contain letters, numbers, and hyphens".to_string()));
+        }
+        let reserved = vec!["saas", "api", "web", "health", "contact", "login", "registration"];
+        if reserved.contains(&slug.as_str()) || slug.is_empty() || name.trim().is_empty() {
+            return Err(AppError::Internal("Invalid name or reserved slug".to_string()));
         }
 
-        let reserved_slugs = vec!["saas"];
-        if reserved_slugs.contains(&slug.as_str()) {
-            return Err("Slug is reserved".to_string());
-        }
+        // 2. Start Transaction on Master Pool
+        let mut tx = state.db.master_pool.begin().await?;
 
-        match TenantRepository::find_by_slug(&state.db.master_pool, &slug).await {
-            Ok(Some(_)) => return Err("Slug is already taken".to_string()),
-            Err(_) => return Err("Database error".to_string()),
-            Ok(None) => {}
+        // 3. Check for existence inside TX
+        if let Some(_) = TenantRepository::find_by_slug(&mut *tx, &slug).await? {
+             return Err(AppError::Internal("Slug is already taken".to_string()));
         }
 
         let db_name = slug.clone();
         
-        let tenant = TenantRepository::save(&state.db.master_pool, &slug, name, &db_name)
-            .await
-            .map_err(|_| "Failed to create tenant".to_string())?;
+        // 4. Save Tenant to Master DB (Pass the Transaction)
+        let tenant = TenantRepository::save(&mut *tx, &slug, name, &db_name).await?;
 
-        let tenant_pool = state.db.get_tenant_pool(&tenant.database_name)
-            .await
-            .map_err(|_| "Failed to provision tenant database".to_string())?;
+        // 5. Commit Master Changes
+        tx.commit().await?;
 
+        // 6. Provision Tenant DB (This is separate as it creates a file/pool)
+        let tenant_pool = state.db.get_tenant_pool(&tenant.database_name).await?;
+
+        // 7. Start Transaction on Tenant Pool
+        let mut tenant_tx = tenant_pool.begin().await?;
+
+        // 8. Create Admin User inside Tenant TX
         let hashed_pw = hash(admin_password, DEFAULT_COST).unwrap();
         sqlx::query("INSERT INTO users (username, password_hash, role) VALUES (?, ?, 'admin')")
             .bind(admin_username)
             .bind(hashed_pw)
-            .execute(&tenant_pool)
-            .await
-            .map_err(|_| "Failed to create admin user".to_string())?;
+            .execute(&mut *tenant_tx)
+            .await?;
+
+        // 9. Final Commit
+        tenant_tx.commit().await?;
 
         Ok(tenant)
     }
@@ -77,9 +88,7 @@ impl TenantService {
         slug: &str,
         primary_color: &str,
         dark_mode: bool,
-    ) -> Result<(), String> {
-        TenantRepository::update_settings(&state.db.master_pool, slug, primary_color, dark_mode)
-            .await
-            .map_err(|_| "Failed to update settings".to_string())
+    ) -> Result<(), AppError> {
+        Ok(TenantRepository::update_settings(&state.db.master_pool, slug, primary_color, dark_mode).await?)
     }
 }

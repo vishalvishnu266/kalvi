@@ -94,73 +94,71 @@ pub fn render_layout(ctx: LayoutContext, content: String) -> String {
     <script>
         // language=javascript
         (function() {{
-            const userDark = {dark_mode};
-            const savedTheme = localStorage.getItem('theme');
-            const savedColor = localStorage.getItem('primary-color');
+            // 1. Resolve Priorities: LocalStorage > Server Default > System Default
+            const serverDefaultDark = {dark_mode};
+            const serverDefaultColor = '{primary_color}';
+            
+            const savedTheme = localStorage.getItem('kalvi_theme');
+            const savedColor = localStorage.getItem('kalvi_primary_color');
             const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
             
-            let isDark = false;
-            if (savedTheme) {{
-                isDark = savedTheme === 'dark';
-            }} else {{
-                isDark = userDark || systemDark;
-            }}
+            // Apply Theme Mode
+            const isDark = savedTheme ? (savedTheme === 'dark') : (serverDefaultDark || systemDark);
+            if (isDark) document.documentElement.classList.add('dark');
             
-            console.log('Theme init:', {{savedTheme, userDark, systemDark, isDark}});
+            // Apply Primary Color
+            const activeColor = savedColor || serverDefaultColor;
             
-            if (isDark) {{
-                document.documentElement.classList.add('dark');
-            }}
-            
-            function updatePrimaryColor(color) {{
-                document.documentElement.style.setProperty('--primary-color', color);
-                // Simple hex to rgb conversion
-                const r = parseInt(color.slice(1, 3), 16);
-                const g = parseInt(color.slice(3, 5), 16);
-                const b = parseInt(color.slice(5, 7), 16);
+            function updateCSSVariables(hex) {{
+                document.documentElement.style.setProperty('--primary-color', hex);
+                // Convert hex to RGB for gradients
+                const r = parseInt(hex.slice(1, 3), 16);
+                const g = parseInt(hex.slice(3, 5), 16);
+                const b = parseInt(hex.slice(5, 7), 16);
                 document.documentElement.style.setProperty('--primary-color-rgb', `${{r}}, ${{g}}, ${{b}}`);
             }}
-
-            if (savedColor) {{
-                updatePrimaryColor(savedColor);
-            }} else {{
-                updatePrimaryColor('{primary_color}');
-            }}
+            
+            updateCSSVariables(activeColor);
         }})();
 
         document.addEventListener('turbo:load', () => {{
-            const updatePrimaryColor = (color) => {{
-                document.documentElement.style.setProperty('--primary-color', color);
-                const r = parseInt(color.slice(1, 3), 16);
-                const g = parseInt(color.slice(3, 5), 16);
-                const b = parseInt(color.slice(5, 7), 16);
-                document.documentElement.style.setProperty('--primary-color-rgb', `${{r}}, ${{g}}, ${{b}}`);
-            }};
-
             const themeToggle = document.getElementById('theme-toggle');
             if (themeToggle) {{
                 themeToggle.addEventListener('click', () => {{
                     const isDark = document.documentElement.classList.toggle('dark');
-                    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+                    localStorage.setItem('kalvi_theme', isDark ? 'dark' : 'light');
                 }});
             }}
 
-            const colorPickers = document.querySelectorAll('.color-picker');
-            colorPickers.forEach(picker => {{
-                picker.addEventListener('click', (e) => {{
-                    const color = e.target.dataset.color;
-                    if (color) {{
-                        updatePrimaryColor(color);
-                        localStorage.setItem('primary-color', color);
-                    }}
+            // Global color picker logic (for settings page)
+            const colorInput = document.querySelector('input[name="user_primary_color"]');
+            if (colorInput) {{
+                colorInput.value = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim();
+                colorInput.addEventListener('input', (e) => {{
+                    const hex = e.target.value;
+                    document.documentElement.style.setProperty('--primary-color', hex);
+                    localStorage.setItem('kalvi_primary_color', hex);
                 }});
-            }});
+            }}
         }});
     </script>
 </head>
 <body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen transition-colors duration-300">
-    <div id="app-container" class="relative">
-        {content}
+    <div id="app-container" class="relative min-h-screen flex flex-col">
+        <div class="flex-grow">
+            {content}
+        </div>
+        
+        <footer class="py-8 px-6 border-t dark:border-slate-900 bg-white dark:bg-slate-950/50 backdrop-blur-sm">
+            <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 text-slate-400 text-xs font-medium">
+                <p>&copy; 2026 Kalvi ERP. All rights reserved.</p>
+                <div class="flex items-center gap-6">
+                    <a href="/contact" class="hover:text-primary transition-colors">Support</a>
+                    <a href="#" class="hover:text-primary transition-colors">Privacy</a>
+                    <span class="px-2 py-1 bg-slate-100 dark:bg-slate-900 rounded-md border dark:border-slate-800">System v0.1.0</span>
+                </div>
+            </div>
+        </footer>
     </div>
 </body>
 </html>"#,

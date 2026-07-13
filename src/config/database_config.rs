@@ -1,6 +1,7 @@
 use sqlx::{sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous}, migrate::Migrator, SqlitePool};
 use std::{collections::HashMap, path::Path, sync::Arc};
 use tokio::sync::RwLock;
+use tracing::info;
 
 pub static MASTER_MIGRATOR: Migrator = sqlx::migrate!("./resources/migrations/master");
 pub static TENANT_MIGRATOR: Migrator = sqlx::migrate!("./resources/migrations/tenant");
@@ -12,7 +13,12 @@ pub struct DatabaseConfig {
 }
 
 impl DatabaseConfig {
+    pub async fn check_health(&self) -> bool {
+        sqlx::query("SELECT 1").execute(&self.master_pool).await.is_ok()
+    }
+
     pub async fn new() -> Result<Self, sqlx::Error> {
+        info!("Initializing Master Database...");
         if !Path::new("data").exists() {
             std::fs::create_dir_all("data").map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
         }
@@ -37,6 +43,7 @@ impl DatabaseConfig {
     }
 
     pub async fn get_tenant_pool(&self, db_name: &str) -> Result<SqlitePool, sqlx::Error> {
+        info!("Resolving Database Pool for: {}", db_name);
         {
             let pools = self.tenant_pools.read().await;
             if let Some(pool) = pools.get(db_name) {
