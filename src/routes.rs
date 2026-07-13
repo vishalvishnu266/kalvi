@@ -44,13 +44,18 @@ pub fn create_router(state: AppState) -> Router {
         .route("/logout", post(logout_controller::process_logout))
         .route("/registration", get(onboarding_controller::show_form).post(onboarding_controller::submit_form));
 
-    // 5. Main Application Router
+    // 5. Tenant Routes (Data Plane)
+    // We group these so we can apply the tenant_middleware once to both
+    let tenant_routes = Router::new()
+        .nest("/api/{slug}", tenant_api_routes)
+        .nest("/web/{slug}", tenant_web_routes)
+        .layer(axum_middleware::from_fn_with_state(state.clone(), tenant_middleware));
+
+    // 6. Main Application Router
     Router::new()
         .nest("/saas", saas_routes)
         .merge(public_routes)
-        .nest("/api/{slug}", tenant_api_routes)
-        .nest("/web/{slug}", tenant_web_routes)
-        .layer(axum_middleware::from_fn_with_state(state.clone(), tenant_middleware))
+        .merge(tenant_routes)
         .fallback(|| async { axum::response::Redirect::to("/") })
         .with_state(state)
 }
