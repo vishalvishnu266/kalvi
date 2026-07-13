@@ -9,6 +9,7 @@ impl SettingsView {
         let success_alert = success.map(|msg| components::alert(&msg, false)).unwrap_or_default();
 
         let form_content = format!(
+            //language=HTML
             r#"{success_alert}
             <div class="space-y-6">
                 <p class="text-sm text-slate-500 italic mb-4">Note: These personalization settings are stored locally in your browser and only affect your current device.</p>
