@@ -30,6 +30,11 @@ pub async fn submit_form(
     }
 
     // Check if slug exists
+    let reserved_slugs = vec!["saas"];
+    if reserved_slugs.contains(&slug.as_str()) {
+         return Html(OnboardingView::render_form(Some("Slug is reserved".to_string()))).into_response();
+    }
+
     match TenantRepository::find_by_slug(&state.db.master_pool, &slug).await {
         Ok(Some(_)) => return Html(OnboardingView::render_form(Some("Slug is already taken".to_string()))).into_response(),
         Err(_) => return Html(OnboardingView::render_form(Some("Database error".to_string()))).into_response(),
