@@ -23,7 +23,7 @@ pub async fn app_middleware(
     let mut tenant_ctx: Option<TenantContext> = None;
     
     // Reserved public/control-plane paths
-    let reserved = ["/login", "/registration", "/pages", "/saas", "/onboard", "/favicon.ico", "/static"];
+    let reserved = ["/login", "/registration", "/pages", "/favicon.ico", "/static"];
     let is_reserved = reserved.iter().any(|r| path.starts_with(r)) || path == "/";
 
     if !is_reserved {
@@ -55,15 +55,6 @@ pub async fn app_middleware(
                     return Ok(Redirect::to(&format!("/{}/login", slug)).into_response());
                 }
             }
-        }
-    } else if path.starts_with("/onboard") || path.starts_with("/saas/") {
-        // SaaS Owner paths - requires "saas_" session
-        if path.starts_with("/onboard") {
-             let session_id = SessionUtil::get_session_id(req.headers());
-             match session_id {
-                 Some(sid) if sid.starts_with("saas_") => {},
-                 _ => return Ok(Redirect::to("/saas/login").into_response()),
-             }
         }
     }
     

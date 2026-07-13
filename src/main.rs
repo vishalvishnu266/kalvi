@@ -16,6 +16,7 @@ use crate::config::AppState::AppState;
 use crate::config::DatabaseConfig::DatabaseConfig;
 use crate::controller::*;
 use crate::middleware::AppMiddleware::app_middleware;
+use crate::middleware::SaasMiddleware::saas_middleware;
 
 #[tokio::main]
 async fn main() {
@@ -32,7 +33,12 @@ async fn main() {
         .route("/settings", get(SettingsController::show_settings).post(SettingsController::process_settings))
         .route("/logout", post(LogoutController::process_tenant_logout));
 
-    let app: Router = Router::new()
+    let saas_routes = Router::new()
+        .route("/onboard", get(SaasController::show_onboard).post(SaasController::process_onboard))
+        .route("/login", get(SaasController::show_login).post(SaasController::process_login))
+        .layer(axum_middleware::from_fn_with_state(state.clone(), saas_middleware));
+
+    let public_and_tenant_routes = Router::new()
         // Public Routes
         .route("/", get(HomeController::show_home))
         .route("/login", get(LoginController::show_common_login).post(LoginController::process_common_login))
@@ -40,17 +46,17 @@ async fn main() {
         .route("/registration", get(OnboardingController::show_form).post(OnboardingController::submit_form))
         .route("/pages/{*path}", get(|| async { axum::response::Html("<h1>Public Page Placeholder</h1>") }))
         
-        // SaaS Control Plane
-        .route("/saas/onboard", get(SaasController::show_onboard).post(SaasController::process_onboard))
-        .route("/saas/login", get(SaasController::show_login).post(SaasController::process_login))
-        
         // Tenant Routes (/{slug})
         .nest("/{slug}/api", tenant_api_routes)
         .nest("/{slug}", tenant_web_routes)
         .route("/{slug}/login", get(LoginController::show_login).post(LoginController::process_login))
         
         // Global Middlewares
-        .layer(axum_middleware::from_fn_with_state(state.clone(), app_middleware))
+        .layer(axum_middleware::from_fn_with_state(state.clone(), app_middleware));
+
+    let app: Router = Router::new()
+        .nest("/saas", saas_routes)
+        .merge(public_and_tenant_routes)
         .fallback(|| async { axum::response::Redirect::to("/") })
         .with_state(state);
 
