@@ -26,7 +26,7 @@ pub async fn process_settings(
     let dark_mode = form.dark_mode.is_some();
     
     match TenantService::update_tenant_settings(&state, &ctx.tenant.slug, &form.primary_color, dark_mode).await {
-        Ok(_) => Redirect::to(&format!("/{}/dashboard", ctx.tenant.slug)).into_response(),
+        Ok(_) => Redirect::to(&format!("/web/{}/dashboard", ctx.tenant.slug)).into_response(),
         Err(e) => Html(SettingsView::render_settings(&ctx.tenant, Some(e))).into_response(),
     }
 }

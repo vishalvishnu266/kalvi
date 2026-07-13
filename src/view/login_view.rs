@@ -27,7 +27,7 @@ pub fn render_login(tenant: &Tenant, error: Option<String>) -> String {
 
                 {error_alert}
                 
-                <form action="/{slug}/login" method="POST" class="space-y-5">
+                <form action="/web/{slug}/login" method="POST" class="space-y-5">
                     <div>
                         <label class="block text-xs uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400 mb-2">Username</label>
                         <input type="text" name="username" required autofocus class="w-full px-4 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 dark:bg-slate-950 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder-slate-400" placeholder="Enter your username">

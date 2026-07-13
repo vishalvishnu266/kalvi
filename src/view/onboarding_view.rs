@@ -83,7 +83,7 @@ pub fn render_success(slug: &str, name: &str) -> String {
             <p class="text-slate-600 dark:text-slate-400 mb-8">
                 <strong>{name}</strong> has been successfully initialized. You can now log in to your tenant dashboard.
             </p>
-            <a href="/{slug}/login" class="inline-block bg-primary hover:bg-primary-600 text-white font-bold py-4 px-10 rounded-2xl shadow-xl shadow-primary/20 transition-all transform hover:-translate-y-1 active:scale-95">
+            <a href="/web/{slug}/login" class="inline-block bg-primary hover:bg-primary-600 text-white font-bold py-4 px-10 rounded-2xl shadow-xl shadow-primary/20 transition-all transform hover:-translate-y-1 active:scale-95">
                 Go to Dashboard Login
             </a>
         </div>"#,

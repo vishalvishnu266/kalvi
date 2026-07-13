@@ -45,7 +45,7 @@ pub async fn process_common_login(
         Ok(Some(user)) => {
             match UserService::create_session(&tenant_pool, user.id).await {
                 Ok(session_id) => {
-                    let mut response = Redirect::to(&format!("/{}/dashboard", tenant.slug)).into_response();
+                    let mut response = Redirect::to(&format!("/web/{}/dashboard", tenant.slug)).into_response();
                     SessionUtil::set_session_cookie(&mut response, &session_id);
                     SessionUtil::set_tenant_cookie(&mut response, &tenant.slug);
                     response
@@ -70,7 +70,7 @@ pub async fn process_login(
         Ok(Some(user)) => {
             match UserService::create_session(&ctx.pool, user.id).await {
                 Ok(session_id) => {
-                    let mut response = Redirect::to(&format!("/{}/dashboard", ctx.tenant.slug)).into_response();
+                    let mut response = Redirect::to(&format!("/web/{}/dashboard", ctx.tenant.slug)).into_response();
                     SessionUtil::set_session_cookie(&mut response, &session_id);
                     SessionUtil::set_tenant_cookie(&mut response, &ctx.tenant.slug);
                     response
