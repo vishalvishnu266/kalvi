@@ -1,5 +1,5 @@
 use sqlx::SqlitePool;
-use crate::model::Tenant::Tenant;
+use crate::model::Tenant;
 
 pub struct TenantRepository;
 

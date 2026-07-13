@@ -1,5 +1,5 @@
-use crate::view::LayoutView::{render_layout, LayoutContext};
-use crate::model::Tenant::Tenant;
+use crate::view::{render_layout, LayoutContext};
+use crate::model::Tenant;
 
 pub fn render_login(tenant: &Tenant, error: Option<String>) -> String {
     let error_alert = match error {

@@ -3,10 +3,10 @@ use axum::{
     response::{Html, IntoResponse, Redirect},
 };
 use serde::Deserialize;
-use crate::config::AppState::AppState;
-use crate::middleware::AppMiddleware::TenantContext;
-use crate::repository::TenantRepository::TenantRepository;
+use crate::config::AppState;
+use crate::middleware::TenantContext;
 use crate::view::SettingsView;
+use crate::service::TenantService;
 
 #[derive(Deserialize)]
 pub struct SettingsForm {
@@ -25,11 +25,8 @@ pub async fn process_settings(
 ) -> impl IntoResponse {
     let dark_mode = form.dark_mode.is_some();
     
-    match TenantRepository::update_settings(&state.db.master_pool, &ctx.tenant.slug, &form.primary_color, dark_mode).await {
-        Ok(_) => {
-            // Redirect to dashboard on success to show changes reflected
-            Redirect::to(&format!("/{}/dashboard", ctx.tenant.slug)).into_response()
-        }
-        Err(_) => Html(SettingsView::render_settings(&ctx.tenant, Some("Failed to update settings".to_string()))).into_response(),
+    match TenantService::update_tenant_settings(&state, &ctx.tenant.slug, &form.primary_color, dark_mode).await {
+        Ok(_) => Redirect::to(&format!("/{}/dashboard", ctx.tenant.slug)).into_response(),
+        Err(e) => Html(SettingsView::render_settings(&ctx.tenant, Some(e))).into_response(),
     }
 }

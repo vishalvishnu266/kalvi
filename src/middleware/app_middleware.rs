@@ -6,11 +6,11 @@ use axum::{
     response::{IntoResponse, Redirect, Response},
 };
 use sqlx::SqlitePool;
-use crate::config::AppState::AppState;
-use crate::repository::TenantRepository::TenantRepository;
+use crate::config::AppState;
+use crate::repository::UserRepository;
 use crate::util::SessionUtil;
-use crate::repository::UserRepository::UserRepository;
-use crate::model::Tenant::Tenant;
+use crate::model::Tenant;
+use crate::service::TenantService;
 
 pub async fn app_middleware(
     State(state): State<AppState>,
@@ -29,7 +29,7 @@ pub async fn app_middleware(
     if !is_reserved {
         let segments: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
         if let Some(slug) = segments.first() {
-            let tenant = match TenantRepository::find_by_slug(&state.db.master_pool, slug).await {
+            let tenant = match TenantService::find_by_slug(&state, slug).await {
                 Ok(Some(t)) => t,
                 _ => return Ok(Redirect::to("/login").into_response()),
             };

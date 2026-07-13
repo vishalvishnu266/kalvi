@@ -1,6 +1,5 @@
-use crate::view::LayoutView::{render_layout, LayoutContext};
-use crate::model::Tenant::Tenant;
-use crate::model::User::User;
+use crate::view::{render_layout, LayoutContext};
+use crate::model::{Tenant, User};
 
 pub fn render_dashboard(tenant: &Tenant, user: &User) -> String {
     let content = format!(

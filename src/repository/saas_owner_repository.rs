@@ -1,5 +1,5 @@
 use sqlx::SqlitePool;
-use crate::model::SaasOwner::SaasOwner;
+use crate::model::SaasOwner;
 
 pub struct SaasOwnerRepository;
 

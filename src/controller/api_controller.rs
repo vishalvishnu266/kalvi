@@ -3,7 +3,7 @@ use axum::{
     Json,
 };
 use serde_json::{json, Value};
-use crate::middleware::AppMiddleware::TenantContext;
+use crate::middleware::TenantContext;
 
 pub async fn health(Extension(ctx): Extension<TenantContext>) -> Json<Value> {
     Json(json!({

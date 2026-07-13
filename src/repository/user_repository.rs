@@ -1,6 +1,5 @@
 use sqlx::SqlitePool;
-use crate::model::User::User;
-use crate::model::User::Session;
+use crate::model::{User, Session};
 
 pub struct UserRepository;
 

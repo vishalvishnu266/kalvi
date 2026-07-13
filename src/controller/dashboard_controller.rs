@@ -2,8 +2,8 @@ use axum::{
     extract::Extension,
     response::Html,
 };
-use crate::middleware::AppMiddleware::TenantContext;
-use crate::model::User::User;
+use crate::middleware::TenantContext;
+use crate::model::User;
 use crate::view::DashboardView;
 
 pub async fn show_dashboard(

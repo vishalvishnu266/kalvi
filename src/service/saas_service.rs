@@ -1,0 +1,46 @@
+use sqlx::SqlitePool;
+use bcrypt::{hash, verify, DEFAULT_COST};
+use crate::model::SaasOwner;
+use crate::repository::SaasOwnerRepository;
+use uuid::Uuid;
+
+pub struct SaasService;
+
+impl SaasService {
+    pub async fn has_owners(pool: &SqlitePool) -> bool {
+        SaasOwnerRepository::count(pool).await.unwrap_or(0) > 0
+    }
+
+    pub async fn onboard_owner(
+        pool: &SqlitePool,
+        username: &str,
+        password: &str,
+        full_name: &str,
+    ) -> Result<SaasOwner, String> {
+        let hashed_pw = hash(password, DEFAULT_COST).unwrap();
+        SaasOwnerRepository::save(pool, username, &hashed_pw, full_name)
+            .await
+            .map_err(|_| "Failed to create SaaS owner".to_string())
+    }
+
+    pub async fn authenticate(
+        pool: &SqlitePool,
+        username: &str,
+        password: &str,
+    ) -> Result<Option<SaasOwner>, String> {
+        let owner = SaasOwnerRepository::find_by_username(pool, username)
+            .await
+            .map_err(|_| "Database error".to_string())?;
+
+        if let Some(o) = owner {
+            if verify(password, &o.password_hash).unwrap_or(false) {
+                return Ok(Some(o));
+            }
+        }
+        Ok(None)
+    }
+
+    pub fn generate_session_id() -> String {
+        format!("saas_{}", Uuid::new_v4())
+    }
+}

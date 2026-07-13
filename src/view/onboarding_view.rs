@@ -1,4 +1,4 @@
-use crate::view::LayoutView::{render_layout, LayoutContext};
+use crate::view::{render_layout, LayoutContext};
 
 pub fn render_form(error: Option<String>) -> String {
     let error_alert = match error {

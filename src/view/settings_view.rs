@@ -1,5 +1,5 @@
-use crate::view::LayoutView::{render_layout, LayoutContext};
-use crate::model::Tenant::Tenant;
+use crate::view::{render_layout, LayoutContext};
+use crate::model::Tenant;
 
 pub fn render_settings(tenant: &Tenant, success: Option<String>) -> String {
     let success_alert = match success {
