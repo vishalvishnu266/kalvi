@@ -1,5 +1,13 @@
 use crate::util::html_util::escape_html;
 
+pub fn alert_error(message: &str) -> String {
+    alert(message, true)
+}
+
+pub fn alert_success(message: &str) -> String {
+    alert(message, false)
+}
+
 pub fn alert(message: &str, is_error: bool) -> String {
     let (bg, text, border) = if is_error {
         ("bg-red-50 dark:bg-red-900/20", "text-red-600 dark:text-red-400", "border-red-100 dark:border-red-900/30")

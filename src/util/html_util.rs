@@ -17,3 +17,22 @@ pub fn escape_html(s: &str) -> String {
     }
     escaped
 }
+
+pub trait IntoHtml {
+    fn into_html(self) -> axum::response::Html<String>;
+}
+
+impl IntoHtml for String {
+    fn into_html(self) -> axum::response::Html<String> {
+        axum::response::Html(self)
+    }
+}
+
+pub fn is_reserved_slug(slug: &str) -> bool {
+    let reserved = ["saas", "api", "web", "health", "contact", "login", "registration"];
+    reserved.contains(&slug) || slug.is_empty()
+}
+
+pub fn is_valid_slug(slug: &str) -> bool {
+    SLUG_REGEX.is_match(slug) && !is_reserved_slug(slug)
+}

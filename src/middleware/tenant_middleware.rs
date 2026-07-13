@@ -17,13 +17,12 @@ pub async fn tenant_middleware(
     mut req: Request<Body>,
     next: Next,
 ) -> Result<Response, AppError> {
-    let path = req.uri().path().to_string();
+    let path = req.uri().path();
     let segments: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
     
-    let prefix = segments.get(0).copied().unwrap_or("");
-    let slug = match segments.get(1) {
-        Some(s) => s,
-        None => return Ok(next.run(req).await),
+    let (prefix, slug) = match (segments.get(0), segments.get(1)) {
+        (Some(p), Some(s)) => (p, s),
+        _ => return Ok(next.run(req).await),
     };
 
     let tenant = match TenantService::find_by_slug(&state, slug).await? {
@@ -31,22 +30,20 @@ pub async fn tenant_middleware(
         None => return Ok(Redirect::to("/login").into_response()),
     };
         
-    let pool = state.db.get_tenant_pool(&tenant.database_name).await?;
-        
     let ctx = TenantContext {
-        tenant: tenant.clone(),
-        pool,
+        pool: state.db.get_tenant_pool(&tenant.database_name).await?,
+        tenant,
     };
     
     req.extensions_mut().insert(ctx.clone());
 
-    if prefix == "web" && segments.len() == 2 {
-        let session_id = SessionUtil::get_session_id(req.headers());
-        if session_id.is_some() {
-            return Ok(Redirect::to(&format!("/web/{}/dashboard", slug)).into_response());
+    if *prefix == "web" && segments.len() == 2 {
+        let redirect_url = if SessionUtil::get_session_id(req.headers()).is_some() {
+            ctx.dashboard_url()
         } else {
-            return Ok(Redirect::to(&format!("/web/{}/login", slug)).into_response());
-        }
+            ctx.login_url()
+        };
+        return Ok(Redirect::to(&redirect_url).into_response());
     }
     
     Ok(next.run(req).await)
@@ -56,4 +53,19 @@ pub async fn tenant_middleware(
 pub struct TenantContext {
     pub tenant: Tenant,
     pub pool: SqlitePool,
+}
+
+impl TenantContext {
+    pub fn from_req(req: &Request<Body>) -> Result<&Self, AppError> {
+        req.extensions().get::<Self>()
+            .ok_or_else(|| AppError::Internal("Tenant context missing".to_string()))
+    }
+
+    pub fn login_url(&self) -> String {
+        format!("/web/{}/login", self.tenant.slug)
+    }
+
+    pub fn dashboard_url(&self) -> String {
+        format!("/web/{}/dashboard", self.tenant.slug)
+    }
 }

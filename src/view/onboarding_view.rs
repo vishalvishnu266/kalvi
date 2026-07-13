@@ -6,7 +6,7 @@ impl OnboardingView {
     pub fn render_form(error: Option<String>) -> String {
         use crate::view::components;
         
-        let error_alert = error.map(|err| components::alert(&err, true)).unwrap_or_default();
+        let error_alert = error.as_deref().map(components::alert_error).unwrap_or_default();
 
         let form_content = format!(
             r#"{error_alert}

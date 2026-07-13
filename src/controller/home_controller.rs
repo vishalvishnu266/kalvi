@@ -19,9 +19,11 @@ pub async fn show_home(
         return Ok(Redirect::to(&format!("/web/{}/dashboard", tenant.slug)).into_response());
     }
 
-    Ok(Html(HomeView::render()).into_response())
+    use crate::util::html_util::IntoHtml;
+    Ok(HomeView::render().into_html().into_response())
 }
 
 pub async fn show_contact() -> Result<Html<String>, AppError> {
-    Ok(Html(contact_view::render()))
+    use crate::util::html_util::IntoHtml;
+    Ok(contact_view::render().into_html())
 }

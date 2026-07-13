@@ -1,7 +1,5 @@
 pub struct LayoutContext {
     pub title: String,
-    pub primary_color: String,
-    pub dark_mode: bool,
     pub tenant_slug: Option<String>,
 }
 
@@ -9,10 +7,21 @@ impl Default for LayoutContext {
     fn default() -> Self {
         Self {
             title: "Kalvi ERP".to_string(),
-            primary_color: "#3b82f6".to_string(), // blue-500
-            dark_mode: false,
             tenant_slug: None,
         }
+    }
+}
+
+impl LayoutContext {
+    pub fn for_tenant(tenant: &crate::model::Tenant, title: &str) -> Self {
+        Self {
+            title: format!("{} - {}", title, tenant.name),
+            tenant_slug: Some(tenant.slug.clone()),
+        }
+    }
+
+    pub fn render(self, content: String) -> String {
+        render_layout(self, content)
     }
 }
 
@@ -61,8 +70,8 @@ pub fn render_layout(ctx: LayoutContext, content: String) -> String {
     <style>
         /* language=css */
         :root {
-            --primary-color: {primary_color};
-            --primary-color-rgb: 59, 130, 246; /* Default blue, updated by JS */
+            --primary-color: #3b82f6;
+            --primary-color-rgb: 59, 130, 246;
         }
         
         .dark {
@@ -92,20 +101,17 @@ pub fn render_layout(ctx: LayoutContext, content: String) -> String {
     <script>
         // language=javascript
         (function() {
-            // 1. Resolve Priorities: LocalStorage > Server Default > System Default
-            const serverDefaultDark = {dark_mode};
-            const serverDefaultColor = '{primary_color}';
-            
+            // Resolve Priorities: LocalStorage > System Default
             const savedTheme = localStorage.getItem('kalvi_theme');
             const savedColor = localStorage.getItem('kalvi_primary_color');
             const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
             
             // Apply Theme Mode
-            const isDark = savedTheme ? (savedTheme === 'dark') : (serverDefaultDark || systemDark);
+            const isDark = savedTheme ? (savedTheme === 'dark') : systemDark;
             if (isDark) document.documentElement.classList.add('dark');
             
             // Apply Primary Color
-            const activeColor = savedColor || serverDefaultColor;
+            const activeColor = savedColor || '#3b82f6';
             
             function updateCSSVariables(hex) {
                 document.documentElement.style.setProperty('--primary-color', hex);
@@ -120,22 +126,40 @@ pub fn render_layout(ctx: LayoutContext, content: String) -> String {
         })();
 
         document.addEventListener('turbo:load', () => {
+            function updateThemeUI() {
+                const themeToggle = document.getElementById('theme-toggle');
+                if (themeToggle) {
+                    const isDark = document.documentElement.classList.contains('dark');
+                    themeToggle.textContent = isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode';
+                }
+            }
+
             const themeToggle = document.getElementById('theme-toggle');
             if (themeToggle) {
                 themeToggle.addEventListener('click', () => {
                     const isDark = document.documentElement.classList.toggle('dark');
                     localStorage.setItem('kalvi_theme', isDark ? 'dark' : 'light');
+                    updateThemeUI();
                 });
             }
+            updateThemeUI();
 
             // Global color picker logic (for settings page)
             const colorInput = document.querySelector('input[name="user_primary_color"]');
             if (colorInput) {
-                colorInput.value = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim();
+                // Ensure value is hex format for the input
+                const currentColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim();
+                colorInput.value = currentColor;
                 colorInput.addEventListener('input', (e) => {
                     const hex = e.target.value;
                     document.documentElement.style.setProperty('--primary-color', hex);
                     localStorage.setItem('kalvi_primary_color', hex);
+                    
+                    // Update RGB variable for gradients
+                    const r = parseInt(hex.slice(1, 3), 16);
+                    const g = parseInt(hex.slice(3, 5), 16);
+                    const b = parseInt(hex.slice(5, 7), 16);
+                    document.documentElement.style.setProperty('--primary-color-rgb', `${r}, ${g}, ${b}`);
                 });
             }
         });
@@ -162,7 +186,5 @@ pub fn render_layout(ctx: LayoutContext, content: String) -> String {
 </html>"###;
     TEMPLATE
         .replace("{title}", &ctx.title)
-        .replace("{primary_color}", &ctx.primary_color)
-        .replace("{dark_mode}", &ctx.dark_mode.to_string())
         .replace("{content}", &content)
 }

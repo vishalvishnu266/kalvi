@@ -42,14 +42,7 @@ impl DashboardView {
             nav = Self::render_tenant_nav(tenant, user)
         );
     
-        let ctx = LayoutContext {
-            title: format!("Dashboard - {}", tenant.name),
-            primary_color: tenant.primary_color.clone(),
-            dark_mode: tenant.dark_mode,
-            tenant_slug: Some(tenant.slug.clone()),
-        };
-    
-        render_layout(ctx, content)
+        render_layout(LayoutContext::for_tenant(tenant, "Dashboard"), content)
     }
     
     pub fn render_tenant_nav(tenant: &Tenant, user: &User) -> String {

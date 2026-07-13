@@ -47,13 +47,6 @@ impl LoginView {
             card = components::card(form_content)
         );
 
-        let ctx = LayoutContext {
-            title: format!("Login - {}", tenant.name),
-            primary_color: tenant.primary_color.clone(),
-            dark_mode: tenant.dark_mode,
-            tenant_slug: Some(tenant.slug.clone()),
-        };
-
-        render_layout(ctx, content)
+        render_layout(LayoutContext::for_tenant(tenant, "Login"), content)
     }
 }

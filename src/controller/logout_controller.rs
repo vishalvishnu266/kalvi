@@ -12,17 +12,8 @@ pub async fn process_logout(
     State(_state): State<AppState>,
     headers: HeaderMap,
 ) -> Result<Response, AppError> {
-    if let Some(session_id) = SessionUtil::get_session_id(&headers) {
-        if session_id.starts_with("saas_") {
-            let mut response = Redirect::to("/saas/login").into_response();
-            SessionUtil::clear_session_cookie(&mut response);
-            return Ok(response);
-        }
-    }
-
-    let mut response = Redirect::to("/login").into_response();
-    SessionUtil::clear_session_cookie(&mut response);
-    Ok(response)
+    let redirect = if SessionUtil::is_saas_session(&headers) { "/saas/login" } else { "/login" };
+    Ok(SessionUtil::finalize_logout(redirect))
 }
 
 pub async fn process_tenant_logout(
@@ -30,10 +21,7 @@ pub async fn process_tenant_logout(
     headers: HeaderMap,
 ) -> Result<Response, AppError> {
     if let Some(session_id) = SessionUtil::get_session_id(&headers) {
-        UserRepository::delete_session(&ctx.pool, &session_id).await?;
+        UserRepository::delete_session(&ctx.pool, &session_id).await.ok();
     }
-
-    let mut response = Redirect::to(&format!("/web/{}/login", ctx.tenant.slug)).into_response();
-    SessionUtil::clear_session_cookie(&mut response);
-    Ok(response)
+    Ok(SessionUtil::finalize_logout(&ctx.login_url()))
 }

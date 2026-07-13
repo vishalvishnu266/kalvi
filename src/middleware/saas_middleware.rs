@@ -15,10 +15,8 @@ pub async fn saas_middleware(
     let is_saas_login = path == "/saas/login" || path == "/saas/login/";
     
     if path.starts_with("/saas/") && !is_saas_login {
-        let session_id = SessionUtil::get_session_id(req.headers());
-        match session_id {
-            Some(sid) if sid.starts_with("saas_") => {},
-            _ => return Ok(Redirect::to("/saas/login").into_response()),
+        if !SessionUtil::is_saas_session(req.headers()) {
+            return Ok(Redirect::to("/saas/login").into_response());
         }
     }
     

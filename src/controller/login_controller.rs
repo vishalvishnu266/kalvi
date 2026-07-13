@@ -23,8 +23,10 @@ pub struct CommonLoginForm {
     pub password: String,
 }
 
+use crate::util::html_util::IntoHtml;
+
 pub async fn show_common_login() -> Html<String> {
-    Html(CommonLoginView::render_common_login(None))
+    CommonLoginView::render_common_login(None).into_html()
 }
 
 pub async fn process_common_login(
@@ -34,7 +36,7 @@ pub async fn process_common_login(
     let slug = form.slug.trim().to_lowercase();
     let tenant = match TenantService::find_by_slug(&state, &slug).await? {
         Some(t) => t,
-        None => return Ok(Html(CommonLoginView::render_common_login(Some("Institution not found".to_string()))).into_response()),
+        None => return Ok(CommonLoginView::render_common_login(Some("Institution not found".to_string())).into_html().into_response()),
     };
 
     let tenant_pool = state.db.get_tenant_pool(&tenant.database_name).await?;
@@ -42,17 +44,14 @@ pub async fn process_common_login(
     match UserService::authenticate(&tenant_pool, &form.username, &form.password).await? {
         Some(user) => {
             let session_id = UserService::create_session(&tenant_pool, user.id).await?;
-            let mut response = Redirect::to(&format!("/web/{}/dashboard", tenant.slug)).into_response();
-            SessionUtil::set_session_cookie(&mut response, &session_id);
-            SessionUtil::set_tenant_cookie(&mut response, &tenant.slug);
-            Ok(response)
+            Ok(SessionUtil::finalize_login(&session_id, &tenant.slug))
         }
-        None => Ok(Html(CommonLoginView::render_common_login(Some("Invalid credentials".to_string()))).into_response()),
+        None => Ok(CommonLoginView::render_common_login(Some("Invalid credentials".to_string())).into_html().into_response()),
     }
 }
 
 pub async fn show_login(Extension(ctx): Extension<TenantContext>) -> Html<String> {
-    Html(LoginView::render_login(&ctx.tenant, None))
+    LoginView::render_login(&ctx.tenant, None).into_html()
 }
 
 pub async fn process_login(
@@ -62,11 +61,8 @@ pub async fn process_login(
     match UserService::authenticate(&ctx.pool, &form.username, &form.password).await? {
         Some(user) => {
             let session_id = UserService::create_session(&ctx.pool, user.id).await?;
-            let mut response = Redirect::to(&format!("/web/{}/dashboard", ctx.tenant.slug)).into_response();
-            SessionUtil::set_session_cookie(&mut response, &session_id);
-            SessionUtil::set_tenant_cookie(&mut response, &ctx.tenant.slug);
-            Ok(response)
+            Ok(SessionUtil::finalize_login(&session_id, &ctx.tenant.slug))
         }
-        None => Ok(Html(LoginView::render_login(&ctx.tenant, Some("Invalid username or password".to_string()))).into_response()),
+        None => Ok(LoginView::render_login(&ctx.tenant, Some("Invalid username or password".to_string())).into_html().into_response()),
     }
 }

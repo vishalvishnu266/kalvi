@@ -74,6 +74,25 @@ pub fn clear_session_cookie(response: &mut Response) {
     }
 }
 
+pub fn clear_tenant_cookie(response: &mut Response) {
+    let cookie = Cookie::build((TENANT_COOKIE, ""))
+        .path("/")
+        .http_only(false)
+        .max_age(cookie::time::Duration::ZERO)
+        .build();
+
+    if let Ok(v) = HeaderValue::from_str(&cookie.to_string()) {
+        response.headers_mut().append(header::SET_COOKIE, v);
+    }
+}
+
+pub fn finalize_logout(redirect_url: &str) -> Response {
+    use axum::response::{IntoResponse, Redirect};
+    let mut response = Redirect::to(redirect_url).into_response();
+    clear_session_cookie(&mut response);
+    response
+}
+
 pub fn get_csrf_token(headers: &HeaderMap) -> Option<String> {
     headers.get(header::COOKIE)
         .and_then(|v| v.to_str().ok())
@@ -100,4 +119,18 @@ pub fn set_csrf_cookie(response: &mut Response, token: &str) {
     if let Ok(v) = HeaderValue::from_str(&cookie.to_string()) {
         response.headers_mut().append(header::SET_COOKIE, v);
     }
+}
+
+pub fn finalize_login(session_id: &str, tenant_slug: &str) -> Response {
+    use axum::response::{IntoResponse, Redirect};
+    let mut response = Redirect::to(&format!("/web/{}/dashboard", tenant_slug)).into_response();
+    set_session_cookie(&mut response, session_id);
+    set_tenant_cookie(&mut response, tenant_slug);
+    response
+}
+
+pub fn is_saas_session(headers: &HeaderMap) -> bool {
+    get_session_id(headers)
+        .map(|sid| sid.starts_with("saas_"))
+        .unwrap_or(false)
 }

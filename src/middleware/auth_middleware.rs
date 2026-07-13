@@ -10,27 +10,21 @@ use crate::repository::UserRepository;
 use crate::util::{SessionUtil, AppError};
 
 pub async fn auth_middleware(
-    req: Request<Body>,
+    mut req: Request<Body>,
     next: Next,
 ) -> Result<Response, AppError> {
-    let tenant_ctx = req.extensions().get::<TenantContext>()
-        .ok_or(AppError::Internal("Tenant context missing".to_string()))?;
+    let ctx = TenantContext::from_req(&req)?;
     
-    let session_id = SessionUtil::get_session_id(req.headers());
-    
-    if let Some(sid) = session_id {
-        if let Some((_session, user)) = UserRepository::find_session(&tenant_ctx.pool, &sid).await? {
-            let mut req = req;
+    if let Some(sid) = SessionUtil::get_session_id(req.headers()) {
+        if let Some((_, user)) = UserRepository::find_session(&ctx.pool, &sid).await? {
             req.extensions_mut().insert(user);
             return Ok(next.run(req).await);
         }
     }
 
-    let path = req.uri().path();
-    if path.starts_with("/api/") {
+    if req.uri().path().starts_with("/api/") {
         Err(AppError::Unauthorized("API access requires authentication".to_string()))
     } else {
-        let login_url = format!("/web/{}/login", tenant_ctx.tenant.slug);
-        Ok(Redirect::to(&login_url).into_response())
+        Ok(Redirect::to(&ctx.login_url()).into_response())
     }
 }

@@ -5,8 +5,6 @@ CREATE TABLE IF NOT EXISTS tenants (
     contact_email TEXT,
     contact_phone TEXT,
     address TEXT,
-    primary_color TEXT DEFAULT '#3b82f6',
-    dark_mode BOOLEAN DEFAULT 0,
     database_name TEXT NOT NULL UNIQUE,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );

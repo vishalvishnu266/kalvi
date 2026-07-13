@@ -23,13 +23,15 @@ pub struct OnboardForm {
 }
 
 pub async fn show_form() -> Html<String> {
-    Html(OnboardingView::render_form(None))
+    use crate::util::html_util::IntoHtml;
+    OnboardingView::render_form(None).into_html()
 }
 
 pub async fn submit_form(
     State(state): State<AppState>,
     Form(form): Form<OnboardForm>,
 ) -> Result<Response, AppError> {
+    use crate::util::html_util::IntoHtml;
     form.validate().map_err(|e| AppError::Internal(e.to_string()))?;
     
     let tenant = TenantService::create_tenant(
@@ -40,5 +42,5 @@ pub async fn submit_form(
         &form.admin_password,
     ).await?;
     
-    Ok(Html(OnboardingView::render_success(&tenant.slug, &tenant.name)).into_response())
+    Ok(OnboardingView::render_success(&tenant.slug, &tenant.name).into_html().into_response())
 }
