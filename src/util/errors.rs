@@ -38,11 +38,11 @@ impl IntoResponse for AppError {
         );
 
         let (status, message) = match self {
-            AppError::Database(_) => (StatusCode::INTERNAL_SERVER_ERROR, "A database error occurred. We have been notified."),
-            AppError::Internal(_) => (StatusCode::INTERNAL_SERVER_ERROR, "An internal server error occurred."),
-            AppError::NotFound(msg) => (StatusCode::NOT_FOUND, msg.as_str()),
-            AppError::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, msg.as_str()),
-            AppError::TooManyRequests(_) => (StatusCode::TOO_MANY_REQUESTS, "Slow down! You are sending too many requests."),
+            AppError::Database(_) => (StatusCode::INTERNAL_SERVER_ERROR, "A database error occurred. We have been notified.".to_string()),
+            AppError::Internal(_) => (StatusCode::INTERNAL_SERVER_ERROR, "An internal server error occurred.".to_string()),
+            AppError::NotFound(msg) => (StatusCode::NOT_FOUND, msg),
+            AppError::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, msg),
+            AppError::TooManyRequests(_) => (StatusCode::TOO_MANY_REQUESTS, "Slow down! You are sending too many requests.".to_string()),
         };
 
         // Render a generic crash/error page

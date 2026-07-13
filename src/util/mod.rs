@@ -1,4 +1,4 @@
-mod session_util;
+pub mod session_util;
 pub mod errors;
 pub mod html_util;
 

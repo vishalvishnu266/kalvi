@@ -62,7 +62,7 @@ pub async fn rate_limit_middleware(
         .map(|s| s.split(',').next().unwrap_or(s).trim().to_string())
         .unwrap_or_else(|| "unknown".to_string());
 
-    if state.limiter.check(ip).await {
+    if state.limiter.check(ip.clone()).await {
         Ok(next.run(req).await)
     } else {
         Err(crate::util::AppError::TooManyRequests(format!("IP: {}", ip)))

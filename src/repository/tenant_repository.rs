@@ -13,17 +13,16 @@ impl TenantRepository {
             .await
     }
 
-    pub async fn save<'a, E>(executor: E, slug: &str, name: &str, db_name: &str) -> Result<Tenant, sqlx::Error> 
-    where E: Executor<'a, Database = Sqlite> + Copy
+    pub async fn save(executor: &mut sqlx::Transaction<'_, sqlx::Sqlite>, slug: &str, name: &str, db_name: &str) -> Result<Tenant, sqlx::Error> 
     {
         sqlx::query("INSERT INTO tenants (slug, name, database_name) VALUES (?, ?, ?)")
             .bind(slug)
             .bind(name)
             .bind(db_name)
-            .execute(executor)
+            .execute(&mut **executor)
             .await?;
             
-        Ok(Self::find_by_slug(executor, slug).await?.unwrap())
+        Ok(Self::find_by_slug(&mut **executor, slug).await?.unwrap())
     }
 
     pub async fn update_settings<'a, E>(executor: E, slug: &str, primary_color: &str, dark_mode: bool) -> Result<(), sqlx::Error> 

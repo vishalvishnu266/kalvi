@@ -58,7 +58,7 @@ impl TenantService {
         let db_name = slug.clone();
         
         // 4. Save Tenant to Master DB (Pass the Transaction)
-        let tenant = TenantRepository::save(&mut *tx, &slug, name, &db_name).await?;
+        let tenant = TenantRepository::save(&mut tx, &slug, name, &db_name).await?;
 
         // 5. Commit Master Changes
         tx.commit().await?;
