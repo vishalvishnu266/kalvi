@@ -28,21 +28,37 @@ pub fn base_layout(title: &str, content: &str) -> String {
                     --primary-color: #4f46e5;
                 }}
                 body {{
-                    background: linear-gradient(135deg, var(--primary-color) 0%, #1e293b 100%);
-                    background-attachment: fixed;
+                    background-color: #f8fafc;
                     min-height: 100vh;
                 }}
+                .dark body {{
+                    background-color: #020617;
+                }}
+                .bg-mesh {{
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    height: 400px;
+                    background: radial-gradient(circle at 50% -20%, var(--primary-color), transparent 70%);
+                    opacity: 0.15;
+                    pointer-events: none;
+                    z-index: 0;
+                }}
                 .glass-card {{
-                    background: rgba(255, 255, 255, 0.8);
-                    backdrop-filter: blur(10px);
+                    background: rgba(255, 255, 255, 0.7);
+                    backdrop-filter: blur(12px);
+                    border: 1px solid rgba(255, 255, 255, 0.3);
                 }}
                 .dark .glass-card {{
-                    background: rgba(30, 41, 59, 0.8);
+                    background: rgba(15, 23, 42, 0.6);
+                    border: 1px solid rgba(255, 255, 255, 0.05);
                 }}
             </style>
             <script src="https://unpkg.com/@hotwired/turbo@8.0.0/dist/turbo.es2017-umd.js"></script>
         </head>
-        <body class="antialiased transition-colors duration-300">
+        <body class="antialiased transition-colors duration-300 text-slate-900 dark:text-slate-100">
+            <div class="bg-mesh"></div>
             <div id="theme-controls" class="fixed top-4 right-4 z-50 flex gap-2 bg-white/50 p-2 rounded-full backdrop-blur-md border border-white/20 shadow-lg">
                 <input type="color" id="primaryColorPicker" value=" #4f46e5" class="w-8 h-8 rounded-full border-none cursor-pointer ">
                 <button id="themeToggle" class="p-2 rounded-full bg-slate-800 text-white dark:bg-white dark:text-slate-800">

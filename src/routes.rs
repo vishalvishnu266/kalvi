@@ -7,7 +7,8 @@ use crate::tenant_db_middleware::tenant_db_middleware;
 pub fn create_routes(state: AppState) -> Router {
     let public_router = Router::new()
         .route("/", get(|| async { "Hello, World!" }))
-        .route("/storybook", get(crate::controllers::component_controller::storybook_handler))
+        .route("/storybook", get(crate::controllers::component_controller::storybook_root_handler))
+        .route("/storybook/:page", get(crate::controllers::component_controller::storybook_handler))
         .layer(middleware::from_fn(public_middleware::public_middleware))
         .layer(middleware::map_response(add_security_headers));
 
