@@ -56,9 +56,9 @@ impl DashboardView {
                 </div>
             </main>
             <style>
-                .hover-border-primary:hover { border: 1px solid var(--bs-primary) !important; }
-                .hover-primary-subtle:hover { background-color: var(--bs-primary-bg-subtle) !important; color: var(--bs-primary) !important; }
-                .group:hover .group-hover-scale { transform: scale(1.1); background-color: var(--bs-primary) !important; color: white !important; }
+                .hover-border-primary:hover {{ border: 1px solid var(--bs-primary) !important; }}
+                .hover-primary-subtle:hover {{ background-color: var(--bs-primary-bg-subtle) !important; color: var(--bs-primary) !important; }}
+                .group:hover .group-hover-scale {{ transform: scale(1.1); background-color: var(--bs-primary) !important; color: white !important; }}
             </style>"###,
             nav = Self::render_tenant_nav(tenant, user)
         );
@@ -116,12 +116,12 @@ impl DashboardView {
                 </div>
             </nav>
             <style>
-                .hover-bg-light:hover { background-color: var(--bs-tertiary-bg); color: var(--bs-primary) !important; }
-                .hover-text-danger:hover { color: var(--bs-danger) !important; }
-                .theme-sun-icon { display: block; }
-                .theme-moon-icon { display: none; }
-                [data-bs-theme="dark"] .theme-sun-icon { display: none; }
-                [data-bs-theme="dark"] .theme-moon-icon { display: block; }
+                .hover-bg-light:hover {{ background-color: var(--bs-tertiary-bg); color: var(--bs-primary) !important; }}
+                .hover-text-danger:hover {{ color: var(--bs-danger) !important; }}
+                .theme-sun-icon {{ display: block; }}
+                .theme-moon-icon {{ display: none; }}
+                [data-bs-theme="dark"] .theme-sun-icon {{ display: none; }}
+                [data-bs-theme="dark"] .theme-moon-icon {{ display: block; }}
             </style>"###,
             logo_char = crate::util::html_util::escape_html(&tenant.name).chars().next().unwrap_or('K'),
             tenant_name = crate::util::html_util::escape_html(&tenant.name),

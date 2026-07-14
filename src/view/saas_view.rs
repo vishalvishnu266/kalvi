@@ -80,7 +80,7 @@ impl SaasView {
                 </div>
             </div>
             <style>
-                .hover-primary:hover { color: var(--bs-primary) !important; }
+                .hover-primary:hover {{ color: var(--bs-primary) !important; }}
             </style>"#,
             card = components::card(form_content)
         );

@@ -1,12 +1,9 @@
 use axum::{
-    extract::{Extension, Form, State},
+    extract::Extension,
     response::{Html, IntoResponse, Redirect, Response},
 };
-use serde::Deserialize;
-use crate::config::AppState;
 use crate::middleware::TenantContext;
 use crate::view::SettingsView;
-use crate::service::TenantService;
 use crate::util::AppError;
 
 pub async fn show_settings(Extension(ctx): Extension<TenantContext>) -> Html<String> {

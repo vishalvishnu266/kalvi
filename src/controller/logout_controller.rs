@@ -1,6 +1,6 @@
 use axum::{
     extract::{Extension, State},
-    response::{IntoResponse, Redirect, Response},
+    response::Response,
     http::HeaderMap,
 };
 use crate::config::AppState;

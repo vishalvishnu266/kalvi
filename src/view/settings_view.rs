@@ -37,9 +37,9 @@ impl SettingsView {
                 </div>
             </div>
             <style>
-                .hover-primary:hover { color: var(--bs-primary) !important; }
-                .hover-danger:hover { color: var(--bs-danger) !important; }
-                .hover-primary-btn:hover { background-color: var(--bs-primary) !important; color: white !important; border-color: var(--bs-primary) !important; }
+                .hover-primary:hover {{ color: var(--bs-primary) !important; }}
+                .hover-danger:hover {{ color: var(--bs-danger) !important; }}
+                .hover-primary-btn:hover {{ background-color: var(--bs-primary) !important; color: white !important; border-color: var(--bs-primary) !important; }}
             </style>"#
         );
 

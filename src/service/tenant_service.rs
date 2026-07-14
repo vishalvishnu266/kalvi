@@ -1,4 +1,3 @@
-use sqlx::SqlitePool;
 use bcrypt::{hash, DEFAULT_COST};
 use crate::model::Tenant;
 use crate::repository::{TenantRepository, UserRepository};

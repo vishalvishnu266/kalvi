@@ -1,6 +1,6 @@
 use axum::{
     extract::{Extension, Form, State},
-    response::{Html, IntoResponse, Redirect, Response},
+    response::{Html, IntoResponse, Response},
 };
 use crate::util::AppError;
 use serde::Deserialize;

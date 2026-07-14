@@ -1,4 +1,4 @@
-use sqlx::{Sqlite, Executor, SqlitePool};
+use sqlx::{Sqlite, Executor};
 use crate::model::Tenant;
 
 pub struct TenantRepository;

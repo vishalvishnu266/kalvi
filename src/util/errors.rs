@@ -69,7 +69,10 @@ impl IntoResponse for AppError {
                         Back to Home
                     </a>
                 </div>
-            </div>"#,
+            </div>
+            <style>
+                .hover-primary:hover {{ color: var(--bs-primary) !important; }}
+            </style>"#,
             message = message,
             support_id = support_id
         );

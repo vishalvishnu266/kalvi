@@ -7,7 +7,6 @@ use axum::{
 };
 use sqlx::SqlitePool;
 use crate::config::AppState;
-use crate::repository::UserRepository;
 use crate::util::{SessionUtil, AppError};
 use crate::model::Tenant;
 use crate::service::TenantService;

@@ -43,7 +43,7 @@ impl LoginView {
                 </div>
             </div>
             <style>
-                .hover-primary:hover { color: var(--bs-primary) !important; }
+                .hover-primary:hover {{ color: var(--bs-primary) !important; }}
             </style>"#,
             logo_char = tenant.name.chars().next().unwrap_or('K'),
             tenant_name = tenant.name,

@@ -47,15 +47,15 @@ impl HomeView {
                 </div>
             </div>
             <style>
-                .animate-ping {
+                .animate-ping {{
                     animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
-                }
-                @keyframes ping {
-                    75%, 100% { transform: scale(2); opacity: 0; }
-                }
-                .blur-3xl { filter: blur(64px); }
-                .grayscale { filter: grayscale(1); }
-                .hover-grayscale-0:hover { filter: grayscale(0); }
+                }}
+                @keyframes ping {{
+                    75%, 100% {{ transform: scale(2); opacity: 0; }}
+                }}
+                .blur-3xl {{ filter: blur(64px); }}
+                .grayscale {{ filter: grayscale(1); }}
+                .hover-grayscale-0:hover {{ filter: grayscale(0); }}
             </style>"#
         );
 
