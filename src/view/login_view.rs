@@ -25,23 +25,26 @@ impl LoginView {
 
         let content = format!(
             //language=HTML
-            r#"<div class="min-h-screen flex items-center justify-center p-4 md:p-6 relative overflow-hidden">
-                <div class="max-w-md w-full relative z-10">
-                    <div class="flex flex-col items-center mb-8 text-center">
-                        <div class="w-16 h-16 bg-primary/10 text-primary rounded-2xl flex items-center justify-center font-bold text-3xl mb-4 shadow-inner">
+            r#"<div class="container min-vh-100 d-flex align-items-center justify-content-center p-4">
+                <div class="w-100" style="max-width: 450px;">
+                    <div class="text-center mb-5">
+                        <div class="d-inline-flex align-items-center justify-content-center bg-primary-subtle text-primary rounded-4 mb-4 shadow-sm" style="width: 72px; height: 72px; font-size: 2rem; font-weight: 800;">
                             {logo_char}
                         </div>
-                        <h2 class="text-3xl font-bold text-slate-900 dark:text-white">{tenant_name}</h2>
-                        <p class="text-slate-500 dark:text-slate-400 font-medium">Please sign in to continue</p>
+                        <h2 class="h2 fw-bold text-body-emphasis">{tenant_name}</h2>
+                        <p class="text-secondary fw-medium">Please sign in to continue</p>
                     </div>
 
                     {card}
 
-                    <div class="mt-8 text-center">
-                        <a href="/" class="text-sm text-slate-500 hover:text-primary transition-colors">← Back to home</a>
+                    <div class="mt-4 text-center">
+                        <a href="/" class="text-decoration-none small text-secondary hover-primary transition-all">← Back to home</a>
                     </div>
                 </div>
-            </div>"#,
+            </div>
+            <style>
+                .hover-primary:hover { color: var(--bs-primary) !important; }
+            </style>"#,
             logo_char = tenant.name.chars().next().unwrap_or('K'),
             tenant_name = tenant.name,
             card = components::card(form_content)

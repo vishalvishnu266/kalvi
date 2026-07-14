@@ -9,11 +9,11 @@ impl SaasView {
 
         let form_content = format!(
             r#"{error_alert}
-            <form action="/saas/onboard" method="POST" class="space-y-4" data-turbo="false">
+            <form action="/saas/onboard" method="POST" data-turbo="false">
                 {user_input}
                 {name_input}
                 {pass_input}
-                {submit_button}
+                <div class="mt-4">{submit_button}</div>
             </form>"#,
             error_alert = error_alert,
             user_input = components::input("Username", "username", "text", "admin", true),
@@ -24,14 +24,14 @@ impl SaasView {
 
         let content = format!(
             //language=HTML
-            r#"<div class="min-h-screen flex items-center justify-center p-4 md:p-6">
-                <div class="max-w-md w-full">
-                    <div class="flex flex-col items-center mb-8">
-                        <div class="w-16 h-16 bg-primary/10 text-primary rounded-2xl flex items-center justify-center font-bold text-3xl mb-4 shadow-inner">
+            r#"<div class="container min-vh-100 d-flex align-items-center justify-content-center p-4">
+                <div class="w-100" style="max-width: 450px;">
+                    <div class="text-center mb-5">
+                        <div class="d-inline-flex align-items-center justify-content-center bg-primary-subtle text-primary rounded-4 mb-4 shadow-sm" style="width: 72px; height: 72px; font-size: 2rem; font-weight: 800;">
                             S
                         </div>
-                        <h2 class="text-3xl font-bold text-slate-900 dark:text-white text-center">Control Plane</h2>
-                        <p class="text-slate-500 dark:text-slate-400 font-medium text-center">Platform Owner Setup</p>
+                        <h2 class="h2 fw-bold text-body-emphasis">Control Plane</h2>
+                        <p class="text-secondary fw-medium">Platform Owner Setup</p>
                     </div>
 
                     {card}
@@ -49,10 +49,10 @@ impl SaasView {
 
         let form_content = format!(
             r#"{error_alert}
-            <form action="/saas/login" method="POST" class="space-y-4" data-turbo="false">
+            <form action="/saas/login" method="POST" data-turbo="false">
                 {user_input}
                 {pass_input}
-                {submit_button}
+                <div class="mt-4">{submit_button}</div>
             </form>"#,
             error_alert = error_alert,
             user_input = components::input("Username", "username", "text", "Enter username", true),
@@ -62,23 +62,26 @@ impl SaasView {
 
         let content = format!(
             //language=HTML
-            r#"<div class="min-h-screen flex items-center justify-center p-4 md:p-6">
-                <div class="max-w-md w-full">
-                    <div class="flex flex-col items-center mb-8 text-center">
-                        <div class="w-16 h-16 bg-primary/10 text-primary rounded-2xl flex items-center justify-center font-bold text-3xl mb-4 shadow-inner">
+            r#"<div class="container min-vh-100 d-flex align-items-center justify-content-center p-4">
+                <div class="w-100" style="max-width: 450px;">
+                    <div class="text-center mb-5">
+                        <div class="d-inline-flex align-items-center justify-content-center bg-primary-subtle text-primary rounded-4 mb-4 shadow-sm" style="width: 72px; height: 72px; font-size: 2rem; font-weight: 800;">
                             S
                         </div>
-                        <h2 class="text-3xl font-bold text-slate-900 dark:text-white">Admin Login</h2>
-                        <p class="text-slate-500 dark:text-slate-400 font-medium">Platform Control Plane</p>
+                        <h2 class="h2 fw-bold text-body-emphasis">Admin Login</h2>
+                        <p class="text-secondary fw-medium">Platform Control Plane</p>
                     </div>
 
                     {card}
 
-                    <div class="mt-8 text-center">
-                        <a href="/" class="text-sm text-slate-500 hover:text-primary transition-colors">← Back to home</a>
+                    <div class="mt-4 text-center">
+                        <a href="/" class="text-decoration-none small text-secondary hover-primary transition-all">← Back to home</a>
                     </div>
                 </div>
-            </div>"#,
+            </div>
+            <style>
+                .hover-primary:hover { color: var(--bs-primary) !important; }
+            </style>"#,
             card = components::card(form_content)
         );
 

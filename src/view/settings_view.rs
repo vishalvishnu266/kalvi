@@ -9,48 +9,55 @@ impl SettingsView {
         
         let form_content = format!(
             //language=HTML
-            r#"<div class="space-y-6">
-                <p class="text-sm text-slate-500 italic mb-4">Note: These personalization settings are stored locally in your browser and only affect your current device.</p>
+            r#"<div class="d-flex flex-column gap-4">
+                <p class="small text-secondary fst-italic mb-2">Note: These personalization settings are stored locally in your browser and only affect your current device.</p>
                 
                 <div>
-                    <label class="block text-sm font-semibold mb-4 ml-1">My Accent Color</label>
-                    <div class="flex items-center gap-4 bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border dark:border-slate-800">
-                        <input type="color" name="user_primary_color" class="w-12 h-12 rounded-xl cursor-pointer border-none bg-transparent">
-                        <button onclick="localStorage.removeItem('kalvi_primary_color'); location.reload();" class="text-xs text-slate-400 hover:text-primary underline">Reset to Default</button>
+                    <label class="form-label small fw-bold text-uppercase text-secondary mb-3">My Accent Color</label>
+                    <div class="d-flex align-items-center gap-3 bg-body-tertiary p-3 rounded-4 border">
+                        <input type="color" name="user_primary_color" class="form-control form-control-color border-0 bg-transparent" style="width: 48px; height: 48px;">
+                        <button onclick="localStorage.removeItem('kalvi_primary_color'); location.reload();" class="btn btn-link text-decoration-none small text-secondary hover-primary">Reset to Default</button>
                     </div>
                 </div>
                 
-                <div class="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border dark:border-slate-800">
+                <div class="d-flex align-items-center justify-content-between p-3 bg-body-tertiary rounded-4 border">
                     <div>
-                        <p class="font-bold">Dark Mode</p>
-                        <p class="text-sm text-slate-500">Switch between light and dark themes</p>
+                        <p class="fw-bold mb-0">Dark Mode</p>
+                        <p class="small text-secondary mb-0">Switch between light and dark themes</p>
                     </div>
-                    <button id="theme-toggle" class="px-6 py-2 bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-xl text-sm font-bold hover:bg-primary hover:text-white transition-all shadow-sm">
+                    <button id="theme-toggle" class="btn btn-outline-secondary fw-bold px-4 py-2 small shadow-sm hover-primary-btn">
                         Toggle Mode
                     </button>
                 </div>
 
-                <div class="pt-6 border-t dark:border-slate-800">
-                    <button onclick="localStorage.removeItem('kalvi_theme'); localStorage.removeItem('kalvi_primary_color'); location.reload();" class="w-full py-4 text-slate-400 text-xs uppercase font-bold tracking-widest hover:text-red-400">
+                <div class="pt-4 border-top mt-2">
+                    <button onclick="localStorage.removeItem('kalvi_theme'); localStorage.removeItem('kalvi_primary_color'); location.reload();" class="btn btn-link w-100 text-secondary small text-uppercase fw-bold tracking-wider text-decoration-none hover-danger">
                         Clear all personalization
                     </button>
                 </div>
-            </div>"#
+            </div>
+            <style>
+                .hover-primary:hover { color: var(--bs-primary) !important; }
+                .hover-danger:hover { color: var(--bs-danger) !important; }
+                .hover-primary-btn:hover { background-color: var(--bs-primary) !important; color: white !important; border-color: var(--bs-primary) !important; }
+            </style>"#
         );
 
         let content = format!(
             //language=HTML
-            r#"<nav class="bg-white dark:bg-slate-900/80 backdrop-blur-md border-b dark:border-slate-800 px-4 md:px-6 py-4 flex items-center sticky top-0 z-50">
-                <a href="/web/{slug}/dashboard" class="p-2 mr-4 text-slate-500 hover:text-primary transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                    </svg>
-                </a>
-                <h1 class="text-xl font-bold text-slate-900 dark:text-white">Settings</h1>
+            r#"<nav class="navbar border-bottom bg-body sticky-top z-3 py-3">
+                <div class="container-xl d-flex align-items-center">
+                    <a href="/web/{slug}/dashboard" class="btn btn-link text-secondary p-2 me-3 hover-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                    </a>
+                    <h1 class="h5 fw-bold mb-0">Settings</h1>
+                </div>
             </nav>
 
-            <main class="max-w-2xl mx-auto p-4 md:p-8">
-                <h2 class="text-2xl font-bold mb-8">Personalization</h2>
+            <main class="container py-4 py-md-5" style="max-width: 800px;">
+                <h2 class="h3 fw-bold mb-4 px-1">Personalization</h2>
                 {card}
             </main>"#,
             slug = tenant.slug,

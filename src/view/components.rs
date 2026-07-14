@@ -9,21 +9,17 @@ pub fn alert_success(message: &str) -> String {
 }
 
 pub fn alert(message: &str, is_error: bool) -> String {
-    let (bg, text, border) = if is_error {
-        ("bg-red-50 dark:bg-red-900/20", "text-red-600 dark:text-red-400", "border-red-100 dark:border-red-900/30")
-    } else {
-        ("bg-emerald-50 dark:bg-emerald-900/20", "text-emerald-600 dark:text-emerald-400", "border-emerald-100 dark:border-emerald-900/30")
-    };
+    let alert_class = if is_error { "alert-danger" } else { "alert-success" };
 
     format!(
         //language=HTML
-        r#"<div class="{} {} border p-4 rounded-2xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
-            <svg class="w-5 h-5 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        r#"<div class="alert {} d-flex align-items-start gap-3 shadow-sm border-0 py-3 px-4 mb-4" role="alert">
+            <svg class="bi flex-shrink-0 mt-1" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
             </svg>
-            <p class="text-sm font-medium {}">{}</p>
+            <div class="small fw-semibold">{}</div>
         </div>"#,
-        bg, border, text, escape_html(message)
+        alert_class, escape_html(message)
     )
 }
 
@@ -31,10 +27,9 @@ pub fn input(label: &str, name: &str, input_type: &str, placeholder: &str, requi
     let req_attr = if required { "required" } else { "" };
     format!(
         //language=HTML
-        r#"<div>
-            <label class="block text-xs uppercase font-bold text-slate-500 mb-2 ml-1">{}</label>
-            <input type="{}" name="{}" placeholder="{}" {} 
-                class="w-full px-4 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 dark:bg-slate-900 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
+        r#"<div class="mb-4">
+            <label class="form-label small text-uppercase fw-bold text-secondary ps-1">{}</label>
+            <input type="{}" name="{}" placeholder="{}" {} class="form-control">
         </div>"#,
         escape_html(label), input_type, escape_html(name), escape_html(placeholder), req_attr
     )
@@ -44,7 +39,7 @@ pub fn button_primary(label: &str, is_submit: bool) -> String {
     let btn_type = if is_submit { "submit" } else { "button" };
     format!(
         //language=HTML
-        r#"<button type="{}" class="w-full bg-primary hover:bg-primary-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-primary/20 transition-all transform active:scale-[0.98]">
+        r#"<button type="{}" class="btn btn-primary w-100 py-3 shadow-sm">
             {}
         </button>"#,
         btn_type, label
@@ -54,8 +49,10 @@ pub fn button_primary(label: &str, is_submit: bool) -> String {
 pub fn card(content: String) -> String {
     format!(
         //language=HTML
-        r#"<div class="bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-slate-800">
-            {}
+        r#"<div class="card shadow-sm border-0 p-4 p-md-5">
+            <div class="card-body p-0">
+                {}
+            </div>
         </div>"#,
         content
     )
@@ -64,9 +61,9 @@ pub fn card(content: String) -> String {
 pub fn nav_link(href: &str, label: &str, icon_svg: &str) -> String {
     format!(
         //language=HTML
-        r#"<a href="{}" class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-all group">
-            <div class="shrink-0 transition-transform group-hover:scale-110">{}</div>
-            <span class="font-semibold text-sm">{}</span>
+        r#"<a href="{}" class="nav-link d-flex align-items-center gap-3 px-3 py-2 rounded-3 text-secondary">
+            <div class="shrink-0">{}</div>
+            <span class="fw-semibold small">{}</span>
         </a>"#,
         href, icon_svg, label
     )

@@ -10,20 +10,20 @@ impl OnboardingView {
 
         let form_content = format!(
             r#"{error_alert}
-            <form action="/registration" method="POST" class="space-y-6" data-turbo="false">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {name_input}
-                    {slug_input}
+            <form action="/registration" method="POST" data-turbo="false">
+                <div class="row g-3">
+                    <div class="col-md-6">{name_input}</div>
+                    <div class="col-md-6">{slug_input}</div>
                 </div>
                 
-                <div class="relative py-4">
-                    <div class="absolute inset-0 flex items-center"><span class="w-full border-t dark:border-slate-800"></span></div>
-                    <div class="relative flex justify-center text-xs uppercase"><span class="bg-white dark:bg-slate-900 px-2 text-slate-500 font-bold">Admin Credentials</span></div>
+                <div class="position-relative py-4 text-center">
+                    <hr class="text-secondary opacity-25">
+                    <span class="position-absolute top-50 start-50 translate-middle bg-body px-3 small text-uppercase fw-bold text-secondary">Admin Credentials</span>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {user_input}
-                    {pass_input}
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">{user_input}</div>
+                    <div class="col-md-6">{pass_input}</div>
                 </div>
 
                 {submit_button}
@@ -38,23 +38,26 @@ impl OnboardingView {
 
         let content = format!(
             //language=HTML
-            r#"<div class="min-h-screen flex items-center justify-center p-4 md:p-6">
-                <div class="max-w-lg w-full">
-                    <div class="flex flex-col items-center mb-8">
-                        <div class="w-16 h-16 bg-primary/10 text-primary rounded-2xl flex items-center justify-center font-bold text-3xl mb-4 shadow-inner">
+            r#"<div class="container min-vh-100 d-flex align-items-center justify-content-center p-4">
+                <div class="w-100" style="max-width: 600px;">
+                    <div class="text-center mb-5">
+                        <div class="d-inline-flex align-items-center justify-content-center bg-primary-subtle text-primary rounded-4 mb-4 shadow-sm" style="width: 72px; height: 72px; font-size: 2rem; font-weight: 800;">
                             O
                         </div>
-                        <h2 class="text-3xl font-bold text-slate-900 dark:text-white">New Institution</h2>
-                        <p class="text-slate-500 dark:text-slate-400 font-medium text-center">Set up your isolated ERP workspace</p>
+                        <h2 class="h2 fw-bold text-body-emphasis">New Institution</h2>
+                        <p class="text-secondary fw-medium text-center">Set up your isolated ERP workspace</p>
                     </div>
 
                     {card}
 
-                    <div class="mt-8 text-center">
-                        <a href="/" class="text-sm text-slate-500 hover:text-primary transition-colors">← Back to home</a>
+                    <div class="mt-4 text-center">
+                        <a href="/" class="text-decoration-none small text-secondary hover-primary transition-all">← Back to home</a>
                     </div>
                 </div>
-            </div>"#,
+            </div>
+            <style>
+                .hover-primary:hover { color: var(--bs-primary) !important; }
+            </style>"#,
             card = components::card(form_content)
         );
 

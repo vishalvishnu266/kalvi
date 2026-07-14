@@ -33,89 +33,67 @@ pub fn render_layout(ctx: LayoutContext, content: String) -> String {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>{title}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script type="module">
         import * as Turbo from 'https://cdn.jsdelivr.net/npm/@hotwired/turbo@8.0.4/+esm';
         window.Turbo = Turbo;
-    </script>
-    <script>
-        // language=javascript
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        slate: {
-                            950: '#020617', // Deeper black
-                            900: '#0f172a',
-                        },
-                        primary: {
-                            DEFAULT: 'var(--primary-color)',
-                            50: 'color-mix(in srgb, var(--primary-color), white 90%)',
-                            100: 'color-mix(in srgb, var(--primary-color), white 80%)',
-                            200: 'color-mix(in srgb, var(--primary-color), white 60%)',
-                            300: 'color-mix(in srgb, var(--primary-color), white 40%)',
-                            400: 'color-mix(in srgb, var(--primary-color), white 20%)',
-                            500: 'var(--primary-color)',
-                            600: 'color-mix(in srgb, var(--primary-color), black 20%)',
-                            700: 'color-mix(in srgb, var(--primary-color), black 40%)',
-                            800: 'color-mix(in srgb, var(--primary-color), black 60%)',
-                            900: 'color-mix(in srgb, var(--primary-color), black 80%)',
-                        },
-                    }
-                }
-            }
-        }
     </script>
     <style>
         /* language=css */
         :root {
             --primary-color: #3b82f6;
             --primary-color-rgb: 59, 130, 246;
+            
+            /* Map to Bootstrap variables */
+            --bs-primary: var(--primary-color);
+            --bs-primary-rgb: var(--primary-color-rgb);
+            --bs-link-color: var(--primary-color);
+            --bs-link-hover-color: color-mix(in srgb, var(--primary-color), black 20%);
         }
-        
-        .dark {
+
+        [data-bs-theme="dark"] {
             color-scheme: dark;
         }
 
         body {
             background: radial-gradient(circle at top left, rgba(var(--primary-color-rgb), 0.05), transparent 40%),
                         radial-gradient(circle at bottom right, rgba(var(--primary-color-rgb), 0.05), transparent 40%);
+            min-height: 100vh;
         }
 
-        .dark body {
+        [data-bs-theme="dark"] body {
             background: radial-gradient(circle at top left, rgba(var(--primary-color-rgb), 0.1), transparent 40%),
                         linear-gradient(to bottom, #0f172a, #020617);
         }
 
-        /* Custom scrollbar for a polished look */
+        /* Modern UI Polish */
+        .card { border-radius: 1.5rem; border: 1px solid rgba(0,0,0,0.05); }
+        [data-bs-theme="dark"] .card { border: 1px solid rgba(255,255,255,0.05); background-color: #0f172a; }
+        .btn { border-radius: 1rem; padding: 0.75rem 1.5rem; font-weight: 600; }
+        .form-control, .form-select { border-radius: 1rem; padding: 0.75rem 1rem; border-color: rgba(0,0,0,0.1); }
+        [data-bs-theme="dark"] .form-control { background-color: #020617; border-color: rgba(255,255,255,0.1); color: white; }
+        
+        /* Custom scrollbar */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        .dark ::-webkit-scrollbar-thumb { background: #334155; }
-
-        .bg-primary { background-color: var(--primary-color); }
-        .text-primary { color: var(--primary-color); }
-        .border-primary { border-color: var(--primary-color); }
+        [data-bs-theme="dark"] ::-webkit-scrollbar-thumb { background: #334155; }
     </style>
     <script>
         // language=javascript
         (function() {
-            // Resolve Priorities: LocalStorage > System Default
             const savedTheme = localStorage.getItem('kalvi_theme');
             const savedColor = localStorage.getItem('kalvi_primary_color');
             const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
             
-            // Apply Theme Mode
             const isDark = savedTheme ? (savedTheme === 'dark') : systemDark;
-            if (isDark) document.documentElement.classList.add('dark');
+            document.documentElement.setAttribute('data-bs-theme', isDark ? 'dark' : 'light');
             
-            // Apply Primary Color
             const activeColor = savedColor || '#3b82f6';
             
             function updateCSSVariables(hex) {
                 document.documentElement.style.setProperty('--primary-color', hex);
-                // Convert hex to RGB for gradients
                 const r = parseInt(hex.slice(1, 3), 16);
                 const g = parseInt(hex.slice(3, 5), 16);
                 const b = parseInt(hex.slice(5, 7), 16);
@@ -129,7 +107,7 @@ pub fn render_layout(ctx: LayoutContext, content: String) -> String {
             function updateThemeUI() {
                 const themeToggle = document.getElementById('theme-toggle');
                 if (themeToggle) {
-                    const isDark = document.documentElement.classList.contains('dark');
+                    const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
                     themeToggle.textContent = isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode';
                 }
             }
@@ -137,25 +115,23 @@ pub fn render_layout(ctx: LayoutContext, content: String) -> String {
             const themeToggle = document.getElementById('theme-toggle');
             if (themeToggle) {
                 themeToggle.addEventListener('click', () => {
-                    const isDark = document.documentElement.classList.toggle('dark');
-                    localStorage.setItem('kalvi_theme', isDark ? 'dark' : 'light');
+                    const currentTheme = document.documentElement.getAttribute('data-bs-theme');
+                    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                    document.documentElement.setAttribute('data-bs-theme', newTheme);
+                    localStorage.setItem('kalvi_theme', newTheme);
                     updateThemeUI();
                 });
             }
             updateThemeUI();
 
-            // Global color picker logic (for settings page)
             const colorInput = document.querySelector('input[name="user_primary_color"]');
             if (colorInput) {
-                // Ensure value is hex format for the input
                 const currentColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim();
                 colorInput.value = currentColor;
                 colorInput.addEventListener('input', (e) => {
                     const hex = e.target.value;
                     document.documentElement.style.setProperty('--primary-color', hex);
                     localStorage.setItem('kalvi_primary_color', hex);
-                    
-                    // Update RGB variable for gradients
                     const r = parseInt(hex.slice(1, 3), 16);
                     const g = parseInt(hex.slice(3, 5), 16);
                     const b = parseInt(hex.slice(5, 7), 16);
@@ -165,19 +141,19 @@ pub fn render_layout(ctx: LayoutContext, content: String) -> String {
         });
     </script>
 </head>
-<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen">
-    <div id="app-container" class="relative min-h-screen flex flex-col">
-        <div class="flex-grow">
+<body>
+    <div id="app-container" class="d-flex flex-column min-vh-100">
+        <div class="flex-grow-1">
             {content}
         </div>
         
-        <footer class="py-8 px-6 border-t dark:border-slate-900 bg-white dark:bg-slate-950/50 backdrop-blur-sm">
-            <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 text-slate-400 text-xs font-medium">
-                <p>&copy; 2026 Kalvi ERP. All rights reserved.</p>
-                <div class="flex items-center gap-6">
-                    <a href="/contact" class="hover:text-primary">Support</a>
-                    <a href="#" class="hover:text-primary">Privacy</a>
-                    <span class="px-2 py-1 bg-slate-100 dark:bg-slate-900 rounded-md border dark:border-slate-800">System v0.1.0</span>
+        <footer class="py-5 px-4 border-top">
+            <div class="container-xl d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 text-secondary small font-medium">
+                <p class="mb-0">&copy; 2026 Kalvi ERP. All rights reserved.</p>
+                <div class="d-flex align-items-center gap-4">
+                    <a href="/contact" class="text-decoration-none text-secondary">Support</a>
+                    <a href="#" class="text-decoration-none text-secondary">Privacy</a>
+                    <span class="badge rounded-pill bg-body-tertiary text-secondary border">System v0.1.0</span>
                 </div>
             </div>
         </footer>
