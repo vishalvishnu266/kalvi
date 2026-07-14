@@ -1,5 +1,4 @@
-use axum::{Router, middleware::{from_fn, Extension}, routing::{get, post}};
-use crate::middleware::request_id_middleware;
+use axum::{Router, middleware::from_fn, routing::{get, post}, Extension};
 use crate::controller::{saas_controller, onboarding_controller, login_controller, student_controller, dashboard_controller};
 use crate::middleware::{request_id_middleware, tenant_middleware, auth_middleware};
 use crate::config::AppState;

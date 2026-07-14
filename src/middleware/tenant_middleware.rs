@@ -1,15 +1,15 @@
 use axum::{
     body::Body,
     extract::State,
-    http::{Request, Response},
+    http::Request,
     middleware::Next,
-    response::Redirect,
+    response::{Redirect, Response, IntoResponse},
 };
 use sqlx::SqlitePool;
 use crate::config::AppState;
 use crate::model::Tenant;
 use crate::service::TenantService;
-use crate::util::AppError;
+use crate::util::errors::AppError;
 
 #[derive(Clone, Debug)]
 pub struct TenantContext {

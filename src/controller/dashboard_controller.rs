@@ -1,6 +1,6 @@
 use axum::{
     response::Html,
-    middleware::Extension,
+    Extension,
 };
 use crate::middleware::TenantContext;
 use crate::model::User;
@@ -11,6 +11,6 @@ pub async fn show_dashboard(
     Extension(ctx): Extension<TenantContext>,
     Extension(user): Extension<User>,
 ) -> Html<String> {
-    let student_count = StudentRepository::count(&ctx.pool).await.unwrap_or(0);
+    let student_count = StudentRepository::count(&ctx.pool).await.unwrap_or(0_i64);
     Html(DashboardView::render_dashboard(&ctx.tenant, &user, student_count))
 }

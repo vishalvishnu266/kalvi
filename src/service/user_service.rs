@@ -2,7 +2,7 @@ use sqlx::SqlitePool;
 use bcrypt::verify;
 use crate::model::user::{User, Session};
 use crate::repository::UserRepository;
-use crate::util::{AppError, id_util};
+use crate::util::{errors::AppError, id_util};
 
 pub struct UserService;
 

@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use crate::config::AppState;
 use crate::service::SaasService;
 use crate::view::SaasView;
-use crate::util::AppError;
+use crate::util::errors::AppError;
 
 #[derive(Deserialize)]
 pub struct SaasOnboardForm {

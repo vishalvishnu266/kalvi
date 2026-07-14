@@ -2,7 +2,7 @@ use sqlx::SqlitePool;
 use bcrypt::{hash, verify, DEFAULT_COST};
 use crate::repository::SaasOwnerRepository;
 use crate::model::SaasOwner;
-use crate::util::AppError;
+use crate::util::errors::AppError;
 
 pub struct SaasService;
 

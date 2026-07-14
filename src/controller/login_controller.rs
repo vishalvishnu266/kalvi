@@ -1,7 +1,7 @@
 use axum::{
     extract::{State, Form},
     response::{Html, IntoResponse, Response, Redirect},
-    middleware::Extension,
+    Extension,
 };
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -9,7 +9,7 @@ use crate::config::AppState;
 use crate::middleware::TenantContext;
 use crate::service::{TenantService, UserService};
 use crate::view::{LoginView, CommonLoginView};
-use crate::util::{AppError, SessionUtil};
+use crate::util::{errors::AppError, SessionUtil};
 
 #[derive(Deserialize)]
 pub struct CommonLoginForm {

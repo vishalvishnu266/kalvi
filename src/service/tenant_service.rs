@@ -1,7 +1,7 @@
 use crate::config::AppState;
 use crate::model::Tenant;
 use crate::repository::TenantRepository;
-use crate::util::AppError;
+use crate::util::errors::AppError;
 
 pub struct TenantService;
 
