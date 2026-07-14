@@ -19,7 +19,6 @@ async fn main() {
     
     if is_production {
         tracing_subscriber::fmt()
-            .json() // Machine-readable for Datadog/ELK
             .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
             .init();
     } else {

@@ -12,30 +12,35 @@ impl UserRepository {
     }
 
     pub async fn create(executor: impl Executor<'_, Database = Sqlite>, username: &str, password_hash: &str, role: &str) -> Result<(), sqlx::Error> {
-        sqlx::query("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)")
+        let now = crate::util::id_util::current_timestamp();
+        sqlx::query("INSERT INTO users (username, password_hash, role, created_at) VALUES (?, ?, ?, ?)")
             .bind(username)
             .bind(password_hash)
             .bind(role)
+            .bind(now)
             .execute(executor)
             .await?;
         Ok(())
     }
 
     pub async fn save_session(executor: impl Executor<'_, Database = Sqlite>, session: &Session) -> Result<(), sqlx::Error> {
-        sqlx::query("INSERT INTO sessions (id, user_id, user_agent, client_ip, expires_at) VALUES (?, ?, ?, ?, ?)")
+        sqlx::query("INSERT INTO sessions (id, user_id, user_agent, client_ip, expires_at, created_at) VALUES (?, ?, ?, ?, ?, ?)")
             .bind(&session.id)
             .bind(session.user_id)
             .bind(&session.user_agent)
             .bind(&session.client_ip)
             .bind(session.expires_at)
+            .bind(session.created_at)
             .execute(executor)
             .await?;
         Ok(())
     }
 
     pub async fn find_session(executor: impl Executor<'_, Database = Sqlite> + Copy, session_id: &str) -> Result<Option<(Session, User)>, sqlx::Error> {
-        let session = sqlx::query_as::<_, Session>("SELECT * FROM sessions WHERE id = ? AND expires_at > CURRENT_TIMESTAMP")
+        let now = crate::util::id_util::current_timestamp();
+        let session = sqlx::query_as::<_, Session>("SELECT * FROM sessions WHERE id = ? AND expires_at > ?")
             .bind(session_id)
+            .bind(now)
             .fetch_optional(executor)
             .await?;
             

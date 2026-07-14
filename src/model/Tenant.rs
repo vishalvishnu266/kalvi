@@ -9,7 +9,7 @@ pub struct Tenant {
     pub contact_phone: Option<String>,
     pub address: Option<String>,
     pub database_name: String,
-    pub created_at: Option<chrono::NaiveDateTime>,
+    pub created_at: i64,
 }
 
 pub struct NewTenant {

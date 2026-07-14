@@ -37,8 +37,11 @@ impl TenantService {
         
         // 1. Logic Validation (Outside Transaction for speed)
         use crate::util::html_util;
-        if !html_util::is_valid_slug(&slug) || name.trim().is_empty() {
-            return Err(AppError::Internal("Invalid name or reserved slug".to_string()));
+        if !html_util::is_valid_slug(&slug) {
+            return Err(AppError::Validation("The slug contains invalid characters or is reserved".to_string()));
+        }
+        if name.trim().is_empty() {
+            return Err(AppError::Validation("Institution name cannot be empty".to_string()));
         }
 
         // 2. Start Transaction on Master Pool
@@ -46,7 +49,7 @@ impl TenantService {
 
         // 3. Check for existence inside TX
         if TenantRepository::find_by_slug(&mut *tx, &slug).await?.is_some() {
-             return Err(AppError::Internal("Slug is already taken".to_string()));
+             return Err(AppError::Validation(format!("The URL slug '{}' is already taken", slug)));
         }
 
         // 4. Save Tenant to Master DB

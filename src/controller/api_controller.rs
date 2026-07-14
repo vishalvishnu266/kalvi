@@ -1,16 +1,22 @@
 use axum::{
     extract::Extension,
-    Json,
+    response::{IntoResponse, Response},
+    http::StatusCode,
 };
-use serde_json::{json, Value};
 use crate::middleware::TenantContext;
 use crate::util::AppError;
 
-pub async fn health(Extension(ctx): Extension<TenantContext>) -> Result<Json<Value>, AppError> {
-    Ok(Json(json!({
-        "status": "up",
-        "tenant": ctx.tenant.name,
-        "database": ctx.tenant.database_name,
-        "timestamp": chrono::Utc::now().to_rfc3339()
-    })))
+pub async fn health(Extension(ctx): Extension<TenantContext>) -> Result<Response, AppError> {
+    let body = format!(
+        r#"{{"status":"up","tenant":"{}","database":"{}","timestamp":{}}}"#,
+        ctx.tenant.name,
+        ctx.tenant.database_name,
+        crate::util::id_util::current_timestamp()
+    );
+    
+    Ok((
+        StatusCode::OK,
+        [("content-type", "application/json")],
+        body
+    ).into_response())
 }

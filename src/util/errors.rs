@@ -4,8 +4,8 @@ use axum::{
 };
 use std::fmt;
 use tracing::error;
-use uuid::Uuid;
 use crate::view::{render_layout, LayoutContext};
+use crate::util::id_util;
 
 #[derive(Debug)]
 pub enum AppError {
@@ -14,36 +14,43 @@ pub enum AppError {
     NotFound(String),
     Unauthorized(String),
     TooManyRequests(String),
+    /// Business validation errors that should be shown to the user inline
+    Validation(String),
 }
 
 impl fmt::Display for AppError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            AppError::Database(e) => write!(f, "Database error: {}", e),
-            AppError::Internal(e) => write!(f, "Internal error: {}", e),
-            AppError::NotFound(e) => write!(f, "Not found: {}", e),
+            AppError::Database(e) => write!(f, "TECHNICAL_ERROR [Database]: {}", e),
+            AppError::Internal(e) => write!(f, "TECHNICAL_ERROR [Internal]: {}", e),
+            AppError::NotFound(e) => write!(f, "NotFound: {}", e),
             AppError::Unauthorized(e) => write!(f, "Unauthorized: {}", e),
-            AppError::TooManyRequests(e) => write!(f, "Too many requests: {}", e),
+            AppError::TooManyRequests(e) => write!(f, "TooManyRequests: {}", e),
+            AppError::Validation(e) => write!(f, "Business Validation: {}", e),
         }
     }
 }
 
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
-        let support_id = Uuid::new_v4().to_string();
-        
-        error!(
-            support_id = %support_id,
-            "Application error: {}", self
-        );
-
         let (status, message) = match self {
+            AppError::Validation(msg) => return (StatusCode::BAD_REQUEST, msg).into_response(),
             AppError::Database(_) => (StatusCode::INTERNAL_SERVER_ERROR, "A database error occurred. We have been notified.".to_string()),
             AppError::Internal(_) => (StatusCode::INTERNAL_SERVER_ERROR, "An internal server error occurred.".to_string()),
             AppError::NotFound(msg) => (StatusCode::NOT_FOUND, msg),
             AppError::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, msg),
             AppError::TooManyRequests(_) => (StatusCode::TOO_MANY_REQUESTS, "Slow down! You are sending too many requests.".to_string()),
         };
+
+        let support_id = id_util::generate_random_id("err");
+        
+        // Technical errors are logged to console with full details
+        println!("\n[ERROR] Support ID: {}\nDetails: {}\n", support_id, self);
+        
+        error!(
+            support_id = %support_id,
+            "Application error: {}", self
+        );
 
         // Render a generic crash/error page
         let html_content = format!(
@@ -89,8 +96,8 @@ impl From<sqlx::Error> for AppError {
     }
 }
 
-impl From<anyhow::Error> for AppError {
-    fn from(err: anyhow::Error) -> Self {
+impl From<std::io::Error> for AppError {
+    fn from(err: std::io::Error) -> Self {
         AppError::Internal(err.to_string())
     }
 }

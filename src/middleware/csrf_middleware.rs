@@ -4,8 +4,7 @@ use axum::{
     middleware::Next,
     response::Response,
 };
-use uuid::Uuid;
-use crate::util::SessionUtil;
+use crate::util::{SessionUtil, id_util};
 
 pub async fn csrf_middleware(req: Request<Body>, next: Next) -> Result<Response, StatusCode> {
     let method = req.method().clone();
@@ -17,7 +16,7 @@ pub async fn csrf_middleware(req: Request<Body>, next: Next) -> Result<Response,
         
         // Ensure every response has a CSRF cookie if it's a GET request
         if SessionUtil::get_csrf_token(&headers).is_none() {
-            let token = Uuid::new_v4().to_string();
+            let token = id_util::generate_random_id("csrf");
             SessionUtil::set_csrf_cookie(&mut response, &token);
         }
         

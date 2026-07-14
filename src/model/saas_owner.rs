@@ -6,5 +6,5 @@ pub struct SaasOwner {
     pub username: String,
     pub password_hash: String,
     pub full_name: Option<String>,
-    pub created_at: Option<chrono::NaiveDateTime>,
+    pub created_at: i64,
 }

@@ -12,10 +12,12 @@ impl TenantRepository {
     }
 
     pub async fn save(executor: impl Executor<'_, Database = Sqlite>, slug: &str, name: &str, db_name: &str) -> Result<Tenant, sqlx::Error> {
-        sqlx::query("INSERT INTO tenants (slug, name, database_name) VALUES (?, ?, ?)")
+        let now = crate::util::id_util::current_timestamp();
+        sqlx::query("INSERT INTO tenants (slug, name, database_name, created_at) VALUES (?, ?, ?, ?)")
             .bind(slug)
             .bind(name)
             .bind(db_name)
+            .bind(now)
             .execute(executor)
             .await?;
             
@@ -27,7 +29,7 @@ impl TenantRepository {
             contact_email: None,
             contact_phone: None,
             address: None,
-            created_at: None,
+            created_at: now,
         })
     }
 

@@ -52,11 +52,15 @@ pub fn create_router(state: AppState) -> Router {
     // 4. Public and Root-level routes
     let public_routes = Router::new()
         .route("/health", get(|State(state): State<AppState>| async move {
+            use axum::response::IntoResponse;
             let db_ok = state.db.check_health().await;
+            let timestamp = crate::util::id_util::current_timestamp();
             if db_ok {
-                axum::Json(serde_json::json!({ "status": "ok", "timestamp": chrono::Utc::now() }))
+                let body = format!(r#"{{"status":"ok","timestamp":{}}}"#, timestamp);
+                (axum::http::StatusCode::OK, [("content-type", "application/json")], body).into_response()
             } else {
-                axum::Json(serde_json::json!({ "status": "error", "message": "database unavailable" }))
+                let body = r#"{"status":"error","message":"database unavailable"}"#;
+                (axum::http::StatusCode::SERVICE_UNAVAILABLE, [("content-type", "application/json")], body).into_response()
             }
         }))
         .route("/", get(home_controller::show_home))

@@ -2,7 +2,7 @@ use sqlx::SqlitePool;
 use bcrypt::{hash, verify, DEFAULT_COST};
 use crate::model::SaasOwner;
 use crate::repository::SaasOwnerRepository;
-use uuid::Uuid;
+use crate::util::id_util;
 
 pub struct SaasService;
 
@@ -37,6 +37,6 @@ impl SaasService {
     }
 
     pub fn generate_session_id() -> String {
-        format!("saas_{}", Uuid::new_v4())
+        id_util::generate_random_id("saas")
     }
 }

@@ -4,11 +4,11 @@ use axum::{
     middleware::Next,
     response::Response,
 };
-use uuid::Uuid;
+use crate::util::id_util;
 use tracing::{info_span, Instrument};
 
 pub async fn request_id_middleware(req: Request<Body>, next: Next) -> Response {
-    let request_id = Uuid::new_v4().to_string();
+    let request_id = id_util::generate_random_id("req");
     
     // Create a tracing span that includes the request ID
     let span = info_span!(

@@ -1,7 +1,10 @@
-use once_cell::sync::Lazy;
+use std::sync::OnceLock;
 use regex::Regex;
 
-pub static SLUG_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[a-z0-9-]+$").unwrap());
+pub fn slug_regex() -> &'static Regex {
+    static REGEX: OnceLock<Regex> = OnceLock::new();
+    REGEX.get_or_init(|| Regex::new(r"^[a-z0-9-]+$").unwrap())
+}
 
 pub fn escape_html(s: &str) -> String {
     let mut escaped = String::with_capacity(s.len());
@@ -34,5 +37,5 @@ pub fn is_reserved_slug(slug: &str) -> bool {
 }
 
 pub fn is_valid_slug(slug: &str) -> bool {
-    SLUG_REGEX.is_match(slug) && !is_reserved_slug(slug)
+    slug_regex().is_match(slug) && !is_reserved_slug(slug)
 }

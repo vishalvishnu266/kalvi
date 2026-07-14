@@ -12,10 +12,12 @@ impl SaasOwnerRepository {
     }
 
     pub async fn save(executor: impl Executor<'_, Database = Sqlite>, username: &str, password_hash: &str, full_name: &str) -> Result<(), sqlx::Error> {
-        sqlx::query("INSERT INTO saas_owners (username, password_hash, full_name) VALUES (?, ?, ?)")
+        let now = crate::util::id_util::current_timestamp();
+        sqlx::query("INSERT INTO saas_owners (username, password_hash, full_name, created_at) VALUES (?, ?, ?, ?)")
             .bind(username)
             .bind(password_hash)
             .bind(full_name)
+            .bind(now)
             .execute(executor)
             .await?;
         Ok(())
