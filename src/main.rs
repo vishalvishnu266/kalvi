@@ -5,13 +5,13 @@ mod routes;
 mod state;
 mod middleware;
 
-use axum::{Router};
+use axum::{extract::Request, Router};
 use sqlx::SqlitePool;
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::RwLock;
 use tower_http::{
     request_id::{MakeRequestUuid, PropagateRequestIdLayer, SetRequestIdLayer},
-    trace::{TraceLayer, DefaultMakeSpan, DefaultOnRequest, DefaultOnResponse},
+    trace::{TraceLayer, DefaultOnRequest, DefaultOnResponse},
 };
 use tracing::Level;
 use state::AppState;
@@ -34,15 +34,27 @@ async fn main() {
 
     // Build our application with a route
     let app = routes::create_routes(state)
-        // Add request ID middleware
-        .layer(PropagateRequestIdLayer::x_request_id())
-        .layer(SetRequestIdLayer::x_request_id(MakeRequestUuid))
         .layer(
             TraceLayer::new_for_http()
-                .make_span_with(DefaultMakeSpan::new().level(Level::INFO))
+                .make_span_with(|request: &Request| {
+                    let request_id = request
+                        .headers()
+                        .get("x-request-id")
+                        .and_then(|v| v.to_str().ok())
+                        .unwrap_or("unknown");
+                    tracing::info_span!(
+                        "request",
+                        method = %request.method(),
+                        uri = %request.uri(),
+                        version = ?request.version(),
+                        request_id = %request_id,
+                    )
+                })
                 .on_request(DefaultOnRequest::new().level(Level::INFO))
                 .on_response(DefaultOnResponse::new().level(Level::INFO)),
-        );
+        )
+        .layer(PropagateRequestIdLayer::x_request_id())
+        .layer(SetRequestIdLayer::x_request_id(MakeRequestUuid));
 
     // Run our application
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
