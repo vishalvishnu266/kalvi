@@ -1,14 +1,15 @@
 use axum::{
-    extract::{Extension, Form},
-    response::{Html, IntoResponse, Response},
+    extract::{State, Form},
+    response::{Html, IntoResponse, Response, Redirect},
+    middleware::Extension,
 };
 use serde::Deserialize;
 use std::collections::HashMap;
+use crate::config::AppState;
 use crate::middleware::TenantContext;
 use crate::service::StudentService;
 use crate::view::StudentView;
 use crate::util::AppError;
-use crate::util::html_util::IntoHtml;
 
 #[derive(Deserialize)]
 pub struct AddStudentForm {
@@ -19,7 +20,7 @@ pub struct AddStudentForm {
 }
 
 pub async fn show_add_form(Extension(ctx): Extension<TenantContext>) -> Html<String> {
-    StudentView::render_add_form(&ctx.tenant, HashMap::new(), None).into_html()
+    Html(StudentView::render_add_form(&ctx.tenant, HashMap::new(), None))
 }
 
 pub async fn process_add(
@@ -37,8 +38,8 @@ pub async fn process_add(
         None, // phone
         enroll,
     ).await {
-        Ok(student) => StudentView::render_success_alert(&ctx.tenant, &format!("{} {}", student.first_name, student.last_name)).into_html().into_response(),
-        Err(AppError::Validation(fields, gen)) => StudentView::render_add_form(&ctx.tenant, fields, gen).into_html().into_response(),
+        Ok(_) => Redirect::to(&format!("/web/{}/dashboard", ctx.tenant.slug)).into_response(),
+        Err(AppError::BusinessException(msg, fields)) => Html(StudentView::render_add_form(&ctx.tenant, fields, Some(msg))).into_response(),
         Err(e) => e.into_response(),
     }
 }

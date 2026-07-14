@@ -1,46 +1,10 @@
-use crate::util::html_util::escape_html;
-
-pub fn alert_error(message: &str) -> String {
-    alert(message, true)
-}
-
-pub fn alert_success(message: &str) -> String {
-    alert(message, false)
-}
-
-pub fn alert(message: &str, is_error: bool) -> String {
-    let alert_class = if is_error { "alert-danger" } else { "alert-success" };
-
+pub fn card(content: String) -> String {
     format!(
         //language=HTML
-        r#"<div class="alert {} d-flex align-items-start gap-3 shadow-sm border-0 py-3 px-4 mb-4" role="alert">
-            <svg class="bi flex-shrink-0 mt-1" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
-            </svg>
-            <div class="small fw-semibold">{}</div>
-        </div>"#,
-        alert_class, escape_html(message)
-    )
-}
-
-pub fn input(label: &str, name: &str, input_type: &str, placeholder: &str, required: bool, error: Option<&str>) -> String {
-    let req_attr = if required { "required" } else { "" };
-    let (input_class, error_html) = match error {
-        Some(msg) => (
-            "form-control is-invalid",
-            format!(r#"<div class="invalid-feedback fw-bold">{}</div>"#, escape_html(msg))
-        ),
-        None => ("form-control", "".to_string()),
-    };
-
-    format!(
-        //language=HTML
-        r#"<div class="mb-4">
-            <label class="form-label small text-uppercase fw-bold text-secondary ps-1">{}</label>
-            <input type="{}" name="{}" placeholder="{}" {} class="{}">
+        r###"<div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm p-6 md:p-8">
             {}
-        </div>"#,
-        escape_html(label), input_type, escape_html(name), escape_html(placeholder), req_attr, input_class, error_html
+        </div>"###,
+        content
     )
 }
 
@@ -48,32 +12,42 @@ pub fn button_primary(label: &str, is_submit: bool) -> String {
     let btn_type = if is_submit { "submit" } else { "button" };
     format!(
         //language=HTML
-        r#"<button type="{}" class="btn btn-primary w-100 py-3 shadow-sm">
+        r###"<button type="{}" class="w-full bg-primary hover:bg-primary-600 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-lg shadow-primary/20 transform active:scale-[0.98]">
             {}
-        </button>"#,
+        </button>"###,
         btn_type, label
     )
 }
 
-pub fn card(content: String) -> String {
+pub fn input(label: &str, name: &str, input_type: &str, placeholder: &str, required: bool, error: Option<&str>) -> String {
+    let req_attr = if required { "required" } else { "" };
+    let border_class = if error.is_some() { "border-red-500 ring-1 ring-red-500" } else { "border-slate-200 dark:border-slate-800" };
+    let error_html = match error {
+        Some(msg) => format!(r###"<p class="mt-1 text-xs font-bold text-red-500">{}</p>"###, msg),
+        None => "".to_string(),
+    };
+
     format!(
         //language=HTML
-        r#"<div class="card shadow-sm border-0 p-4 p-md-5">
-            <div class="card-body p-0">
-                {}
-            </div>
-        </div>"#,
-        content
+        r###"<div>
+            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">{}</label>
+            <input type="{}" name="{}" placeholder="{}" {} 
+                class="w-full px-4 py-3 rounded-xl border bg-white dark:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all {}">
+            {}
+        </div>"###,
+        label, input_type, name, placeholder, req_attr, border_class, error_html
     )
 }
 
-pub fn nav_link(href: &str, label: &str, icon_svg: &str) -> String {
+pub fn alert_error(message: &str) -> String {
     format!(
         //language=HTML
-        r#"<a href="{}" class="nav-link d-flex align-items-center gap-3 px-3 py-2 rounded-3 text-secondary">
-            <div class="shrink-0">{}</div>
-            <span class="fw-semibold small">{}</span>
-        </a>"#,
-        href, icon_svg, label
+        r###"<div class="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 text-red-600 dark:text-red-400 p-4 rounded-xl mb-6 flex items-start gap-3">
+            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p class="text-sm font-semibold">{}</p>
+        </div>"###,
+        message
     )
 }

@@ -1,5 +1,5 @@
 use sqlx::{Sqlite, Executor};
-use crate::model::{User, Session};
+use crate::model::user::{User, Session};
 
 pub struct UserRepository;
 
@@ -38,29 +38,22 @@ impl UserRepository {
 
     pub async fn find_session(executor: impl Executor<'_, Database = Sqlite> + Copy, session_id: &str) -> Result<Option<(Session, User)>, sqlx::Error> {
         let now = crate::util::id_util::current_timestamp();
+        
+        // SQLite doesn't support returning tuples directly in query_as, so we fetch manually or use a join struct
         let session = sqlx::query_as::<_, Session>("SELECT * FROM sessions WHERE id = ? AND expires_at > ?")
             .bind(session_id)
             .bind(now)
             .fetch_optional(executor)
             .await?;
-            
-        match session {
-            Some(s) => {
-                let user = sqlx::query_as::<_, User>("SELECT * FROM users WHERE id = ?")
-                    .bind(s.user_id)
-                    .fetch_one(executor)
-                    .await?;
-                Ok(Some((s, user)))
-            },
-            None => Ok(None),
-        }
-    }
 
-    pub async fn delete_session(executor: impl Executor<'_, Database = Sqlite>, session_id: &str) -> Result<(), sqlx::Error> {
-        sqlx::query("DELETE FROM sessions WHERE id = ?")
-            .bind(session_id)
-            .execute(executor)
-            .await?;
-        Ok(())
+        if let Some(sess) = session {
+            let user = sqlx::query_as::<_, User>("SELECT * FROM users WHERE id = ?")
+                .bind(sess.user_id)
+                .fetch_one(executor)
+                .await?;
+            Ok(Some((sess, user)))
+        } else {
+            Ok(None)
+        }
     }
 }

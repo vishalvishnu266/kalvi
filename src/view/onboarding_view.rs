@@ -1,94 +1,81 @@
 use crate::view::{render_layout, LayoutContext};
+use std::collections::HashMap;
 
 pub struct OnboardingView;
-
-use std::collections::HashMap;
 
 impl OnboardingView {
     pub fn render_form(field_errors: HashMap<String, String>, general_error: Option<String>) -> String {
         use crate::view::components;
-        
         let error_alert = general_error.as_deref().map(components::alert_error).unwrap_or_default();
 
         let form_content = format!(
-            r#"<turbo-frame id="onboard-form">
+            r###"<turbo-frame id="registration-form">
                 {error_alert}
-                <form action="/registration" method="POST">
-                    <div class="row g-3">
-                        <div class="col-md-6">{name_input}</div>
-                        <div class="col-md-6">{slug_input}</div>
+                <form action="/registration" method="POST" class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {name_input}
+                        {tenant_input}
                     </div>
                     
-                    <div class="position-relative py-4 text-center">
-                        <hr class="text-secondary opacity-25">
-                        <span class="position-absolute top-50 start-50 translate-middle bg-body px-3 small text-uppercase fw-bold text-secondary">Admin Credentials</span>
+                    <div class="relative py-4">
+                        <div class="absolute inset-0 flex items-center"><span class="w-full border-t dark:border-slate-800"></span></div>
+                        <div class="relative flex justify-center text-xs uppercase"><span class="bg-white dark:bg-slate-950 px-2 text-slate-500 font-bold">Admin Credentials</span></div>
                     </div>
 
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-6">{user_input}</div>
-                        <div class="col-md-6">{pass_input}</div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {user_input}
+                        {pass_input}
                     </div>
 
                     {submit_button}
                 </form>
-            </turbo-frame>"#,
+            </turbo-frame>"###,
             error_alert = error_alert,
-            name_input = components::input("Institution Name", "name", "text", "e.g. City High", true, field_errors.get("name").map(|s| s.as_str())),
-            slug_input = components::input("Slug", "slug", "text", "demo-school", true, field_errors.get("slug").map(|s| s.as_str())),
+            name_input = components::input("Institution Name", "name", "text", "City High School", true, field_errors.get("name").map(|s| s.as_str())),
+            tenant_input = components::input("URL Name (Tenant)", "tenant", "text", "city-high", true, field_errors.get("tenant").map(|s| s.as_str())),
             user_input = components::input("Admin Username", "admin_username", "text", "admin", true, field_errors.get("admin_username").map(|s| s.as_str())),
             pass_input = components::input("Admin Password", "admin_password", "password", "••••••••", true, field_errors.get("admin_password").map(|s| s.as_str())),
-            submit_button = components::button_primary("Initialize Institution", true)
+            submit_button = components::button_primary("Create My Institution", true)
         );
 
         let content = format!(
             //language=HTML
-            r#"<div class="container min-vh-100 d-flex align-items-center justify-content-center p-4">
-                <div class="w-100" style="max-width: 600px;">
-                    <div class="text-center mb-5">
-                        <div class="d-inline-flex align-items-center justify-content-center bg-primary-subtle text-primary rounded-4 mb-4 shadow-sm" style="width: 72px; height: 72px; font-size: 2rem; font-weight: 800;">
-                            O
-                        </div>
-                        <h2 class="h2 fw-bold text-body-emphasis">New Institution</h2>
-                        <p class="text-secondary fw-medium text-center">Set up your isolated ERP workspace</p>
+            r###"<div class="min-h-screen flex items-center justify-center p-4 bg-slate-50 dark:bg-slate-950">
+                <div class="max-w-lg w-full">
+                    <div class="text-center mb-8">
+                        <h1 class="text-3xl font-extrabold text-slate-900 dark:text-white">Get Started</h1>
+                        <p class="text-slate-500 mt-2">Create your isolated institution workspace</p>
                     </div>
-
                     {card}
-
-                    <div class="mt-4 text-center">
-                        <a href="/" class="text-decoration-none small text-secondary hover-primary transition-all">← Back to home</a>
+                    <div class="mt-8 text-center text-sm">
+                        <a href="/" class="text-slate-400 hover:text-primary transition-colors">← Back to home</a>
                     </div>
                 </div>
-            </div>
-            <style>
-                .hover-primary:hover {{ color: var(--bs-primary) !important; }}
-            </style>"#,
+            </div>"###,
             card = components::card(form_content)
         );
 
         render_layout(LayoutContext::default(), content)
     }
 
-    pub fn render_success(slug: &str, name: &str) -> String {
+    pub fn render_success(tenant_name: &str, tenant_slug: &str) -> String {
         let content = format!(
             //language=HTML
-            r#"<div class="container py-5">
-                <div class="card shadow border-0 mx-auto text-center p-4 p-md-5" style="max-width: 500px;">
-                    <div class="d-inline-flex align-items-center justify-content-center bg-success-subtle text-success rounded-circle mx-auto mb-4" style="width: 80px; height: 80px;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="currentColor" viewBox="0 0 16 16">
-                            <path d="M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.065.02L3.217 8.384a.757.757 0 0 1 0-1.06.733.733 0 0 1 1.047 0l3.052 3.093 5.42-6.446z"/>
+            r###"<div class="min-h-screen flex items-center justify-center p-4 bg-slate-50 dark:bg-slate-950 text-center">
+                <div class="max-w-md w-full">
+                    <div class="bg-emerald-500 text-white w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-emerald-500/20">
+                        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
                         </svg>
                     </div>
-                    <h2 class="h2 fw-bold mb-3 text-body-emphasis">Institution Ready!</h2>
-                    <p class="text-secondary mb-5 px-md-3">
-                        <strong>{name}</strong> has been successfully initialized. You can now log in to your tenant dashboard.
-                    </p>
-                    <a href="/web/{slug}/login" class="btn btn-primary btn-lg py-3 shadow">
-                        Go to Dashboard Login
+                    <h1 class="text-3xl font-bold mb-2">{} Ready!</h1>
+                    <p class="text-slate-500 mb-8">Your institution database has been initialized and secured.</p>
+                    <a href="/web/{}/login" class="inline-block bg-primary text-white font-bold py-4 px-10 rounded-xl shadow-lg shadow-primary/20 hover:bg-primary-600 transition-all">
+                        Login to Portal
                     </a>
                 </div>
-            </div>"#,
-            slug = slug,
-            name = name
+            </div>"###,
+            tenant_name, tenant_slug
         );
 
         render_layout(LayoutContext::default(), content)

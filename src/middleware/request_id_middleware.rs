@@ -4,26 +4,31 @@ use axum::{
     middleware::Next,
     response::Response,
 };
-use crate::util::id_util;
 use tracing::{info_span, Instrument};
+use crate::util::id_util;
 
-pub async fn request_id_middleware(req: Request<Body>, next: Next) -> Response {
-    let request_id = id_util::generate_random_id("req");
+#[derive(Clone, Debug)]
+pub struct RequestId(pub String);
+
+pub async fn request_id_middleware(mut req: Request<Body>, next: Next) -> Response {
+    let request_id = id_util::generate_uuid();
     
-    // Create a tracing span that includes the request ID
+    // Attach to request extensions for access in controllers
+    req.extensions_mut().insert(RequestId(request_id.clone()));
+    
+    // Create a tracing span that includes the Request ID
     let span = info_span!(
         "request",
         id = %request_id,
         method = %req.method(),
-        path = %req.uri().path()
+        uri = %req.uri().path()
     );
 
-    async move {
-        let mut response = next.run(req).await;
-        // Add request ID to response header for debugging
-        response.headers_mut().insert("X-Request-ID", request_id.parse().unwrap());
-        response
-    }
-    .instrument(span)
-    .await
+    // Run the rest of the middleware chain inside this span
+    let mut response = next.run(req).instrument(span).await;
+    
+    // Also attach the ID to the response headers for debugging
+    response.headers_mut().insert("X-Request-ID", request_id.parse().unwrap());
+    
+    response
 }

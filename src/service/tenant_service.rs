@@ -1,78 +1,46 @@
-use bcrypt::{hash, DEFAULT_COST};
-use crate::model::Tenant;
-use crate::repository::{TenantRepository, UserRepository};
 use crate::config::AppState;
+use crate::model::Tenant;
+use crate::repository::TenantRepository;
 use crate::util::AppError;
 
 pub struct TenantService;
+
+use bcrypt::{hash, DEFAULT_COST};
+use crate::repository::UserRepository;
 
 impl TenantService {
     pub async fn find_by_slug(state: &AppState, slug: &str) -> Result<Option<Tenant>, AppError> {
         Ok(TenantRepository::find_by_slug(&state.db.master_pool, slug).await?)
     }
 
-    pub async fn get_tenant_for_session(
-        state: &AppState,
-        session_id: &Option<String>,
-        tenant_hint: &Option<String>,
-    ) -> Option<Tenant> {
-        let sid = session_id.as_ref()?;
-        let slug = tenant_hint.as_ref()?;
-        
-        let tenant = TenantRepository::find_by_slug(&state.db.master_pool, slug).await.ok()??;
-        let tenant_pool = state.db.get_tenant_pool(&tenant.database_name).await.ok()?;
-        
-        UserRepository::find_session(&tenant_pool, sid).await.ok()??;
-        Some(tenant)
-    }
-
-    pub async fn create_tenant(
+    pub async fn register_tenant(
         state: &AppState,
         name: &str,
-        slug: &str,
+        tenant_slug: &str,
         admin_username: &str,
         admin_password: &str,
     ) -> Result<Tenant, AppError> {
-        let slug = slug.trim().to_lowercase();
+        let slug = tenant_slug.trim().to_lowercase();
         
-        // 1. Logic Validation (Outside Transaction for speed)
-        use crate::util::html_util;
-        use std::collections::HashMap;
-        
-        if !html_util::is_valid_slug(&slug) {
-            let mut fields = HashMap::new();
-            fields.insert("slug".to_string(), "The slug contains invalid characters or is reserved".to_string());
-            return Err(AppError::Validation(fields, None));
-        }
-        if name.trim().is_empty() {
-            let mut fields = HashMap::new();
-            fields.insert("name".to_string(), "Institution name cannot be empty".to_string());
-            return Err(AppError::Validation(fields, None));
-        }
-
-        // 2. Start Transaction on Master Pool
+        // 1. Transactional check & save in Master DB
         let mut tx = state.db.master_pool.begin().await?;
-
-        // 3. Check for existence inside TX
+        
         if TenantRepository::find_by_slug(&mut *tx, &slug).await?.is_some() {
-             return Err(AppError::Validation(HashMap::new(), Some(format!("The URL slug '{}' is already taken", slug))));
+             return Err(AppError::BusinessException("This tenant name is already taken".to_string(), std::collections::HashMap::new()));
         }
 
-        // 4. Save Tenant to Master DB
-        let tenant = TenantRepository::save(&mut *tx, &slug, name, &slug).await?;
-        tx.commit().await?;
-
-        // 5. Provision and Initialize Tenant DB
-        let tenant_pool = state.db.get_tenant_pool(&tenant.database_name).await?;
-        let mut tenant_tx = tenant_pool.begin().await?;
-
-        // 6. Create Admin User
-        let hashed_pw = hash(admin_password, DEFAULT_COST).unwrap();
-        UserRepository::create(&mut *tenant_tx, admin_username, &hashed_pw, "admin").await?;
+        let database_name = format!("tenant_{}", slug);
+        let tenant = TenantRepository::save(&mut *tx, &slug, name, &database_name).await?;
         
-        tenant_tx.commit().await?;
-
+        // 2. Initialize the isolated tenant database and run migrations
+        let tenant_pool = state.db.get_tenant_pool(&database_name).await?;
+        
+        // 3. Create the initial admin user in the NEW tenant DB
+        let password_hash = hash(admin_password, DEFAULT_COST).map_err(|e| AppError::RuntimeException(e.to_string()))?;
+        UserRepository::create(&tenant_pool, admin_username, &password_hash, "admin").await?;
+        
+        tx.commit().await?;
+        
         Ok(tenant)
     }
-
 }

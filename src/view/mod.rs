@@ -1,21 +1,17 @@
 pub mod layout_view;
-pub mod home_view;
+pub mod components;
+pub mod saas_view;
 pub mod onboarding_view;
 pub mod login_view;
-pub mod dashboard_view;
-pub mod saas_view;
-pub mod settings_view;
 pub mod common_login_view;
-pub mod contact_view;
-pub mod components;
 pub mod student_view;
+pub mod dashboard_view;
 
-pub use layout_view::{LayoutContext, render_layout};
 pub use student_view::StudentView;
-pub use home_view::HomeView;
+pub use dashboard_view::DashboardView;
+
+pub use layout_view::{render_layout, LayoutContext};
+pub use saas_view::SaasView;
 pub use onboarding_view::OnboardingView;
 pub use login_view::LoginView;
-pub use dashboard_view::DashboardView;
-pub use saas_view::SaasView;
-pub use settings_view::SettingsView;
 pub use common_login_view::CommonLoginView;

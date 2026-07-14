@@ -1,5 +1,5 @@
 use sqlx::{Sqlite, Executor};
-use crate::model::Tenant;
+use crate::model::tenant::Tenant;
 
 pub struct TenantRepository;
 
@@ -22,20 +22,11 @@ impl TenantRepository {
             .await?;
             
         Ok(Tenant {
-            id: 0,
+            id: 0, // In a real app, you might fetch the last inserted ID
             slug: slug.to_string(),
             name: name.to_string(),
             database_name: db_name.to_string(),
-            contact_email: None,
-            contact_phone: None,
-            address: None,
             created_at: now,
         })
-    }
-
-    pub async fn list_all(executor: impl Executor<'_, Database = Sqlite>) -> Result<Vec<Tenant>, sqlx::Error> {
-        sqlx::query_as::<_, Tenant>("SELECT * FROM tenants")
-            .fetch_all(executor)
-            .await
     }
 }

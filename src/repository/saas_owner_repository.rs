@@ -1,5 +1,5 @@
 use sqlx::{Sqlite, Executor};
-use crate::model::SaasOwner;
+use crate::model::saas_owner::SaasOwner;
 
 pub struct SaasOwnerRepository;
 
@@ -9,6 +9,13 @@ impl SaasOwnerRepository {
             .bind(username)
             .fetch_optional(executor)
             .await
+    }
+
+    pub async fn has_any(executor: impl Executor<'_, Database = Sqlite>) -> Result<bool, sqlx::Error> {
+        let (count,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM saas_owners")
+            .fetch_one(executor)
+            .await?;
+        Ok(count > 0)
     }
 
     pub async fn save(executor: impl Executor<'_, Database = Sqlite>, username: &str, password_hash: &str, full_name: &str) -> Result<(), sqlx::Error> {
@@ -21,12 +28,5 @@ impl SaasOwnerRepository {
             .execute(executor)
             .await?;
         Ok(())
-    }
-
-    pub async fn count(executor: impl Executor<'_, Database = Sqlite>) -> Result<i64, sqlx::Error> {
-        let (count,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM saas_owners")
-            .fetch_one(executor)
-            .await?;
-        Ok(count)
     }
 }

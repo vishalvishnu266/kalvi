@@ -12,7 +12,7 @@ pub struct User {
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct Session {
-    pub id: String,
+    pub id: String, // UUID
     pub user_id: i64,
     pub user_agent: Option<String>,
     pub client_ip: Option<String>,

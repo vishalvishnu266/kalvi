@@ -1,9 +1,14 @@
-use crate::config::DatabaseConfig;
-use crate::middleware::rate_limit_middleware::RateLimiter;
-use std::sync::Arc;
+use crate::config::database_config::DatabaseConfig;
 
 #[derive(Clone)]
 pub struct AppState {
     pub db: DatabaseConfig,
-    pub limiter: Arc<RateLimiter>,
+}
+
+impl AppState {
+    pub async fn new() -> Result<Self, sqlx::Error> {
+        Ok(Self {
+            db: DatabaseConfig::new().await?,
+        })
+    }
 }

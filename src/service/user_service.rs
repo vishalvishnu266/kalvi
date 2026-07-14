@@ -1,6 +1,6 @@
 use sqlx::SqlitePool;
 use bcrypt::verify;
-use crate::model::{User, Session};
+use crate::model::user::{User, Session};
 use crate::repository::UserRepository;
 use crate::util::{AppError, id_util};
 
@@ -26,7 +26,7 @@ impl UserService {
         pool: &SqlitePool,
         user_id: i64,
     ) -> Result<String, AppError> {
-        let session_id = id_util::generate_random_id("sess");
+        let session_id = id_util::generate_uuid();
         let now = id_util::current_timestamp();
         let session = Session {
             id: session_id.clone(),
