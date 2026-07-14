@@ -8,8 +8,10 @@ pub mod settings_view;
 pub mod common_login_view;
 pub mod contact_view;
 pub mod components;
+pub mod student_view;
 
 pub use layout_view::{LayoutContext, render_layout};
+pub use student_view::StudentView;
 pub use home_view::HomeView;
 pub use onboarding_view::OnboardingView;
 pub use login_view::LoginView;

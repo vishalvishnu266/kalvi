@@ -16,6 +16,12 @@ pub struct SaasOnboardForm {
     pub password: String,
 }
 
+#[derive(Deserialize)]
+pub struct SaasLoginForm {
+    pub username: String,
+    pub password: String,
+}
+
 impl SaasOnboardForm {
     pub fn validate(&self) -> Result<(), HashMap<String, String>> {
         let mut errors = HashMap::new();

@@ -8,15 +8,24 @@ use crate::config::AppState;
 use crate::controller::*;
 use crate::middleware::{tenant_middleware, auth_middleware, saas_middleware, security_middleware, request_id_middleware, csrf_middleware, admin_only_middleware, rate_limit_middleware::rate_limit_middleware};
 use axum::middleware as ax_middleware;
-use tower_http::cors::{Any, CorsLayer};
-use http::Method;
+use axum::middleware::from_fn;
+use axum::http::{HeaderValue, Method};
+
+async fn cors_middleware(
+    req: axum::http::Request<axum::body::Body>,
+    next: axum::middleware::Next,
+) -> axum::response::Response {
+    let mut response = next.run(req).await;
+    let headers = response.headers_mut();
+    
+    headers.insert("Access-Control-Allow-Origin", HeaderValue::from_static("*"));
+    headers.insert("Access-Control-Allow-Methods", HeaderValue::from_static("GET, POST, PATCH, DELETE, OPTIONS"));
+    headers.insert("Access-Control-Allow-Headers", HeaderValue::from_static("*"));
+    
+    response
+}
 
 pub fn create_router(state: AppState) -> Router {
-    let cors = CorsLayer::new()
-        // In real production, replace Any with specific origins
-        .allow_origin(Any) 
-        .allow_methods([Method::GET, Method::POST, Method::PATCH, Method::DELETE])
-        .allow_headers(Any);
 
     // 1. SaaS Routes (Control Plane)
     let saas_routes = Router::new()
@@ -88,6 +97,6 @@ pub fn create_router(state: AppState) -> Router {
         .layer(ax_middleware::from_fn(security_middleware))
         .layer(ax_middleware::from_fn(csrf_middleware))
         .layer(ax_middleware::from_fn(request_id_middleware))
-        .layer(cors)
+        .layer(from_fn(cors_middleware))
         .with_state(state)
 }

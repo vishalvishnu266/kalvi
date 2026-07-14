@@ -60,7 +60,8 @@ impl DashboardView {
                 .hover-primary-subtle:hover {{ background-color: var(--bs-primary-bg-subtle) !important; color: var(--bs-primary) !important; }}
                 .group:hover .group-hover-scale {{ transform: scale(1.1); background-color: var(--bs-primary) !important; color: white !important; }}
             </style>"###,
-            nav = Self::render_tenant_nav(tenant, user)
+            nav = Self::render_tenant_nav(tenant, user),
+            slug = tenant.slug
         );
     
         render_layout(LayoutContext::for_tenant(tenant, "Dashboard"), content)

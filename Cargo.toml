@@ -8,14 +8,12 @@ axum = "0.8"
 tokio = { version = "1", features = ["full"] }
 sqlx = { version = "0.8", features = ["sqlite", "runtime-tokio-rustls"] }
 serde = { version = "1.0", features = ["derive"] }
-tower-http = { version = "0.6", features = ["fs", "cors"] }
 bcrypt = "0.15"
 cookie = { version = "0.18", features = ["percent-encode"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tower = "0.5"
 http = "1.1"
-regex = "1.10"
 
 [build-dependencies]
 # No build deps needed for now

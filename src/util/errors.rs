@@ -37,8 +37,8 @@ impl IntoResponse for AppError {
             AppError::Validation(_, _) => return (StatusCode::BAD_REQUEST, "Validation failed").into_response(),
             AppError::Database(_) => (StatusCode::INTERNAL_SERVER_ERROR, "A database error occurred. We have been notified.".to_string()),
             AppError::Internal(_) => (StatusCode::INTERNAL_SERVER_ERROR, "An internal server error occurred.".to_string()),
-            AppError::NotFound(msg) => (StatusCode::NOT_FOUND, msg),
-            AppError::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, msg),
+            AppError::NotFound(ref msg) => (StatusCode::NOT_FOUND, msg.clone()),
+            AppError::Unauthorized(ref msg) => (StatusCode::UNAUTHORIZED, msg.clone()),
             AppError::TooManyRequests(_) => (StatusCode::TOO_MANY_REQUESTS, "Slow down! You are sending too many requests.".to_string()),
         };
 

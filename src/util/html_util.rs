@@ -1,11 +1,3 @@
-use std::sync::OnceLock;
-use regex::Regex;
-
-pub fn slug_regex() -> &'static Regex {
-    static REGEX: OnceLock<Regex> = OnceLock::new();
-    REGEX.get_or_init(|| Regex::new(r"^[a-z0-9-]+$").unwrap())
-}
-
 pub fn escape_html(s: &str) -> String {
     let mut escaped = String::with_capacity(s.len());
     for c in s.chars() {
@@ -37,5 +29,12 @@ pub fn is_reserved_slug(slug: &str) -> bool {
 }
 
 pub fn is_valid_slug(slug: &str) -> bool {
-    slug_regex().is_match(slug) && !is_reserved_slug(slug)
+    if slug.is_empty() || is_reserved_slug(slug) {
+        return false;
+    }
+    
+    // Manual check instead of Regex: lowercase, numbers, and hyphens only
+    slug.chars().all(|c| {
+        c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-'
+    })
 }

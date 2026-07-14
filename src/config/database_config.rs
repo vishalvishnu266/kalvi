@@ -1,10 +1,7 @@
-use sqlx::{sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous}, migrate::Migrator, SqlitePool};
+use sqlx::{sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous}, SqlitePool};
 use std::{collections::HashMap, path::Path, sync::Arc};
 use tokio::sync::RwLock;
-use tracing::info;
-
-pub static MASTER_MIGRATOR: Migrator = sqlx::migrate!("./resources/migrations/master");
-pub static TENANT_MIGRATOR: Migrator = sqlx::migrate!("./resources/migrations/tenant");
+use tracing::{info, warn};
 
 #[derive(Clone)]
 pub struct DatabaseConfig {
@@ -13,6 +10,46 @@ pub struct DatabaseConfig {
 }
 
 impl DatabaseConfig {
+    async fn run_manual_migrations(pool: &SqlitePool, path: &str) -> Result<(), sqlx::Error> {
+        info!("Running migrations from: {}", path);
+        
+        // 1. Create migration table if not exists
+        sqlx::query("CREATE TABLE IF NOT EXISTS _manual_migrations (version TEXT PRIMARY KEY)").execute(pool).await?;
+
+        // 2. Read migration files
+        let entries = std::fs::read_dir(path).map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+        let mut files: Vec<_> = entries
+            .filter_map(|e| e.ok())
+            .filter(|e| e.path().extension().and_then(|s| s.to_str()) == Some("sql"))
+            .collect();
+
+        // Sort by filename to ensure sequential application
+        files.sort_by_key(|e| e.file_name());
+
+        for file in files {
+            let filename = file.file_name().into_string().unwrap();
+            
+            // 3. Check if migration already applied
+            let exists: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM _manual_migrations WHERE version = ?)")
+                .bind(&filename)
+                .fetch_one(pool)
+                .await?;
+
+            if !exists {
+                info!("Applying migration: {}", filename);
+                let sql = std::fs::read_to_string(file.path()).map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
+                
+                // Execute SQL (SQLx split queries by semicolon isn't perfect for all dialects, but for these it works)
+                // We use a transaction for safety
+                let mut tx = pool.begin().await?;
+                sqlx::query(&sql).execute(&mut *tx).await?;
+                sqlx::query("INSERT INTO _manual_migrations (version) VALUES (?)").bind(&filename).execute(&mut *tx).await?;
+                tx.commit().await?;
+            }
+        }
+        Ok(())
+    }
+
     pub async fn check_health(&self) -> bool {
         sqlx::query("SELECT 1").execute(&self.master_pool).await.is_ok()
     }
@@ -34,7 +71,7 @@ impl DatabaseConfig {
             .connect_with(master_options)
             .await?;
 
-        MASTER_MIGRATOR.run(&master_pool).await?;
+        Self::run_manual_migrations(&master_pool, "./resources/migrations/master").await?;
 
         Ok(Self {
             master_pool,
@@ -67,7 +104,7 @@ impl DatabaseConfig {
             .connect_with(options)
             .await?;
 
-        TENANT_MIGRATOR.run(&pool).await?;
+        Self::run_manual_migrations(&pool, "./resources/migrations/tenant").await?;
 
         pools.insert(db_name.to_string(), pool.clone());
         Ok(pool)
