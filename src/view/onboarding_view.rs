@@ -67,19 +67,21 @@ impl OnboardingView {
     pub fn render_success(slug: &str, name: &str) -> String {
         let content = format!(
             //language=HTML
-            r#"<div class="max-w-md mx-auto my-12 p-8 bg-white dark:bg-slate-800 rounded-xl shadow-2xl text-center">
-                <div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
+            r#"<div class="container py-5">
+                <div class="card shadow border-0 mx-auto text-center p-4 p-md-5" style="max-width: 500px;">
+                    <div class="d-inline-flex align-items-center justify-content-center bg-success-subtle text-success rounded-circle mx-auto mb-4" style="width: 80px; height: 80px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.065.02L3.217 8.384a.757.757 0 0 1 0-1.06.733.733 0 0 1 1.047 0l3.052 3.093 5.42-6.446z"/>
+                        </svg>
+                    </div>
+                    <h2 class="h2 fw-bold mb-3 text-body-emphasis">Institution Ready!</h2>
+                    <p class="text-secondary mb-5 px-md-3">
+                        <strong>{name}</strong> has been successfully initialized. You can now log in to your tenant dashboard.
+                    </p>
+                    <a href="/web/{slug}/login" class="btn btn-primary btn-lg py-3 shadow">
+                        Go to Dashboard Login
+                    </a>
                 </div>
-                <h2 class="text-3xl font-bold mb-4 text-slate-900 dark:text-white">Institution Ready!</h2>
-                <p class="text-slate-600 dark:text-slate-400 mb-8">
-                    <strong>{name}</strong> has been successfully initialized. You can now log in to your tenant dashboard.
-                </p>
-                <a href="/web/{slug}/login" class="inline-block bg-primary hover:bg-primary-600 text-white font-bold py-4 px-10 rounded-2xl shadow-xl shadow-primary/20 transition-all transform hover:-translate-y-1 active:scale-95">
-                    Go to Dashboard Login
-                </a>
             </div>"#,
             slug = slug,
             name = name

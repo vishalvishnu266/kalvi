@@ -17,15 +17,18 @@ pub async fn tenant_middleware(
     mut req: Request<Body>,
     next: Next,
 ) -> Result<Response, AppError> {
-    let path = req.uri().path();
-    let segments: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
+    let segments: Vec<String> = req.uri().path()
+        .split('/')
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string())
+        .collect();
     
     let (prefix, slug) = match (segments.get(0), segments.get(1)) {
         (Some(p), Some(s)) => (p, s),
         _ => return Ok(next.run(req).await),
     };
 
-    let tenant = match TenantService::find_by_slug(&state, slug).await? {
+    let tenant = match TenantService::find_by_slug(&state, slug.as_str()).await? {
         Some(t) => t,
         None => return Ok(Redirect::to("/login").into_response()),
     };
@@ -37,7 +40,7 @@ pub async fn tenant_middleware(
     
     req.extensions_mut().insert(ctx.clone());
 
-    if *prefix == "web" && segments.len() == 2 {
+    if prefix == "web" && segments.len() == 2 {
         let redirect_url = if SessionUtil::get_session_id(req.headers()).is_some() {
             ctx.dashboard_url()
         } else {
@@ -56,8 +59,9 @@ pub struct TenantContext {
 }
 
 impl TenantContext {
-    pub fn from_req(req: &Request<Body>) -> Result<&Self, AppError> {
+    pub fn from_req(req: &Request<Body>) -> Result<Self, AppError> {
         req.extensions().get::<Self>()
+            .cloned()
             .ok_or_else(|| AppError::Internal("Tenant context missing".to_string()))
     }
 

@@ -23,7 +23,7 @@ pub async fn security_middleware(req: Request<Body>, next: Next) -> Response {
     headers.insert("Referrer-Policy", HeaderValue::from_static("strict-origin-when-cross-origin"));
     
     // 5. Basic CSP (Can be tuned further)
-    headers.insert("Content-Security-Policy", HeaderValue::from_static("default-src 'self'; script-src 'self' cdn.tailwindcss.com cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;"));
+    headers.insert("Content-Security-Policy", HeaderValue::from_static("default-src 'self'; script-src 'self' cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' cdn.jsdelivr.net; img-src 'self' data:; font-src 'self' data:;"));
 
     response
 }

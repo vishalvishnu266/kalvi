@@ -48,22 +48,24 @@ impl IntoResponse for AppError {
         // Render a generic crash/error page
         let html_content = format!(
             //language=HTML
-            r#"<div class="min-h-screen flex items-center justify-center p-6 bg-slate-50 dark:bg-slate-950">
-                <div class="max-w-md w-full text-center">
-                    <div class="mb-6 inline-flex items-center justify-center w-20 h-20 rounded-full bg-red-100 text-red-600 shadow-lg shadow-red-200/50">
-                        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            r#"<div class="container min-vh-100 d-flex align-items-center justify-content-center p-4">
+                <div class="text-center" style="max-width: 500px;">
+                    <div class="mb-5 d-inline-flex align-items-center justify-content-center bg-danger-subtle text-danger rounded-4 shadow-sm" style="width: 80px; height: 80px;">
+                        <svg width="40" height="40" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
                         </svg>
                     </div>
-                    <h1 class="text-3xl font-bold text-slate-900 dark:text-white mb-2">Oops! Something went wrong</h1>
-                    <p class="text-slate-600 dark:text-slate-400 mb-6">{message}</p>
+                    <h1 class="h2 fw-bold text-body-emphasis mb-3">Oops! Something went wrong</h1>
+                    <p class="text-secondary mb-5">{message}</p>
                     
-                    <div class="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-2xl p-4 mb-8">
-                        <p class="text-xs uppercase font-bold text-slate-400 mb-1">Support ID</p>
-                        <code class="text-sm font-mono text-primary break-all select-all">{support_id}</code>
+                    <div class="card shadow-sm border-0 mb-5">
+                        <div class="card-body p-4 bg-body-tertiary rounded-4">
+                            <p class="small text-uppercase fw-bold text-secondary mb-1 text-center">Support ID</p>
+                            <code class="small fw-bold text-primary break-all select-all">{support_id}</code>
+                        </div>
                     </div>
-
-                    <a href="/" class="inline-flex items-center justify-center px-8 py-3 border border-transparent text-base font-bold rounded-xl text-white bg-primary hover:bg-primary-600 shadow-lg shadow-primary/30 transition-all">
+                    
+                    <a href="/" class="btn btn-primary px-5 py-3 shadow-sm fw-bold">
                         Back to Home
                     </a>
                 </div>
