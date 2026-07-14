@@ -128,9 +128,9 @@ pub fn sidebar(items: Vec<(&str, &str, bool)>) -> String {
         };
         format!(
             r#"
-            <a href="#" class="flex items-center gap-3 px-6 py-4 transition-all {active_classes}">
+            <a href= " #" class = " flex items-center gap-3 px-6 py-4 transition-all {active_classes}">
                 <span class="w-5 h-5">{icon}</span>
-                <span class="font-medium">{label}</span>
+                <span class="font-medium ">{label}</span>
             </a>
             "#,
             label = label,
