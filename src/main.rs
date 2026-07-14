@@ -3,7 +3,8 @@ mod errors;
 mod views;
 mod routes;
 mod state;
-mod middleware;
+mod tenant_db_middleware;
+mod public_middleware;
 
 use axum::{extract::Request, Router};
 use sqlx::SqlitePool;
@@ -46,7 +47,6 @@ async fn main() {
                         "request",
                         method = %request.method(),
                         uri = %request.uri(),
-                        version = ?request.version(),
                         request_id = %request_id,
                     )
                 })

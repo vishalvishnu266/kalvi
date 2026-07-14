@@ -6,6 +6,7 @@ use axum::{
 use crate::state::AppState;
 use sqlx::SqlitePool;
 use tracing::error;
+use tracing::log::info;
 
 pub async fn tenant_db_middleware(
     State(state): State<AppState>,
@@ -13,6 +14,7 @@ pub async fn tenant_db_middleware(
     req: Request,
     next: Next,
 ) -> Response {
+    info!("Tenant DB Middleware");
     let tenant_id = tenant_id;
     
     let pool = {
