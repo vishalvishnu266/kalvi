@@ -16,30 +16,33 @@ pub struct OnboardForm {
     pub admin_password: String,
 }
 
+use std::collections::HashMap;
+
 impl OnboardForm {
-    pub fn validate(&self) -> Result<(), String> {
+    pub fn validate(&self) -> Result<(), HashMap<String, String>> {
+        let mut errors = HashMap::new();
         if self.name.trim().len() < 3 {
-            return Err("Institution Name must be at least 3 characters".to_string());
+            errors.insert("name".to_string(), "Name must be at least 3 characters".to_string());
         }
         if self.slug.trim().len() < 3 {
-            return Err("Slug must be at least 3 characters".to_string());
-        }
-        if !crate::util::html_util::is_valid_slug(&self.slug) {
-            return Err("Invalid slug format (use lowercase, numbers, and hyphens)".to_string());
+            errors.insert("slug".to_string(), "Slug must be at least 3 characters".to_string());
+        } else if !crate::util::html_util::is_valid_slug(&self.slug) {
+            errors.insert("slug".to_string(), "Invalid slug format (lowercase, numbers, hyphens only)".to_string());
         }
         if self.admin_username.trim().len() < 3 {
-            return Err("Admin Username must be at least 3 characters".to_string());
+            errors.insert("admin_username".to_string(), "Username must be at least 3 characters".to_string());
         }
         if self.admin_password.len() < 8 {
-            return Err("Admin Password must be at least 8 characters".to_string());
+            errors.insert("admin_password".to_string(), "Password must be at least 8 characters".to_string());
         }
-        Ok(())
+
+        if errors.is_empty() { Ok(()) } else { Err(errors) }
     }
 }
 
 pub async fn show_form() -> Html<String> {
     use crate::util::html_util::IntoHtml;
-    OnboardingView::render_form(None).into_html()
+    OnboardingView::render_form(HashMap::new(), None).into_html()
 }
 
 pub async fn submit_form(
@@ -49,8 +52,8 @@ pub async fn submit_form(
     use crate::util::html_util::IntoHtml;
     
     // 1. Validate Form (Business Error)
-    if let Err(msg) = form.validate() {
-        return OnboardingView::render_form(Some(msg)).into_html().into_response();
+    if let Err(errors) = form.validate() {
+        return OnboardingView::render_form(errors, None).into_html().into_response();
     }
     
     // 2. Business Logic Execution
@@ -62,7 +65,7 @@ pub async fn submit_form(
         &form.admin_password,
     ).await {
         Ok(tenant) => OnboardingView::render_success(&tenant.slug, &tenant.name).into_html().into_response(),
-        Err(AppError::Validation(msg)) => OnboardingView::render_form(Some(msg)).into_html().into_response(),
+        Err(AppError::Validation(fields, gen)) => OnboardingView::render_form(fields, gen).into_html().into_response(),
         Err(other_error) => other_error.into_response(),
     }
 }

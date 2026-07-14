@@ -42,14 +42,14 @@ impl DashboardView {
                         <h2 class="h4 fw-bold mb-4">Quick Actions</h2>
                         <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-6 g-3">
                             <div class="col">
-                                <button class="btn btn-light w-100 py-4 d-flex flex-column align-items-center gap-3 border-0 bg-body-tertiary transition-all hover-primary-subtle group">
+                                <a href="/web/{slug}/students/add" class="btn btn-light w-100 py-4 d-flex flex-column align-items-center gap-3 border-0 bg-body-tertiary transition-all hover-primary-subtle group text-decoration-none">
                                     <div class="bg-body shadow-sm rounded-3 d-flex align-items-center justify-content-center p-3 transition-all group-hover-scale">
                                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                                         </svg>
                                     </div>
                                     <span class="small fw-bold text-secondary">Add Student</span>
-                                </button>
+                                </a>
                             </div>
                         </div>
                     </div>

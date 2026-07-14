@@ -2,37 +2,41 @@ use crate::view::{render_layout, LayoutContext};
 
 pub struct OnboardingView;
 
+use std::collections::HashMap;
+
 impl OnboardingView {
-    pub fn render_form(error: Option<String>) -> String {
+    pub fn render_form(field_errors: HashMap<String, String>, general_error: Option<String>) -> String {
         use crate::view::components;
         
-        let error_alert = error.as_deref().map(components::alert_error).unwrap_or_default();
+        let error_alert = general_error.as_deref().map(components::alert_error).unwrap_or_default();
 
         let form_content = format!(
-            r#"{error_alert}
-            <form action="/registration" method="POST" data-turbo="false">
-                <div class="row g-3">
-                    <div class="col-md-6">{name_input}</div>
-                    <div class="col-md-6">{slug_input}</div>
-                </div>
-                
-                <div class="position-relative py-4 text-center">
-                    <hr class="text-secondary opacity-25">
-                    <span class="position-absolute top-50 start-50 translate-middle bg-body px-3 small text-uppercase fw-bold text-secondary">Admin Credentials</span>
-                </div>
+            r#"<turbo-frame id="onboard-form">
+                {error_alert}
+                <form action="/registration" method="POST">
+                    <div class="row g-3">
+                        <div class="col-md-6">{name_input}</div>
+                        <div class="col-md-6">{slug_input}</div>
+                    </div>
+                    
+                    <div class="position-relative py-4 text-center">
+                        <hr class="text-secondary opacity-25">
+                        <span class="position-absolute top-50 start-50 translate-middle bg-body px-3 small text-uppercase fw-bold text-secondary">Admin Credentials</span>
+                    </div>
 
-                <div class="row g-3 mb-4">
-                    <div class="col-md-6">{user_input}</div>
-                    <div class="col-md-6">{pass_input}</div>
-                </div>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">{user_input}</div>
+                        <div class="col-md-6">{pass_input}</div>
+                    </div>
 
-                {submit_button}
-            </form>"#,
+                    {submit_button}
+                </form>
+            </turbo-frame>"#,
             error_alert = error_alert,
-            name_input = components::input("Institution Name", "name", "text", "e.g. City High", true),
-            slug_input = components::input("Slug", "slug", "text", "demo-school", true),
-            user_input = components::input("Admin Username", "admin_username", "text", "admin", true),
-            pass_input = components::input("Admin Password", "admin_password", "password", "••••••••", true),
+            name_input = components::input("Institution Name", "name", "text", "e.g. City High", true, field_errors.get("name").map(|s| s.as_str())),
+            slug_input = components::input("Slug", "slug", "text", "demo-school", true, field_errors.get("slug").map(|s| s.as_str())),
+            user_input = components::input("Admin Username", "admin_username", "text", "admin", true, field_errors.get("admin_username").map(|s| s.as_str())),
+            pass_input = components::input("Admin Password", "admin_password", "password", "••••••••", true, field_errors.get("admin_password").map(|s| s.as_str())),
             submit_button = components::button_primary("Initialize Institution", true)
         );
 

@@ -6,3 +6,4 @@ pub mod saas_controller;
 pub mod settings_controller;
 pub mod logout_controller;
 pub mod api_controller;
+pub mod student_controller;

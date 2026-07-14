@@ -26,7 +26,7 @@ pub struct CommonLoginForm {
 use crate::util::html_util::IntoHtml;
 
 pub async fn show_common_login() -> Html<String> {
-    CommonLoginView::render_common_login(None).into_html()
+    CommonLoginView::render_common_login(HashMap::new(), None).into_html()
 }
 
 pub async fn process_common_login(
@@ -37,7 +37,7 @@ pub async fn process_common_login(
     
     let tenant = match TenantService::find_by_slug(&state, &slug).await {
         Ok(Some(t)) => t,
-        Ok(None) => return CommonLoginView::render_common_login(Some("Institution not found".to_string())).into_html().into_response(),
+        Ok(None) => return CommonLoginView::render_common_login(HashMap::new(), Some("Institution not found".to_string())).into_html().into_response(),
         Err(e) => return e.into_response(),
     };
 
@@ -53,13 +53,16 @@ pub async fn process_common_login(
                 Err(e) => AppError::from(e).into_response(),
             }
         }
-        Ok(None) => CommonLoginView::render_common_login(Some("Invalid username or password".to_string())).into_html().into_response(),
+        Ok(None) => CommonLoginView::render_common_login(HashMap::new(), Some("Invalid username or password".to_string())).into_html().into_response(),
+        Err(AppError::Validation(fields, gen)) => CommonLoginView::render_common_login(fields, gen).into_html().into_response(),
         Err(e) => AppError::from(e).into_response(),
     }
 }
 
+use std::collections::HashMap;
+
 pub async fn show_login(Extension(ctx): Extension<TenantContext>) -> Html<String> {
-    LoginView::render_login(&ctx.tenant, None).into_html()
+    LoginView::render_login(&ctx.tenant, HashMap::new(), None).into_html()
 }
 
 pub async fn process_login(
@@ -73,7 +76,8 @@ pub async fn process_login(
                 Err(e) => AppError::from(e).into_response(),
             }
         }
-        Ok(None) => LoginView::render_login(&ctx.tenant, Some("Invalid username or password".to_string())).into_html().into_response(),
-        Err(e) => AppError::from(e).into_response(),
+        Ok(None) => LoginView::render_login(&ctx.tenant, HashMap::new(), Some("Invalid username or password".to_string())).into_html().into_response(),
+        Err(AppError::Validation(fields, gen)) => LoginView::render_login(&ctx.tenant, fields, gen).into_html().into_response(),
+        Err(e) => e.into_response(),
     }
 }

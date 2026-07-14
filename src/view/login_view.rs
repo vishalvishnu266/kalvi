@@ -3,23 +3,27 @@ use crate::model::Tenant;
 
 pub struct LoginView;
 
+use std::collections::HashMap;
+
 impl LoginView {
-    pub fn render_login(tenant: &Tenant, error: Option<String>) -> String {
+    pub fn render_login(tenant: &Tenant, field_errors: HashMap<String, String>, general_error: Option<String>) -> String {
         use crate::view::components;
         
-        let error_alert = error.map(|err| components::alert(&err, true)).unwrap_or_default();
+        let error_alert = general_error.as_deref().map(components::alert_error).unwrap_or_default();
 
         let form_content = format!(
-            r#"{error_alert}
-            <form action="/web/{slug}/login" method="POST" class="space-y-5" data-turbo="false">
-                {username_input}
-                {password_input}
-                {submit_button}
-            </form>"#,
+            r#"<turbo-frame id="login-form">
+                {error_alert}
+                <form action="/web/{slug}/login" method="POST">
+                    {username_input}
+                    {password_input}
+                    <div class="mt-4">{submit_button}</div>
+                </form>
+            </turbo-frame>"#,
             error_alert = error_alert,
             slug = tenant.slug,
-            username_input = components::input("Username", "username", "text", "Enter your username", true),
-            password_input = components::input("Password", "password", "password", "••••••••", true),
+            username_input = components::input("Username", "username", "text", "Enter your username", true, field_errors.get("username").map(|s| s.as_str())),
+            password_input = components::input("Password", "password", "password", "••••••••", true, field_errors.get("password").map(|s| s.as_str())),
             submit_button = components::button_primary("Sign In", true)
         );
 

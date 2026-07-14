@@ -2,24 +2,28 @@ use crate::view::{render_layout, LayoutContext};
 
 pub struct CommonLoginView;
 
+use std::collections::HashMap;
+
 impl CommonLoginView {
-    pub fn render_common_login(error: Option<String>) -> String {
+    pub fn render_common_login(field_errors: HashMap<String, String>, general_error: Option<String>) -> String {
         use crate::view::components;
 
-        let error_alert = error.as_deref().map(components::alert_error).unwrap_or_default();
+        let error_alert = general_error.as_deref().map(components::alert_error).unwrap_or_default();
 
         let form_content = format!(
-            r#"{error_alert}
-            <form action="/login" method="POST" data-turbo="false">
-                {slug_input}
-                {username_input}
-                {password_input}
-                <div class="mt-4">{submit_button}</div>
-            </form>"#,
+            r#"<turbo-frame id="common-login-form">
+                {error_alert}
+                <form action="/login" method="POST">
+                    {slug_input}
+                    {username_input}
+                    {password_input}
+                    <div class="mt-4">{submit_button}</div>
+                </form>
+            </turbo-frame>"#,
             error_alert = error_alert,
-            slug_input = components::input("Institution Slug", "slug", "text", "e.g. demo-school", true),
-            username_input = components::input("Username", "username", "text", "Enter username", true),
-            password_input = components::input("Password", "password", "password", "••••••••", true),
+            slug_input = components::input("Institution Slug", "slug", "text", "e.g. demo-school", true, field_errors.get("slug").map(|s| s.as_str())),
+            username_input = components::input("Username", "username", "text", "Enter username", true, field_errors.get("username").map(|s| s.as_str())),
+            password_input = components::input("Password", "password", "password", "••••••••", true, field_errors.get("password").map(|s| s.as_str())),
             submit_button = components::button_primary("Access Portal", true)
         );
 

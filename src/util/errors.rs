@@ -14,8 +14,8 @@ pub enum AppError {
     NotFound(String),
     Unauthorized(String),
     TooManyRequests(String),
-    /// Business validation errors that should be shown to the user inline
-    Validation(String),
+    /// Business validation errors: (Field Name -> Error Message, General Message)
+    Validation(std::collections::HashMap<String, String>, Option<String>),
 }
 
 impl fmt::Display for AppError {
@@ -26,7 +26,7 @@ impl fmt::Display for AppError {
             AppError::NotFound(e) => write!(f, "NotFound: {}", e),
             AppError::Unauthorized(e) => write!(f, "Unauthorized: {}", e),
             AppError::TooManyRequests(e) => write!(f, "TooManyRequests: {}", e),
-            AppError::Validation(e) => write!(f, "Business Validation: {}", e),
+            AppError::Validation(fields, gen) => write!(f, "Business Validation: {:?} | Gen: {:?}", fields, gen),
         }
     }
 }
@@ -34,7 +34,7 @@ impl fmt::Display for AppError {
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let (status, message) = match self {
-            AppError::Validation(msg) => return (StatusCode::BAD_REQUEST, msg).into_response(),
+            AppError::Validation(_, _) => return (StatusCode::BAD_REQUEST, "Validation failed").into_response(),
             AppError::Database(_) => (StatusCode::INTERNAL_SERVER_ERROR, "A database error occurred. We have been notified.".to_string()),
             AppError::Internal(_) => (StatusCode::INTERNAL_SERVER_ERROR, "An internal server error occurred.".to_string()),
             AppError::NotFound(msg) => (StatusCode::NOT_FOUND, msg),

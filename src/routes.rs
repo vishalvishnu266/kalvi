@@ -40,6 +40,7 @@ pub fn create_router(state: AppState) -> Router {
         .route("/dashboard", get(dashboard_controller::show_dashboard))
         .route("/settings", get(settings_controller::show_settings).post(settings_controller::process_settings)
             .layer(axum_middleware::from_fn(admin_only_middleware)))
+        .route("/students/add", get(student_controller::show_add_form).post(student_controller::process_add))
         .route("/logout", post(logout_controller::process_tenant_logout))
         .layer(axum_middleware::from_fn(auth_middleware));
 

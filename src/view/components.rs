@@ -23,15 +23,24 @@ pub fn alert(message: &str, is_error: bool) -> String {
     )
 }
 
-pub fn input(label: &str, name: &str, input_type: &str, placeholder: &str, required: bool) -> String {
+pub fn input(label: &str, name: &str, input_type: &str, placeholder: &str, required: bool, error: Option<&str>) -> String {
     let req_attr = if required { "required" } else { "" };
+    let (input_class, error_html) = match error {
+        Some(msg) => (
+            "form-control is-invalid",
+            format!(r#"<div class="invalid-feedback fw-bold">{}</div>"#, escape_html(msg))
+        ),
+        None => ("form-control", "".to_string()),
+    };
+
     format!(
         //language=HTML
         r#"<div class="mb-4">
             <label class="form-label small text-uppercase fw-bold text-secondary ps-1">{}</label>
-            <input type="{}" name="{}" placeholder="{}" {} class="form-control">
+            <input type="{}" name="{}" placeholder="{}" {} class="{}">
+            {}
         </div>"#,
-        escape_html(label), input_type, escape_html(name), escape_html(placeholder), req_attr
+        escape_html(label), input_type, escape_html(name), escape_html(placeholder), req_attr, input_class, error_html
     )
 }
 

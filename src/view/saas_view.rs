@@ -1,24 +1,27 @@
 use crate::view::{render_layout, LayoutContext};
+use std::collections::HashMap;
 
 pub struct SaasView;
 
 impl SaasView {
-    pub fn render_onboard(error: Option<String>) -> String {
+    pub fn render_onboard(field_errors: HashMap<String, String>, general_error: Option<String>) -> String {
         use crate::view::components;
-        let error_alert = error.as_deref().map(components::alert_error).unwrap_or_default();
+        let error_alert = general_error.as_deref().map(components::alert_error).unwrap_or_default();
 
         let form_content = format!(
-            r#"{error_alert}
-            <form action="/saas/onboard" method="POST" data-turbo="false">
-                {user_input}
-                {name_input}
-                {pass_input}
-                <div class="mt-4">{submit_button}</div>
-            </form>"#,
+            r#"<turbo-frame id="saas-onboard-form">
+                {error_alert}
+                <form action="/saas/onboard" method="POST">
+                    {user_input}
+                    {name_input}
+                    {pass_input}
+                    <div class="mt-4">{submit_button}</div>
+                </form>
+            </turbo-frame>"#,
             error_alert = error_alert,
-            user_input = components::input("Username", "username", "text", "admin", true),
-            name_input = components::input("Full Name", "full_name", "text", "Your Name", true),
-            pass_input = components::input("Password", "password", "password", "••••••••", true),
+            user_input = components::input("Username", "username", "text", "admin", true, field_errors.get("username").map(|s| s.as_str())),
+            name_input = components::input("Full Name", "full_name", "text", "Your Name", true, field_errors.get("full_name").map(|s| s.as_str())),
+            pass_input = components::input("Password", "password", "password", "••••••••", true, field_errors.get("password").map(|s| s.as_str())),
             submit_button = components::button_primary("Initialize SaaS Admin", true)
         );
 
@@ -43,20 +46,22 @@ impl SaasView {
         render_layout(LayoutContext::default(), content)
     }
 
-    pub fn render_login(error: Option<String>) -> String {
+    pub fn render_login(field_errors: HashMap<String, String>, general_error: Option<String>) -> String {
         use crate::view::components;
-        let error_alert = error.as_deref().map(components::alert_error).unwrap_or_default();
+        let error_alert = general_error.as_deref().map(components::alert_error).unwrap_or_default();
 
         let form_content = format!(
-            r#"{error_alert}
-            <form action="/saas/login" method="POST" data-turbo="false">
-                {user_input}
-                {pass_input}
-                <div class="mt-4">{submit_button}</div>
-            </form>"#,
+            r#"<turbo-frame id="saas-login-form">
+                {error_alert}
+                <form action="/saas/login" method="POST">
+                    {user_input}
+                    {pass_input}
+                    <div class="mt-4">{submit_button}</div>
+                </form>
+            </turbo-frame>"#,
             error_alert = error_alert,
-            user_input = components::input("Username", "username", "text", "Enter username", true),
-            pass_input = components::input("Password", "password", "password", "••••••••", true),
+            user_input = components::input("Username", "username", "text", "Enter username", true, field_errors.get("username").map(|s| s.as_str())),
+            pass_input = components::input("Password", "password", "password", "••••••••", true, field_errors.get("password").map(|s| s.as_str())),
             submit_button = components::button_primary("Sign In to Control Plane", true)
         );
 
