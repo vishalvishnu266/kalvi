@@ -26,6 +26,10 @@ pub async fn tenant_db_middleware(
             let db_url = format!("sqlite://data/tenant/{}.db", tenant_id);
             match SqlitePool::connect(&db_url).await {
                 Ok(pool) => {
+                    sqlx::migrate!("./resources/migration/tenant")
+                        .run(&pool)
+                        .await
+                        .expect("Failed to run migrations");
                     let mut pools = state.tenant_pools.write().await;
                     pools.insert(tenant_id, pool.clone());
                     pool
