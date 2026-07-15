@@ -1,20 +1,33 @@
-use axum::{routing::{get, post}, Router, middleware};
-use axum::response::Response;
-use crate::public_middleware;
+use askama::Template;
+use axum::{
+    middleware,
+    response::{Html, IntoResponse, Redirect, Response},
+    routing::{get, post},
+    Router,
+};
+
+use crate::controllers::{dashboard_controller, student_controller};
 use crate::csrf_middleware::csrf_middleware;
+use crate::public_middleware;
 use crate::state::AppState;
 use crate::tenant_db_middleware::tenant_db_middleware;
-use crate::controllers::{dashboard_controller, student_controller};
+
+#[derive(Template)]
+#[template(path = "landing.html")]
+struct LandingTpl;
 
 pub fn create_routes(state: AppState) -> Router {
-    // Public routes - minimal for now
+    // Public routes
     let public_router = Router::new()
-        .route("/", get(|| async { "Welcome to Kalvi ERP. Please use your tenant portal." }))
+        .route("/", get(landing_handler))
         .layer(middleware::from_fn(public_middleware::public_middleware))
         .layer(middleware::map_response(add_security_headers));
 
-    // Tenant specific routes under /web/{tenant_id}/
+    // Tenant-scoped routes: /web/{tenant_id}/...
     let web_router = Router::new()
+        .route("/{tenant_id}", get(|axum::extract::Path(t): axum::extract::Path<String>| async move {
+            Redirect::to(&format!("/web/{}/dashboard", t))
+        }))
         .route("/{tenant_id}/dashboard", get(dashboard_controller::tenant_dashboard_handler))
         .route("/{tenant_id}/students", get(student_controller::list_students_handler))
         .route("/{tenant_id}/students/new", get(student_controller::new_student_handler))
@@ -31,10 +44,16 @@ pub fn create_routes(state: AppState) -> Router {
         .with_state(state)
 }
 
-// A pure post-processing function
+async fn landing_handler() -> Response {
+    match LandingTpl.render() {
+        Ok(body) => Html(body).into_response(),
+        Err(_) => (axum::http::StatusCode::INTERNAL_SERVER_ERROR, "template error").into_response(),
+    }
+}
+
 async fn add_security_headers(res: Response) -> Response {
     let mut res = res;
     res.headers_mut().insert("X-Content-Type-Options", "nosniff".parse().unwrap());
-    res.headers_mut().insert("X-Frame-Options", "DENY".parse().unwrap());
+    res.headers_mut().insert("X-Frame-Options", "SAMEORIGIN".parse().unwrap());
     res
 }

@@ -1,57 +1,66 @@
 use axum::{
-    body::Body,
+    body::{to_bytes, Body},
     http::{Request, StatusCode},
     middleware::Next,
     response::Response,
 };
-use axum::extract::Form;
-use serde::Deserialize;
 
+/// Hardcoded token for development. Replace with a per-session token later.
 pub const CSRF_TOKEN_VALUE: &str = "static_csrf_token_for_dev_12345";
 
-#[derive(Deserialize)]
-struct CsrfData {
-    csrf_token: Option<String>,
-}
+const MAX_BODY_BYTES: usize = 1024 * 1024; // 1 MiB is plenty for HTML forms
 
+/// Validate CSRF token for state-changing requests. Accepts either:
+///  - `X-CSRF-Token` header (used by fetch / Turbo XHR), OR
+///  - `csrf_token` field in a `application/x-www-form-urlencoded` body.
 pub async fn csrf_middleware(
     request: Request<Body>,
     next: Next,
 ) -> Result<Response, StatusCode> {
-    let method = request.method();
-    
-    // Only check CSRF for state-changing methods
-    if method == "POST" || method == "PUT" || method == "DELETE" || method == "PATCH" {
-        // In a real app with Axum 0.7+, extracting Form in middleware is tricky 
-        // because it consumes the body. 
-        // For this hardcoded requirement, we will check a custom header 
-        // or just expect the token in the form data if we were using a more complex extractor.
-        
-        // However, a common pattern for "hardcoded/simple" check without consuming body 
-        // is to check a header like 'X-CSRF-Token'.
-        let csrf_header = request.headers()
-            .get("X-CSRF-Token")
-            .and_then(|v| v.to_str().ok());
-        
-        // We'll also support checking the 'csrf_token' if it's sent as a header for simplicity 
-        // since we can't easily peek the body here without body-replacement logic.
-        
-        if let Some(token) = csrf_header {
-            if token == CSRF_TOKEN_VALUE {
-                return Ok(next.run(request).await);
-            }
+    let method = request.method().clone();
+
+    if !matches!(method.as_str(), "POST" | "PUT" | "PATCH" | "DELETE") {
+        return Ok(next.run(request).await);
+    }
+
+    // 1) Fast path: header.
+    if let Some(v) = request.headers().get("X-CSRF-Token").and_then(|v| v.to_str().ok()) {
+        if v == CSRF_TOKEN_VALUE {
+            return Ok(next.run(request).await);
         }
-        
-        // If we want to support standard HTML form POSTs, we'd usually need a custom layer.
-        // For now, let's stick to the header or a simple validation.
-        // Actually, to support standard HTML forms without JS, we need to read the body.
-        
-        // Let's assume for this "hardcoded" phase we are okay with header check 
-        // OR we can implement a simple body check if we use `axum::extract::Request`.
-        
-        // Returning 403 Forbidden for missing/invalid token
+    }
+
+    // 2) Slow path: body inspection for form posts.
+    let content_type = request
+        .headers()
+        .get("content-type")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("")
+        .to_string();
+
+    if !content_type.starts_with("application/x-www-form-urlencoded") {
         return Err(StatusCode::FORBIDDEN);
     }
 
-    Ok(next.run(request).await)
+    let (parts, body) = request.into_parts();
+    let bytes = match to_bytes(body, MAX_BODY_BYTES).await {
+        Ok(b) => b,
+        Err(_) => return Err(StatusCode::BAD_REQUEST),
+    };
+
+    let mut valid = false;
+    for (k, v) in url::form_urlencoded::parse(&bytes) {
+        if k == "csrf_token" && v == CSRF_TOKEN_VALUE {
+            valid = true;
+            break;
+        }
+    }
+
+    if !valid {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
+    // Rebuild request with the same body so downstream extractors still work.
+    let new_req = Request::from_parts(parts, Body::from(bytes));
+    Ok(next.run(new_req).await)
 }

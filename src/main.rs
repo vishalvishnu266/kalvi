@@ -1,41 +1,46 @@
 mod controllers;
+mod csrf_middleware;
 mod errors;
+mod models;
+mod public_middleware;
 mod routes;
 mod state;
 mod tenant_db_middleware;
-mod public_middleware;
-mod csrf_middleware;
 
 use axum::{extract::Request, Router};
-use tower_http::services::ServeDir;
-use sqlx::SqlitePool;
-use std::{collections::HashMap, sync::Arc};
+use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
+use std::{collections::HashMap, str::FromStr, sync::Arc};
 use tokio::sync::RwLock;
 use tower_http::{
     request_id::{MakeRequestUuid, PropagateRequestIdLayer, SetRequestIdLayer},
-    trace::{TraceLayer, DefaultOnRequest, DefaultOnResponse},
+    services::ServeDir,
+    trace::{DefaultOnRequest, DefaultOnResponse, TraceLayer},
 };
 use tracing::Level;
+
 use state::AppState;
 
 #[tokio::main]
 async fn main() {
-    // Initialize tracing
     tracing_subscriber::fmt::init();
 
-    // Initialize master DB
-    let master_db_url = "sqlite://data/master.db";
-    // For demo purposes, we ignore error if db doesn't exist yet, 
-    // but in real app we should handle it.
-    let master_db = SqlitePool::connect(master_db_url).await.expect("Failed to connect to master DB");
+    // Ensure data dirs exist.
+    std::fs::create_dir_all("data/tenant").ok();
+
+    // Master DB (auto-create if missing).
+    let master_opts = SqliteConnectOptions::from_str("sqlite://data/master.db")
+        .expect("bad master db url")
+        .create_if_missing(true);
+    let master_db = SqlitePool::connect_with(master_opts)
+        .await
+        .expect("Failed to connect to master DB");
 
     let state = AppState {
         master_db,
         tenant_pools: Arc::new(RwLock::new(HashMap::new())),
     };
 
-    // Build our application with a route
-    let app = routes::create_routes(state)
+    let app: Router = routes::create_routes(state)
         .nest_service("/public", ServeDir::new("public"))
         .layer(
             TraceLayer::new_for_http()
@@ -58,8 +63,9 @@ async fn main() {
         .layer(PropagateRequestIdLayer::x_request_id())
         .layer(SetRequestIdLayer::x_request_id(MakeRequestUuid));
 
-    // Run our application
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
+        .await
+        .expect("failed to bind");
     tracing::info!("listening on {}", listener.local_addr().unwrap());
     axum::serve(listener, app).await.unwrap();
 }
