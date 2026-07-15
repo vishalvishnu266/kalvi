@@ -122,7 +122,7 @@ pub fn app_layout(title: &str, sidebar_items: Vec<(&str, &str, bool, &str)>, con
         <div class="flex flex-col lg:flex-row min-h-screen lg:min-h-[90vh] max-w-[1600px] mx-auto lg:rounded-[2rem] overflow-hidden shadow-2xl border border-white/20 relative z-10">
             <div class="lg:hidden p-4 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md border-b border-white/20 flex items-center justify-between">
                 <span class="text-xl font-black tracking-tighter text-slate-800 dark:text-white">KALVI <span class="text-primary">ERP</span></span>
-                <button onclick="document.getElementById('mobile-sidebar').classList.toggle('hidden')" class="p-2 bg-primary/10 text-primary rounded-lg hover:scale-105 active:scale-95 transition-all">
+                <button onclick="document.getElementById('mobile-sidebar').classList.toggle('hidden')" class="p-2 bg-primary/10 text-primary rounded-lg hover:scale-105 active:scale-95 active:brightness-90 transition-all">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
                 </button>
             </div>

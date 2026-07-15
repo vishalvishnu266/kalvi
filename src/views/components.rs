@@ -39,7 +39,7 @@ pub fn button(label: &str, variant: &str) -> String {
     
     format!(
         //language=HTML
-        r#"<button class="px-6 py-2.5 rounded-xl font-medium transition-all duration-200 hover:scale-105 active:scale-95 {classes}">{label}</button>"#,
+        r#"<button class="px-6 py-2.5 rounded-xl font-medium transition-all duration-200 hover:scale-105 active:scale-95 active:brightness-90 active:shadow-inner {classes}">{label}</button>"#,
         label = label,
         classes = classes
     )
@@ -233,7 +233,7 @@ pub fn sidebar(items: Vec<(&str, &str, bool, &str)>) -> String {
         format!(
             //language=HTML
             r#"
-            <a href="{link}" class="flex items-center gap-3 px-6 py-4 transition-all {active_classes}">
+            <a href="{link}" class="flex items-center gap-3 px-6 py-4 transition-all active:scale-95 {active_classes}">
                 <span class="w-5 h-5">{icon}</span>
                 <span class="font-semibold text-sm">{label}</span>
             </a>
@@ -361,7 +361,7 @@ pub fn quick_actions(actions: Vec<&str>) -> String {
     let buttons_html: String = actions.into_iter().map(|action| {
         format!(
             //language=HTML
-            r#"<button class="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl hover:bg-primary/5 hover:scale-105 active:scale-95 transition-all text-xs font-semibold text-slate-700 dark:text-slate-300 border border-transparent hover:border-primary/10">{action}</button>"#,
+            r#"<button class="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl hover:bg-primary/5 hover:scale-105 active:scale-95 active:brightness-90 transition-all text-xs font-semibold text-slate-700 dark:text-slate-300 border border-transparent hover:border-primary/10">{action}</button>"#,
             action = action
         )
     }).collect();
