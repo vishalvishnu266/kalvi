@@ -1,7 +1,7 @@
 pub fn base_layout(title: &str, content: &str) -> String {
     format!(
         //language=HTML
-        r#"
+        r##"
         <!DOCTYPE html>
         <html lang="en" class="light">
         <head>
@@ -108,7 +108,7 @@ pub fn base_layout(title: &str, content: &str) -> String {
             </main>
         </body>
         </html>
-        "#,
+        "##,
         title = title,
         content = content
     )
@@ -118,7 +118,7 @@ pub fn app_layout(title: &str, sidebar_items: Vec<(&str, &str, bool, &str)>, con
     let sidebar = crate::views::components::sidebar(sidebar_items);
     let layout_content = format!(
         //language=HTML
-        r#"
+        r##"
         <div class="flex flex-col lg:flex-row min-h-screen lg:min-h-[90vh] max-w-[1600px] mx-auto lg:rounded-[2rem] overflow-hidden shadow-2xl border border-white/20 relative z-10">
             <div class="lg:hidden p-4 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md border-b border-white/20 flex items-center justify-between">
                 <span class="text-xl font-black tracking-tighter text-slate-800 dark:text-white">KALVI <span class="text-primary">ERP</span></span>
@@ -133,7 +133,7 @@ pub fn app_layout(title: &str, sidebar_items: Vec<(&str, &str, bool, &str)>, con
                 {content}
             </div>
         </div>
-        "#,
+        "##,
         sidebar = sidebar,
         content = content
     );

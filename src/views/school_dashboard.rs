@@ -18,12 +18,12 @@ pub fn render() -> String {
 
     let stats = format!(
         //language=HTML
-        r#"<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        r##"
             {s1}
             {s2}
             {s3}
             {s4}
-        </div>"#,
+        </div>"##,
         s1 = components::stats_card("Total Students", "1,248", "+12", true),
         s2 = components::stats_card("Average Attendance", "94.2%", "+2.1%", true),
         s3 = components::stats_card("Fee Collection", "$42.5k", "-1.2%", false),
@@ -40,7 +40,7 @@ pub fn render() -> String {
 
     let content = format!(
         //language=HTML
-        r#"
+        r##"
         {header}
         
         {stats}
@@ -58,7 +58,7 @@ pub fn render() -> String {
                 {card2}
             </div>
         </div>
-        "#,
+        "##,
         header = components::page_header("School", "Dashboard", "Overview of student performance, attendance, and institution metrics."),
         stats = stats,
         table = components::table(headers, rows),
