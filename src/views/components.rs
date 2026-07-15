@@ -24,7 +24,7 @@ pub fn button(label: &str, variant: &str) -> String {
     
     format!(
         //language=HTML
-        r#"<button class="px-6 py-2.5 rounded-xl font-medium transition-all duration-200 active:scale-95 {classes}">{label}</button>"#,
+        r#"<button class="px-6 py-2.5 rounded-xl font-medium transition-all duration-200 hover:scale-105 active:scale-95 {classes}">{label}</button>"#,
         label = label,
         classes = classes
     )

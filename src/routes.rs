@@ -9,6 +9,7 @@ pub fn create_routes(state: AppState) -> Router {
         .route("/", get(|| async { "Hello, World!" }))
         .route("/storybook", get(crate::controllers::component_controller::storybook_root_handler))
         .route("/storybook/{page}", get(crate::controllers::component_controller::storybook_handler))
+        .route("/dashboard", get(test_controller::dashboard_handler))
         .layer(middleware::from_fn(public_middleware::public_middleware))
         .layer(middleware::map_response(add_security_headers));
 
