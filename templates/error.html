@@ -11,7 +11,7 @@
     <h1 class="display-1 fw-800 text-accent">{{ status }}</h1>
     <p class="fs-5 text-muted-custom mb-4">{{ message }}</p>
     <a href="/" class="btn btn-accent">Back to Home</a>
-    {% if request_id %}
+    {% if !request_id.is_empty() %}
     <div class="fs-xs text-muted-custom mt-4">Request ID: {{ request_id }}</div>
     {% endif %}
   </div>

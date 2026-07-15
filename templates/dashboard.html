@@ -107,9 +107,9 @@
         <tr>
           <td>
             <div class="d-flex align-items-center gap-2">
-              <div class="avatar avatar-sm" style="background: hsl({{ s.avatar_hue }},70%,55%);">{{ s.initials }}</div>
+              <div class="avatar avatar-sm" style="background: hsl({{ s.avatar_hue() }},70%,55%);">{{ s.initials() }}</div>
               <div>
-                <div class="fw-600">{{ s.full_name }}</div>
+                <div class="fw-600">{{ s.full_name() }}</div>
                 <div class="fs-xs text-muted-custom">{{ s.admission_no }}</div>
               </div>
             </div>

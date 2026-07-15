@@ -20,9 +20,9 @@
         <tr>
           <td>
             <div class="d-flex align-items-center gap-2">
-              <div class="avatar avatar-sm" style="background: hsl({{ s.avatar_hue }},70%,55%);">{{ s.initials }}</div>
+              <div class="avatar avatar-sm" style="background: hsl({{ s.avatar_hue() }},70%,55%);">{{ s.initials() }}</div>
               <div>
-                <div class="fw-600">{{ s.full_name }}</div>
+                <div class="fw-600">{{ s.full_name() }}</div>
                 <div class="fs-xs text-muted-custom">{{ s.admission_no }}</div>
               </div>
             </div>
@@ -43,7 +43,7 @@
               <form method="post"
                     action="/web/{{ tenant_id }}/students/{{ s.id }}/delete"
                     class="d-inline"
-                    onsubmit="return confirm('Delete {{ s.full_name }}?');">
+                    onsubmit="return confirm('Delete {{ s.full_name() }}?');">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                 <button class="btn btn-sm btn-soft text-danger" title="Delete" type="submit">
                   <i class="fas fa-trash"></i>

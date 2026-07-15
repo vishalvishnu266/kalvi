@@ -78,6 +78,11 @@ impl Student {
             _ => "badge-soft",
         }
     }
+
+    pub fn gender_matches(&self, g: &str) -> bool { self.gender == g }
+    pub fn class_name_matches(&self, c: &str) -> bool { self.class_name == c }
+    pub fn section_matches(&self, s: &str) -> bool { self.section == s }
+    pub fn status_matches(&self, s: &str) -> bool { self.status == s }
 }
 
 /// Form params (from HTML form POSTs).
@@ -197,4 +202,16 @@ pub struct StudentFilters {
     pub status: String,
     #[serde(default)]
     pub q: String,
+}
+
+impl StudentFilters {
+    pub fn class_name_matches(&self, c: &str) -> bool {
+        self.class_name == c
+    }
+    pub fn section_matches(&self, s: &str) -> bool {
+        self.section == s
+    }
+    pub fn status_matches(&self, s: &str) -> bool {
+        self.status == s
+    }
 }

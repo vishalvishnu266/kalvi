@@ -33,7 +33,7 @@
           <select name="class_name" class="form-select" onchange="this.form.requestSubmit()">
             <option value="">All Classes</option>
             {% for c in class_options %}
-              <option value="{{ c }}" {% if filters.class_name == *c %}selected{% endif %}>Class {{ c }}</option>
+              <option value="{{ c }}" {% if filters.class_name_matches(c) %}selected{% endif %}>Class {{ c }}</option>
             {% endfor %}
           </select>
         </div>
@@ -42,7 +42,7 @@
           <select name="section" class="form-select" onchange="this.form.requestSubmit()">
             <option value="">All Sections</option>
             {% for sec in section_options %}
-              <option value="{{ sec }}" {% if filters.section == *sec %}selected{% endif %}>{{ sec }}</option>
+              <option value="{{ sec }}" {% if filters.section_matches(sec) %}selected{% endif %}>{{ sec }}</option>
             {% endfor %}
           </select>
         </div>
@@ -51,7 +51,7 @@
           <select name="status" class="form-select" onchange="this.form.requestSubmit()">
             <option value="">All Status</option>
             {% for st in status_options %}
-              <option value="{{ st }}" {% if filters.status == *st %}selected{% endif %}>{{ st }}</option>
+              <option value="{{ st }}" {% if filters.status_matches(st) %}selected{% endif %}>{{ st }}</option>
             {% endfor %}
           </select>
         </div>

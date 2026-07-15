@@ -31,8 +31,8 @@
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
     <div class="card-body">
-      {% if error %}
-      <div class="alert alert-danger">{{ error }}</div>
+      {% if let Some(e) = error %}
+      <div class="alert alert-danger">{{ e }}</div>
       {% endif %}
 
       <h6 class="fw-700 mb-3">Personal Information</h6>
@@ -56,7 +56,7 @@
           <label class="form-label">Gender <span class="text-danger">*</span></label>
           <select class="form-select" name="gender" required>
             {% for g in gender_options %}
-              <option value="{{ g }}" {% if student.gender == *g %}selected{% endif %}>{{ g }}</option>
+              <option value="{{ g }}" {% if student.gender_matches(g) %}selected{% endif %}>{{ g }}</option>
             {% endfor %}
           </select>
         </div>
@@ -88,7 +88,7 @@
           <label class="form-label">Class <span class="text-danger">*</span></label>
           <select class="form-select" name="class_name" required>
             {% for c in class_options %}
-              <option value="{{ c }}" {% if student.class_name == *c %}selected{% endif %}>Class {{ c }}</option>
+              <option value="{{ c }}" {% if student.class_name_matches(c) %}selected{% endif %}>Class {{ c }}</option>
             {% endfor %}
           </select>
         </div>
@@ -96,7 +96,7 @@
           <label class="form-label">Section <span class="text-danger">*</span></label>
           <select class="form-select" name="section" required>
             {% for sec in section_options %}
-              <option value="{{ sec }}" {% if student.section == *sec %}selected{% endif %}>{{ sec }}</option>
+              <option value="{{ sec }}" {% if student.section_matches(sec) %}selected{% endif %}>{{ sec }}</option>
             {% endfor %}
           </select>
         </div>
@@ -114,7 +114,7 @@
           <label class="form-label">Status</label>
           <select class="form-select" name="status">
             {% for st in status_options %}
-              <option value="{{ st }}" {% if student.status == *st %}selected{% endif %}>{{ st }}</option>
+              <option value="{{ st }}" {% if student.status_matches(st) %}selected{% endif %}>{{ st }}</option>
             {% endfor %}
           </select>
         </div>
