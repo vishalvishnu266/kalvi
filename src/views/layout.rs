@@ -2,21 +2,36 @@ pub fn base_layout(title: &str, content: &str) -> String {
     format!(
         r#"
         <!DOCTYPE html>
-        <html lang="en">
+        <html lang="en" class="light">
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>{title}</title>
-            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+            <script src="https://cdn.tailwindcss.com"></script>
+            <script>
+                tailwind.config = {{
+                    darkMode: 'class',
+                    theme: {{
+                        extend: {{
+                            colors: {{
+                                primary: 'var(--primary-color, #4f46e5)',
+                            }},
+                            boxShadow: {{
+                                'subtle': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+                            }}
+                        }}
+                    }}
+                }}
+            </script>
             <style>
                 :root {{
-                    --bs-primary: #4f46e5;
-                    --bs-primary-rgb: 79, 70, 229;
+                    --primary-color: #4f46e5;
                 }}
-                [data-bs-theme="light"] body {{
+                body {{
                     background-color: #f8fafc;
+                    min-height: 100vh;
                 }}
-                [data-bs-theme="dark"] body {{
+                .dark body {{
                     background-color: #020617;
                 }}
                 .bg-mesh {{
@@ -25,118 +40,71 @@ pub fn base_layout(title: &str, content: &str) -> String {
                     left: 0;
                     right: 0;
                     height: 400px;
-                    background: radial-gradient(circle at 50% -20%, var(--bs-primary), transparent 70%);
+                    background: radial-gradient(circle at 50% -20%, var(--primary-color), transparent 70%);
                     opacity: 0.15;
                     pointer-events: none;
                     z-index: 0;
                 }}
                 .glass-card {{
-                    background: rgba(var(--bs-tertiary-bg-rgb), 0.7) !important;
+                    background: rgba(255, 255, 255, 0.7);
                     backdrop-filter: blur(12px);
-                    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-                    border-radius: 1.25rem !important;
-                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+                    border: 1px solid rgba(255, 255, 255, 0.3);
                 }}
-                .btn-primary {{
-                    --bs-btn-bg: var(--bs-primary);
-                    --bs-btn-border-color: var(--bs-primary);
-                    --bs-btn-hover-bg: color-mix(in srgb, var(--bs-primary), black 10%);
-                }}
-                #theme-controls {{
-                    position: fixed;
-                    top: 1rem;
-                    right: 1rem;
-                    z-index: 1050;
-                    background: rgba(var(--bs-tertiary-bg-rgb), 0.5);
-                    backdrop-filter: blur(10px);
-                    padding: 0.5rem;
-                    border-radius: 50rem;
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    display: flex;
-                    gap: 0.5rem;
+                .dark .glass-card {{
+                    background: rgba(15, 23, 42, 0.6);
+                    border: 1px solid rgba(255, 255, 255, 0.05);
                 }}
             </style>
             <script src="https://unpkg.com/@hotwired/turbo@8.0.0/dist/turbo.es2017-umd.js"></script>
         </head>
-        <body class="min-vh-100">
+        <body class="antialiased transition-colors duration-300 text-slate-900 dark:text-slate-100">
             <div class="bg-mesh"></div>
-            
-            <!-- Mobile Header -->
-            <nav class="navbar d-lg-none glass-card sticky-top m-3 shadow-sm">
-                <div class="container-fluid">
-                    <button class="navbar-toggler border-0 p-2 shadow-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar">
-                        <svg style="width: 1.5rem; height: 1.5rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-                    </button>
-                    <span class="navbar-brand fw-black tracking-tighter small mb-0">KALVI <span class="text-primary">ERP</span></span>
-                    <div id="mobile-theme-controls" class="d-flex gap-2 bg-white/10 p-1 rounded-pill">
-                        <!-- Theme controls moved here for mobile -->
-                    </div>
-                </div>
-            </nav>
-
-            <!-- Desktop Theme Controls -->
-            <div id="theme-controls" class="d-none d-lg-flex">
-                <input type="color" id="primaryColorPicker" value="#4f46e5" class="form-control-color border-0 bg-transparent rounded-circle" style="width: 2rem; height: 2rem; padding: 0;">
-                <button id="themeToggle" class="btn btn-sm rounded-circle d-flex align-items-center justify-content-center" style="width: 2rem; height: 2rem;">
-                    <span id="themeIcon">🌙</span>
+            <div id="theme-controls" class="fixed top-4 right-4 z-50 flex gap-2 bg-white/50 p-2 rounded-full backdrop-blur-md border border-white/20 shadow-lg">
+                <input type="color" id="primaryColorPicker" value=" #4f46e5" class="w-8 h-8 rounded-full border-none cursor-pointer ">
+                <button id="themeToggle" class="p-2 rounded-full bg-slate-800 text-white dark:bg-white dark:text-slate-800">
+                    <svg id="sunIcon" class="hidden w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                    <svg id="moonIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
                 </button>
             </div>
-            
-            <script>
-                // Duplicate theme controls to mobile nav
-                document.addEventListener('DOMContentLoaded', () => {{
-                    const controls = document.getElementById('theme-controls');
-                    const mobileContainer = document.getElementById('mobile-theme-controls');
-                    if (window.innerWidth < 992) {{
-                        mobileContainer.appendChild(document.getElementById('primaryColorPicker'));
-                        mobileContainer.appendChild(document.getElementById('themeToggle'));
-                    }}
-                }});
-            </script>
             
             <script>
                 const root = document.documentElement;
                 const colorPicker = document.getElementById('primaryColorPicker');
                 const themeToggle = document.getElementById('themeToggle');
-                const themeIcon = document.getElementById('themeIcon');
-
-                function hexToRgb(hex) {{
-                    const r = parseInt(hex.slice(1, 3), 16);
-                    const g = parseInt(hex.slice(3, 5), 16);
-                    const b = parseInt(hex.slice(5, 7), 16);
-                    return `${{r}}, ${{g}}, ${{b}}`;
-                }}
-
-                function applyColor(hex) {{
-                    root.style.setProperty('--bs-primary', hex);
-                    root.style.setProperty('--bs-primary-rgb', hexToRgb(hex));
-                    localStorage.setItem('primary-color', hex);
-                }}
+                const sunIcon = document.getElementById('sunIcon');
+                const moonIcon = document.getElementById('moonIcon');
 
                 // Load preferences
                 const savedColor = localStorage.getItem('primary-color') || '#4f46e5';
                 const savedTheme = localStorage.getItem('theme') || 'light';
                 
-                applyColor(savedColor);
+                root.style.setProperty('--primary-color', savedColor);
                 colorPicker.value = savedColor;
-                root.setAttribute('data-bs-theme', savedTheme);
-                themeIcon.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+                
+                if (savedTheme === 'dark') {{
+                    root.classList.add('dark');
+                    sunIcon.classList.remove('hidden');
+                    moonIcon.classList.add('hidden');
+                }}
 
-                colorPicker.addEventListener('input', (e) => applyColor(e.target.value));
+                colorPicker.addEventListener('input', (e) => {{
+                    const color = e.target.value;
+                    root.style.setProperty('--primary-color', color);
+                    localStorage.setItem('primary-color', color);
+                }});
 
                 themeToggle.addEventListener('click', () => {{
-                    const currentTheme = root.getAttribute('data-bs-theme');
-                    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-                    root.setAttribute('data-bs-theme', newTheme);
-                    themeIcon.textContent = newTheme === 'dark' ? '☀️' : '🌙';
-                    localStorage.setItem('theme', newTheme);
+                    root.classList.toggle('dark');
+                    const isDark = root.classList.contains('dark');
+                    sunIcon.classList.toggle('hidden', !isDark);
+                    moonIcon.classList.toggle('hidden', isDark);
+                    localStorage.setItem('theme', isDark ? 'dark' : 'light');
                 }});
             </script>
 
-            <main class="container py-5 position-relative z-1">
+            <main class="container mx-auto py-12 px-4">
                 {content}
             </main>
-            <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
         </body>
         </html>
         "#,

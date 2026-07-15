@@ -1,12 +1,10 @@
 pub fn card(title: &str, content: &str) -> String {
     format!(
         r#"
-        <div class="card glass-card p-4 mb-4 h-100">
-            <div class="card-body">
-                <h5 class="card-title fw-bold mb-4">{title}</h5>
-                <div class="card-text">
-                    {content}
-                </div>
+        <div class="glass-card shadow-subtle rounded-2xl p-6 overflow-hidden transition-all duration-300 hover:shadow-xl">
+            <h3 class="text-lg font-semibold text-slate-800 dark:text-white mb-4">{title}</h3>
+            <div class="text-slate-600 dark:text-slate-300">
+                {content}
             </div>
         </div>
         "#,
@@ -16,30 +14,30 @@ pub fn card(title: &str, content: &str) -> String {
 }
 
 pub fn button(label: &str, variant: &str) -> String {
-    let bootstrap_variant = match variant {
-        "primary" => "btn-primary",
-        "secondary" => "btn-secondary",
-        "danger" => "btn-danger",
-        _ => "btn-primary"
+    let classes = match variant {
+        "primary" => "bg-primary hover:opacity-90 text-white shadow-lg shadow-primary/30",
+        "secondary" => "bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-white hover:bg-slate-300 dark:hover:bg-slate-600",
+        "danger" => "bg-rose-500 hover:bg-rose-600 text-white shadow-lg shadow-rose-500/30",
+        _ => "bg-primary text-white"
     };
     
     format!(
-        r#"<button class="btn {bootstrap_variant} px-4 py-2 rounded-pill fw-semibold shadow-sm transition-all">{label}</button>"#,
+        r#"<button class="px-6 py-2.5 rounded-xl font-medium transition-all duration-200 active:scale-95 {classes}">{label}</button>"#,
         label = label,
-        bootstrap_variant = bootstrap_variant
+        classes = classes
     )
 }
 
 pub fn form_input(label: &str, name: &str, input_type: &str, placeholder: &str, error: Option<&str>) -> String {
-    let is_invalid = if error.is_some() { "is-invalid" } else { "" };
-    let error_html = error.map(|e| format!(r#"<div class="invalid-feedback fw-medium">{}</div>"#, e)).unwrap_or_default();
+    let border_class = if error.is_some() { "border-rose-500 ring-rose-500/20" } else { "border-slate-200 dark:border-slate-700 focus:border-primary focus:ring-primary/20" };
+    let error_html = error.map(|e| format!(r#"<p class="mt-1.5 text-xs font-medium text-rose-500">{}</p>"#, e)).unwrap_or_default();
 
     format!(
         r#"
-        <div class="mb-4">
-            <label for="{name}" class="form-label fw-bold small text-muted text-uppercase tracking-wider">{label}</label>
+        <div class="mb-5">
+            <label for="{name}" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">{label}</label>
             <input type="{input_type}" name="{name}" id="{name}" placeholder="{placeholder}" 
-                class="form-control form-control-lg rounded-4 bg-light-subtle {is_invalid}">
+                class="w-full px-4 py-3 rounded-xl bg-white/50 dark:bg-slate-800/50 border {border_class} focus:ring-2 outline-none transition-all dark:text-white placeholder:text-slate-400">
             {error_html}
         </div>
         "#,
@@ -47,7 +45,7 @@ pub fn form_input(label: &str, name: &str, input_type: &str, placeholder: &str, 
         label = label,
         input_type = input_type,
         placeholder = placeholder,
-        is_invalid = is_invalid,
+        border_class = border_class,
         error_html = error_html
     )
 }
@@ -59,9 +57,10 @@ pub fn form_select(label: &str, name: &str, options: Vec<(&str, &str)>) -> Strin
 
     format!(
         r#"
-        <div class="mb-4">
-            <label for="{name}" class="form-label fw-bold small text-muted text-uppercase tracking-wider">{label}</label>
-            <select name="{name}" id="{name}" class="form-select form-select-lg rounded-4 bg-light-subtle">
+        <div class="mb-5">
+            <label for="{name}" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">{label}</label>
+            <select name="{name}" id="{name}" 
+                class="w-full px-4 py-3 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all dark:text-white appearance-none cursor-pointer">
                 {options_html}
             </select>
         </div>
@@ -75,12 +74,15 @@ pub fn form_select(label: &str, name: &str, options: Vec<(&str, &str)>) -> Strin
 pub fn form_checkbox(label: &str, name: &str, description: &str) -> String {
     format!(
         r#"
-        <div class="form-check mb-4">
-            <input class="form-check-input" type="checkbox" id="{name}" name="{name}">
-            <label class="form-check-label ms-2" for="{name}">
-                <div class="fw-bold">{label}</div>
-                <div class="small text-muted">{description}</div>
-            </label>
+        <div class="flex items-start mb-5">
+            <div class="flex items-center h-5">
+                <input id="{name}" name="{name}" type="checkbox" 
+                    class="w-5 h-5 rounded border-slate-300 text-primary focus:ring-primary/20 cursor-pointer">
+            </div>
+            <div class="ml-3 text-sm">
+                <label for="{name}" class="font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">{label}</label>
+                <p class="text-slate-500 dark:text-slate-400 text-xs">{description}</p>
+            </div>
         </div>
         "#,
         name = name,
@@ -92,9 +94,14 @@ pub fn form_checkbox(label: &str, name: &str, description: &str) -> String {
 pub fn form_toggle(label: &str, name: &str) -> String {
     format!(
         r#"
-        <div class="form-check form-switch d-flex justify-content-between align-items-center ps-0 mb-4">
-            <label class="form-check-label fw-bold" for="{name}">{label}</label>
-            <input class="form-check-input ms-0" type="checkbox" role="switch" id="{name}" style="width: 2.5rem; height: 1.25rem;">
+        <div class="flex items-center justify-between mb-5">
+            <span class="flex-grow flex flex-col">
+                <span class="text-sm font-semibold text-slate-700 dark:text-slate-300">{label}</span>
+            </span>
+            <button type="button" role="switch" onclick="this.classList.toggle('bg-primary'); this.querySelector('span').classList.toggle('translate-x-5')"
+                class="bg-slate-200 dark:bg-slate-700 relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary/20">
+                <span class="translate-x-0 pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+            </button>
         </div>
         "#,
         label = label,
@@ -103,32 +110,37 @@ pub fn form_toggle(label: &str, name: &str) -> String {
 }
 
 pub fn badge(label: &str, color: &str) -> String {
-    let bootstrap_color = match color {
-        "green" => "success",
-        "red" => "danger",
-        "blue" => "primary",
-        _ => "secondary"
+    let color_classes = match color {
+        "green" => "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+        "red" => "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400",
+        "blue" => "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+        _ => "bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300"
     };
 
     format!(
-        r#"<span class="badge rounded-pill bg-{bootstrap_color}-subtle text-{bootstrap_color} px-3 py-2">{label}</span>"#,
+        r#"<span class="px-2.5 py-1 rounded-full text-xs font-semibold {color_classes}">{label}</span>"#,
         label = label,
-        bootstrap_color = bootstrap_color
+        color_classes = color_classes
     )
 }
 
 pub fn stats_card(label: &str, value: &str, trend: &str, is_up: bool) -> String {
-    let trend_color = if is_up { "text-success" } else { "text-danger" };
-    let trend_icon = if is_up { "↑" } else { "↓" };
+    let trend_color = if is_up { "text-emerald-500" } else { "text-rose-500" };
+    let trend_icon = if is_up { 
+        r#"<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>"# 
+    } else { 
+        r#"<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0v-8m0 8l-8-8-4 4-6-6"></path></svg>"# 
+    };
 
     format!(
         r#"
-        <div class="card glass-card p-4 border-0 shadow-sm">
-            <div class="small fw-bold text-muted text-uppercase tracking-wider mb-1">{label}</div>
-            <div class="d-flex justify-content-between align-items-end">
-                <h3 class="fw-bold mb-0">{value}</h3>
-                <div class="{trend_color} fw-bold small">
-                    {trend_icon} {trend}
+        <div class="glass-card shadow-subtle rounded-2xl p-6 transition-all duration-300 hover:translate-y-[-2px]">
+            <p class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1 text-uppercase tracking-wider">{label}</p>
+            <div class="flex items-end justify-between">
+                <h4 class="text-2xl font-bold text-slate-800 dark:text-white">{value}</h4>
+                <div class="flex items-center gap-1 {trend_color} text-sm font-semibold">
+                    {trend_icon}
+                    <span>{trend}</span>
                 </div>
             </div>
         </div>
@@ -143,25 +155,25 @@ pub fn stats_card(label: &str, value: &str, trend: &str, is_up: bool) -> String 
 
 pub fn table(headers: Vec<&str>, rows: Vec<Vec<String>>) -> String {
     let header_html: String = headers.into_iter().map(|h| {
-        format!(r#"<th class="border-0 small fw-bold text-muted text-uppercase tracking-widest px-4 py-3">{}</th>"#, h)
+        format!(r#"<th class="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{}</th>"#, h)
     }).collect();
 
     let rows_html: String = rows.into_iter().map(|row| {
         let cells: String = row.into_iter().map(|cell| {
-            format!(r#"<td class="px-4 py-3 align-middle fw-medium">{}</td>"#, cell)
+            format!(r#"<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-700 dark:text-slate-300">{}</td>"#, cell)
         }).collect();
-        format!(r#"<tr>{}</tr>"#, cells)
+        format!(r#"<tr class="border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">{}</tr>"#, cells)
     }).collect();
 
     format!(
         r#"
-        <div class="card glass-card border-0 shadow-sm overflow-hidden">
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead class="table-light-subtle">
+        <div class="glass-card shadow-subtle rounded-2xl overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-slate-50/50 dark:bg-slate-800/50">
                         <tr>{header_html}</tr>
                     </thead>
-                    <tbody class="border-top-0">
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800/50">
                         {rows_html}
                     </tbody>
                 </table>
@@ -174,85 +186,74 @@ pub fn table(headers: Vec<&str>, rows: Vec<Vec<String>>) -> String {
 }
 
 pub fn sidebar(items: Vec<(&str, &str, bool, &str)>) -> String {
-    let items_html: String = items.iter().map(|(label, icon, active, link)| {
-        let active_class = if *active { "bg-primary text-white shadow" } else { "text-muted" };
+    let items_html: String = items.into_iter().map(|(label, icon, active, link)| {
+        let active_classes = if active {
+            "bg-primary/10 text-primary border-r-4 border-primary"
+        } else {
+            "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+        };
         format!(
             r#"
-            <a href="{link}" class="nav-link d-flex align-items-center gap-3 px-4 py-3 rounded-4 transition-all mb-1 {active_class}">
-                <span style="width: 1.25rem;">{icon}</span>
-                <span class="fw-bold small">{label}</span>
+            <a href="{link}" class="flex items-center gap-3 px-6 py-4 transition-all {active_classes}">
+                <span class="w-5 h-5">{icon}</span>
+                <span class="font-semibold text-sm">{label}</span>
             </a>
             "#,
             label = label,
             icon = icon,
-            active_class = active_class,
+            active_classes = active_classes,
             link = link
         )
     }).collect();
 
-    let sidebar_content = format!(
-        r#"
-        <div class="d-flex flex-column h-100">
-            <div class="d-flex align-items-center gap-3 mb-5 px-2">
-                <div class="bg-primary rounded-3 p-2 text-white shadow">
-                    <svg style="width: 1.5rem; height: 1.5rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                </div>
-                <span class="fs-4 fw-black tracking-tighter">KALVI <span class="text-primary">ERP</span></span>
-            </div>
-            <nav class="nav flex-column flex-grow-1">
-                {items_html}
-            </nav>
-            <div class="mt-auto pt-4 border-top">
-                <div class="d-flex align-items-center gap-3 px-2">
-                    <div class="rounded-circle bg-secondary overflow-hidden" style="width: 2.5rem; height: 2.5rem;">
-                        <img src="https://ui-avatars.com/api/?name=Admin+User&background=random" alt="Avatar" class="w-100">
-                    </div>
-                    <div>
-                        <div class="small fw-bold">Admin User</div>
-                        <div class="x-small text-muted">Super Admin</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        "#,
-        items_html = items_html
-    );
-
     format!(
         r#"
-        <!-- Desktop Sidebar -->
-        <aside class="glass-card border-end d-none d-lg-block p-4 me-4" style="width: 300px; min-height: 80vh;">
-            {content}
+        <aside class="w-72 glass-card border-r border-white/20 dark:border-slate-700/50 h-full hidden lg:flex flex-col">
+            <div class="p-8">
+                <div class="flex items-center gap-3 mb-10">
+                    <div class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/30">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    </div>
+                    <span class="text-2xl font-black tracking-tighter text-slate-800 dark:text-white">KALVI <span class="text-primary">ERP</span></span>
+                </div>
+                <nav class="space-y-1">
+                    {items_html}
+                </nav>
+            </div>
+            <div class="mt-auto p-8 border-t border-slate-100 dark:border-slate-800/50">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                        <img src="https://ui-avatars.com/api/?name=Admin+User&background=random" alt="Avatar">
+                    </div>
+                    <div>
+                        <p class="text-sm font-bold text-slate-800 dark:text-white">Admin User</p>
+                        <p class="text-xs text-slate-500">Super Administrator</p>
+                    </div>
+                </div>
+            </div>
         </aside>
-
-        <!-- Mobile/Tablet Offcanvas -->
-        <div class="offcanvas offcanvas-start glass-card" tabindex="-1" id="mobileSidebar" aria-labelledby="mobileSidebarLabel">
-            <div class="offcanvas-header">
-                <button type="button" class="btn-close text-reset ms-auto" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-            </div>
-            <div class="offcanvas-body p-4">
-                {content}
-            </div>
-        </div>
         "#,
-        content = sidebar_content
+        items_html = items_html
     )
 }
 
 pub fn modal(id: &str, title: &str, content: &str, footer: &str) -> String {
     format!(
         r#"
-        <div class="modal fade" id="{id}" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content glass-card border-0 shadow-lg">
-                    <div class="modal-header border-0 px-4 pt-4">
-                        <h5 class="modal-title fw-bold">{title}</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div id="{id}" class="fixed inset-0 z-[60] hidden">
+            <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
+            <div class="absolute inset-0 flex items-center justify-center p-4">
+                <div class="glass-card w-full max-w-lg rounded-3xl shadow-2xl animate-in fade-in zoom-in duration-300 overflow-hidden">
+                    <div class="px-8 py-6 border-b border-slate-100 dark:border-slate-800/50 flex justify-between items-center">
+                        <h3 class="text-xl font-bold text-slate-800 dark:text-white">{title}</h3>
+                        <button onclick="document.getElementById('{id}').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
                     </div>
-                    <div class="modal-body px-4 py-3 text-muted">
+                    <div class="p-8 text-slate-600 dark:text-slate-300">
                         {content}
                     </div>
-                    <div class="modal-footer border-0 px-4 pb-4 pt-0">
+                    <div class="px-8 py-6 bg-slate-50/50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800/50 flex justify-end gap-3">
                         {footer}
                     </div>
                 </div>
