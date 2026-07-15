@@ -237,7 +237,7 @@ pub fn sidebar(items: Vec<(&str, &str, bool, &str)>) -> String {
                 <span class="w-5 h-5">{icon}</span>
                 <span class="font-semibold text-sm">{label}</span>
             </a>
-            "##,
+            "#,
             label = label,
             icon = icon,
             active_classes = active_classes,
@@ -280,7 +280,7 @@ pub fn sidebar(items: Vec<(&str, &str, bool, &str)>) -> String {
 pub fn modal(id: &str, title: &str, content: &str, footer: &str) -> String {
     format!(
         //language=HTML
-        r#"
+        r##"
         <div id="{id}" class="fixed inset-0 z-[60] hidden">
             <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
             <div class="absolute inset-0 flex items-center justify-center p-4">
