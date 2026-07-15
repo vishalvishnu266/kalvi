@@ -16,3 +16,13 @@ sqlx = { version = "0.7.0", features = ["runtime-tokio", "sqlite", "migrate", "c
 askama = "0.12"
 chrono = { version = "0.4", features = ["serde"] }
 url = "2"
+
+# --- Auth (Phase 0.2) ---
+# Argon2id for password hashing (OWASP-recommended for new applications).
+argon2 = { version = "0.5", features = ["std"] }
+# RNG for session tokens and password salts.
+rand = "0.8"
+# password-hash traits (PasswordHash, PasswordHasher, PasswordVerifier).
+password-hash = { version = "0.5", features = ["std"] }
+# Base64 for encoding opaque session tokens.
+base64 = "0.22"

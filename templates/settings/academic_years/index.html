@@ -51,7 +51,7 @@
               <form method="post"
                     action="/web/{{ tenant_id }}/settings/academic-years/{{ y.id }}/set-current"
                     class="d-inline">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <input type="hidden" name="csrf_token" value="{{ chrome.csrf_token }}">
                 <button type="submit" class="btn btn-sm btn-soft" title="Set as current">
                   <i class="far fa-star"></i> Set current
                 </button>
@@ -68,7 +68,7 @@
                     action="/web/{{ tenant_id }}/settings/academic-years/{{ y.id }}/delete"
                     class="d-inline"
                     onsubmit="return confirm('Delete academic year {{ y.name }}?');">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <input type="hidden" name="csrf_token" value="{{ chrome.csrf_token }}">
                 <button class="btn btn-sm btn-soft text-danger" title="Delete" type="submit">
                   <i class="fas fa-trash"></i>
                 </button>

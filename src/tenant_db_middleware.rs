@@ -51,6 +51,19 @@ pub async fn tenant_db_middleware(
                         return Html(format!("<h1>Migration failed</h1><pre>{}</pre>", e))
                             .into_response();
                     }
+
+                    // Reset the seed admin's password to a runtime-hashed
+                    // "admin123" so the pre-computed migration hash does not
+                    // become a stale artefact if the argon2 crate version
+                    // changes. Safe & idempotent.
+                    if let Err(e) = crate::models::user::User::ensure_dev_seed_password(
+                        &pool, "admin@school.edu", "admin123",
+                    )
+                    .await
+                    {
+                        error!("seed password reset failed for {tenant_id}: {:?}", e);
+                    }
+
                     let mut pools = state.tenant_pools.write().await;
                     pools.insert(tenant_id, pool.clone());
                     pool

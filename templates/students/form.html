@@ -28,7 +28,7 @@
   </div>
   <form method="post"
         action="{% if is_edit %}/web/{{ tenant_id }}/students/{{ student.id }}/update{% else %}/web/{{ tenant_id }}/students/create{% endif %}">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="csrf_token" value="{{ chrome.csrf_token }}">
 
     <div class="card-body">
       {% if let Some(e) = error %}

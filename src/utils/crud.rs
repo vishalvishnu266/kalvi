@@ -59,3 +59,8 @@ pub fn friendly_db_error(e: &sqlx::Error, unique_overrides: &[(&str, &str)]) -> 
 pub fn wrap_turbo_frame(frame_id: &str, inner_html: String) -> String {
     format!(r#"<turbo-frame id="{}">{}</turbo-frame>"#, frame_id, inner_html)
 }
+
+// NOTE: In Phase 0.3 we plan to introduce a `PageContext { user, tenant,
+// student_count }` struct and a `render_page(ctx, tpl)` helper so every new
+// controller stops repeating `user.full_name.clone()`, `user.initials()`,
+// and the students COUNT query. Left as-is for now to keep 0.2 focused.

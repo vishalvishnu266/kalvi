@@ -10,10 +10,12 @@ use axum::{
 use sqlx::SqlitePool;
 use uuid::Uuid;
 
+use crate::auth_middleware::CurrentUser;
 use crate::csrf_middleware::CSRF_TOKEN_VALUE;
 use crate::errors::AppError;
 use crate::models::student::{Student, StudentFilters, StudentForm};
 use crate::utils::crud::{friendly_db_error, is_turbo_frame, opt, wrap_turbo_frame};
+use crate::utils::page::PageChrome;
 
 use super::{CLASS_OPTIONS, GENDER_OPTIONS, SECTION_OPTIONS, STATUS_OPTIONS};
 
@@ -22,10 +24,11 @@ use super::{CLASS_OPTIONS, GENDER_OPTIONS, SECTION_OPTIONS, STATUS_OPTIONS};
 #[derive(Template)]
 #[template(path = "students/index.html")]
 struct IndexTpl<'a> {
+    chrome: PageChrome,
+    // Kept for the inline filter form action & Turbo-frame refresh; also
+    // used to render "Add Student" links. Could also be read from
+    // chrome.tenant_id — kept here for template brevity.
     tenant_id: String,
-    active: &'static str,
-    student_count: i64,
-    csrf_token: &'a str,
 
     students: Vec<Student>,
     filters: StudentFilters,
@@ -85,6 +88,7 @@ pub async fn list_students_handler(
     Path(tenant_id): Path<String>,
     Query(filters): Query<StudentFilters>,
     Extension(pool): Extension<SqlitePool>,
+    Extension(cu): Extension<CurrentUser>,
     headers: HeaderMap,
 ) -> Result<Response, AppError> {
     let students = load_students(&pool, &filters).await?;
@@ -101,14 +105,10 @@ pub async fn list_students_handler(
         return Ok(Html(body).into_response());
     }
 
-    let total: i64 =
-        sqlx::query_scalar("SELECT COUNT(*) FROM students").fetch_one(&pool).await?;
-
+    let chrome = PageChrome::load(&pool, &tenant_id, "students", &cu).await?;
     let tpl = IndexTpl {
+        chrome,
         tenant_id,
-        active: "students",
-        student_count: total,
-        csrf_token: CSRF_TOKEN_VALUE,
         students,
         filters,
         class_options: CLASS_OPTIONS,
@@ -123,10 +123,8 @@ pub async fn list_students_handler(
 #[derive(Template)]
 #[template(path = "students/form.html")]
 struct FormTpl<'a> {
+    chrome: PageChrome,
     tenant_id: String,
-    active: &'static str,
-    student_count: i64,
-    csrf_token: &'a str,
 
     is_edit: bool,
     student: Student,
@@ -149,6 +147,7 @@ fn default_new_student() -> Student {
     }
 }
 
+#[allow(dead_code)]
 async fn student_count(pool: &SqlitePool) -> Result<i64, AppError> {
     Ok(sqlx::query_scalar("SELECT COUNT(*) FROM students")
         .fetch_one(pool)
@@ -158,12 +157,12 @@ async fn student_count(pool: &SqlitePool) -> Result<i64, AppError> {
 pub async fn new_student_handler(
     Path(tenant_id): Path<String>,
     Extension(pool): Extension<SqlitePool>,
+    Extension(cu): Extension<CurrentUser>,
 ) -> Result<Html<String>, AppError> {
+    let chrome = PageChrome::load(&pool, &tenant_id, "students", &cu).await?;
     let tpl = FormTpl {
+        chrome,
         tenant_id,
-        active: "students",
-        student_count: student_count(&pool).await?,
-        csrf_token: CSRF_TOKEN_VALUE,
         is_edit: false,
         student: default_new_student(),
         error: None,
@@ -178,6 +177,7 @@ pub async fn new_student_handler(
 pub async fn edit_student_handler(
     Path((tenant_id, student_id)): Path<(String, String)>,
     Extension(pool): Extension<SqlitePool>,
+    Extension(cu): Extension<CurrentUser>,
 ) -> Result<Response, AppError> {
     let student = sqlx::query_as::<_, Student>("SELECT * FROM students WHERE id = ?")
         .bind(&student_id)
@@ -191,11 +191,10 @@ pub async fn edit_student_handler(
         }
     };
 
+    let chrome = PageChrome::load(&pool, &tenant_id, "students", &cu).await?;
     let tpl = FormTpl {
+        chrome,
         tenant_id,
-        active: "students",
-        student_count: student_count(&pool).await?,
-        csrf_token: CSRF_TOKEN_VALUE,
         is_edit: true,
         student,
         error: None,
@@ -212,10 +211,11 @@ pub async fn edit_student_handler(
 pub async fn create_student_handler(
     Path(tenant_id): Path<String>,
     Extension(pool): Extension<SqlitePool>,
+    Extension(CurrentUser(user)): Extension<CurrentUser>,
     Form(form): Form<StudentForm>,
 ) -> Result<Response, AppError> {
     if let Err(msg) = form.validate() {
-        return render_form_with_error(&pool, tenant_id, false, None, form, msg).await;
+        return render_form_with_error(&pool, &user, tenant_id, false, None, form, msg).await;
     }
 
     let mut student = form.apply_to(default_new_student());
@@ -256,7 +256,7 @@ pub async fn create_student_handler(
 
     if let Err(e) = res {
         let msg = friendly_db_error(&e, &[("admission_no", "Admission number already exists.")]);
-        return render_form_with_error(&pool, tenant_id, false, None, form, msg).await;
+        return render_form_with_error(&pool, &user, tenant_id, false, None, form, msg).await;
     }
 
     Ok(Redirect::to(&format!("/web/{}/students", tenant_id)).into_response())
@@ -265,10 +265,11 @@ pub async fn create_student_handler(
 pub async fn update_student_handler(
     Path((tenant_id, student_id)): Path<(String, String)>,
     Extension(pool): Extension<SqlitePool>,
+    Extension(CurrentUser(user)): Extension<CurrentUser>,
     Form(form): Form<StudentForm>,
 ) -> Result<Response, AppError> {
     if let Err(msg) = form.validate() {
-        return render_form_with_error(&pool, tenant_id, true, Some(student_id), form, msg).await;
+        return render_form_with_error(&pool, &user, tenant_id, true, Some(student_id), form, msg).await;
     }
 
     let res = sqlx::query(
@@ -311,7 +312,7 @@ pub async fn update_student_handler(
 
     if let Err(e) = res {
         let msg = friendly_db_error(&e, &[("admission_no", "Admission number already exists.")]);
-        return render_form_with_error(&pool, tenant_id, true, Some(student_id), form, msg).await;
+        return render_form_with_error(&pool, &user, tenant_id, true, Some(student_id), form, msg).await;
     }
 
     Ok(Redirect::to(&format!("/web/{}/students", tenant_id)).into_response())
@@ -332,6 +333,7 @@ pub async fn delete_student_handler(
 
 async fn render_form_with_error(
     pool: &SqlitePool,
+    user: &crate::models::user::User,
     tenant_id: String,
     is_edit: bool,
     student_id: Option<String>,
@@ -343,11 +345,10 @@ async fn render_form_with_error(
         student.id = id;
     }
 
+    let chrome = PageChrome::load_with_user(pool, &tenant_id, "students", user).await?;
     let tpl = FormTpl {
+        chrome,
         tenant_id,
-        active: "students",
-        student_count: student_count(pool).await?,
-        csrf_token: CSRF_TOKEN_VALUE,
         is_edit,
         student,
         error: Some(error),

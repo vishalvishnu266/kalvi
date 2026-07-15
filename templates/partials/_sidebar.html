@@ -1,54 +1,82 @@
+{# Sidebar. All shared state comes from `chrome` (a PageChrome struct). #}
 <aside class="sidebar">
-  <a href="/web/{{ tenant_id }}/dashboard" class="sidebar-brand" data-turbo-frame="_top">
+  <a href="/web/{{ chrome.tenant_id }}/dashboard" class="sidebar-brand" data-turbo-frame="_top">
     <div class="brand-icon"><i class="fas fa-graduation-cap"></i></div>
     SchoolDesk
   </a>
   <ul class="sidebar-nav">
+    {% if chrome.perms.can_view_dashboard %}
     <li class="nav-label">Main</li>
     <li class="nav-item">
-      <a href="/web/{{ tenant_id }}/dashboard"
-         class="nav-link {% if active == "dashboard" %}active{% endif %}">
+      <a href="/web/{{ chrome.tenant_id }}/dashboard"
+         class="nav-link {% if chrome.active == "dashboard" %}active{% endif %}">
         <i class="fas fa-th-large"></i> Dashboard
       </a>
     </li>
+    {% endif %}
 
+    {% if chrome.perms.can_manage_students || chrome.perms.can_manage_teachers || chrome.perms.can_mark_attendance %}
     <li class="nav-label">Academics</li>
+    {% if chrome.perms.can_manage_students %}
     <li class="nav-item">
-      <a href="/web/{{ tenant_id }}/students"
-         class="nav-link {% if active == "students" %}active{% endif %}">
+      <a href="/web/{{ chrome.tenant_id }}/students"
+         class="nav-link {% if chrome.active == "students" %}active{% endif %}">
         <i class="fas fa-user-graduate"></i> Students
-        <span class="badge bg-accent rounded-pill">{{ student_count }}</span>
+        <span class="badge bg-accent rounded-pill">{{ chrome.student_count }}</span>
       </a>
     </li>
+    {% endif %}
+    {% if chrome.perms.can_manage_teachers %}
     <li class="nav-item">
       <a href="#" class="nav-link">
         <i class="fas fa-chalkboard-teacher"></i> Teachers
       </a>
     </li>
+    {% endif %}
+    {% if chrome.perms.can_mark_attendance %}
     <li class="nav-item">
       <a href="#" class="nav-link">
         <i class="fas fa-calendar-check"></i> Attendance
       </a>
     </li>
+    {% endif %}
+    {% endif %}
 
+    {% if chrome.perms.can_manage_fees %}
     <li class="nav-label">Finance</li>
     <li class="nav-item">
       <a href="#" class="nav-link">
         <i class="fas fa-file-invoice-dollar"></i> Fees &amp; Payments
       </a>
     </li>
+    {% endif %}
+
+    {% if chrome.perms.can_manage_library %}
+    <li class="nav-label">Library</li>
+    <li class="nav-item">
+      <a href="#" class="nav-link">
+        <i class="fas fa-book"></i> Books
+      </a>
+    </li>
+    {% endif %}
 
     <li class="nav-label">System</li>
+    {% if chrome.perms.can_manage_settings %}
     <li class="nav-item">
-      <a href="/web/{{ tenant_id }}/settings"
-         class="nav-link {% if active == "settings" %}active{% endif %}">
+      <a href="/web/{{ chrome.tenant_id }}/settings"
+         class="nav-link {% if chrome.active == "settings" %}active{% endif %}">
         <i class="fas fa-cog"></i> Settings
       </a>
     </li>
+    {% endif %}
     <li class="nav-item">
-      <a href="/" class="nav-link" data-turbo="false">
-        <i class="fas fa-sign-out-alt"></i> Logout
-      </a>
+      {# Logout — POST via a form so CSRF middleware accepts it. #}
+      <form method="post" action="/web/{{ chrome.tenant_id }}/logout" data-turbo="false" class="m-0">
+        <input type="hidden" name="csrf_token" value="{{ chrome.csrf_token }}">
+        <button type="submit" class="nav-link" style="background:none; border:0; width:100%; text-align:left;">
+          <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
+      </form>
     </li>
   </ul>
 </aside>

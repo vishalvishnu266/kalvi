@@ -12,18 +12,16 @@ use axum::{
 use serde::Deserialize;
 use sqlx::SqlitePool;
 
-use crate::csrf_middleware::CSRF_TOKEN_VALUE;
+use crate::auth_middleware::CurrentUser;
 use crate::errors::AppError;
 use crate::models::academic_year::{AcademicYear, TenantSetting};
+use crate::utils::page::PageChrome;
 
 #[derive(Template)]
 #[template(path = "settings/index.html")]
-struct IndexTpl<'a> {
+struct IndexTpl {
+    chrome: PageChrome,
     tenant_id: String,
-    active: &'static str,
-    csrf_token: &'a str,
-    // Required by the shared sidebar partial (badge count).
-    student_count: i64,
 
     // General settings values (with sensible defaults)
     institution_type: String,
@@ -39,7 +37,10 @@ struct IndexTpl<'a> {
 pub async fn index_handler(
     Path(tenant_id): Path<String>,
     Extension(pool): Extension<SqlitePool>,
+    Extension(cu): Extension<CurrentUser>,
 ) -> Result<Html<String>, AppError> {
+    let chrome = PageChrome::load(&pool, &tenant_id, "settings", &cu).await?;
+
     let institution_type = TenantSetting::get_or(&pool, "institution_type", "school").await?;
     let display_name = TenantSetting::get_or(&pool, "display_name", "Institution").await?;
     let locale = TenantSetting::get_or(&pool, "locale", "en-IN").await?;
@@ -51,14 +52,10 @@ pub async fn index_handler(
         .unwrap_or_else(|| "— none set —".to_string());
     let total_years: i64 =
         sqlx::query_scalar("SELECT COUNT(*) FROM academic_years").fetch_one(&pool).await?;
-    let student_count: i64 =
-        sqlx::query_scalar("SELECT COUNT(*) FROM students").fetch_one(&pool).await.unwrap_or(0);
 
     let tpl = IndexTpl {
+        chrome,
         tenant_id,
-        active: "settings",
-        csrf_token: CSRF_TOKEN_VALUE,
-        student_count,
         institution_type,
         display_name,
         locale,

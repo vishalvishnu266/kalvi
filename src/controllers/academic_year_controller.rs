@@ -1,13 +1,4 @@
 //! CRUD for the tenant's Academic Years.
-//!
-//! Routes (registered in `routes.rs`):
-//!   GET  /web/{tenant}/settings/academic-years          -> list
-//!   GET  /web/{tenant}/settings/academic-years/new      -> form (create)
-//!   POST /web/{tenant}/settings/academic-years/create   -> insert
-//!   GET  /web/{tenant}/settings/academic-years/{id}/edit
-//!   POST /web/{tenant}/settings/academic-years/{id}/update
-//!   POST /web/{tenant}/settings/academic-years/{id}/delete
-//!   POST /web/{tenant}/settings/academic-years/{id}/set-current
 use askama::Template;
 use axum::{
     extract::{Form, Path},
@@ -17,43 +8,31 @@ use axum::{
 use sqlx::SqlitePool;
 use uuid::Uuid;
 
-use crate::csrf_middleware::CSRF_TOKEN_VALUE;
+use crate::auth_middleware::CurrentUser;
 use crate::errors::AppError;
 use crate::models::academic_year::{AcademicYear, AcademicYearForm};
+use crate::models::user::User;
 use crate::utils::crud::friendly_db_error;
+use crate::utils::page::PageChrome;
 
 // ------------ Templates ------------
 
 #[derive(Template)]
 #[template(path = "settings/academic_years/index.html")]
-struct IndexTpl<'a> {
+struct IndexTpl {
+    chrome: PageChrome,
     tenant_id: String,
-    active: &'static str,
-    csrf_token: &'a str,
-    /// Required by shared sidebar partial (badge count).
-    student_count: i64,
     years: Vec<AcademicYear>,
 }
 
 #[derive(Template)]
 #[template(path = "settings/academic_years/form.html")]
-struct FormTpl<'a> {
+struct FormTpl {
+    chrome: PageChrome,
     tenant_id: String,
-    active: &'static str,
-    csrf_token: &'a str,
-    /// Required by shared sidebar partial (badge count).
-    student_count: i64,
     is_edit: bool,
     year: AcademicYear,
     error: Option<String>,
-}
-
-/// Small helper: fetch the students count (safe fallback to 0).
-async fn student_count(pool: &SqlitePool) -> i64 {
-    sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM students")
-        .fetch_one(pool)
-        .await
-        .unwrap_or(0)
 }
 
 // ------------ List ------------
@@ -61,14 +40,13 @@ async fn student_count(pool: &SqlitePool) -> i64 {
 pub async fn list_handler(
     Path(tenant_id): Path<String>,
     Extension(pool): Extension<SqlitePool>,
+    Extension(cu): Extension<CurrentUser>,
 ) -> Result<Html<String>, AppError> {
+    let chrome = PageChrome::load(&pool, &tenant_id, "settings", &cu).await?;
     let years = AcademicYear::list_all(&pool).await?;
-    let sc = student_count(&pool).await;
     let tpl = IndexTpl {
+        chrome,
         tenant_id,
-        active: "settings",
-        csrf_token: CSRF_TOKEN_VALUE,
-        student_count: sc,
         years,
     };
     Ok(Html(tpl.render()?))
@@ -86,13 +64,12 @@ fn blank_year() -> AcademicYear {
 pub async fn new_handler(
     Path(tenant_id): Path<String>,
     Extension(pool): Extension<SqlitePool>,
+    Extension(cu): Extension<CurrentUser>,
 ) -> Result<Html<String>, AppError> {
-    let sc = student_count(&pool).await;
+    let chrome = PageChrome::load(&pool, &tenant_id, "settings", &cu).await?;
     let tpl = FormTpl {
+        chrome,
         tenant_id,
-        active: "settings",
-        csrf_token: CSRF_TOKEN_VALUE,
-        student_count: sc,
         is_edit: false,
         year: blank_year(),
         error: None,
@@ -103,6 +80,7 @@ pub async fn new_handler(
 pub async fn edit_handler(
     Path((tenant_id, id)): Path<(String, String)>,
     Extension(pool): Extension<SqlitePool>,
+    Extension(cu): Extension<CurrentUser>,
 ) -> Result<Response, AppError> {
     let year = match AcademicYear::find(&pool, &id).await? {
         Some(y) => y,
@@ -114,12 +92,10 @@ pub async fn edit_handler(
             .into_response())
         }
     };
-    let sc = student_count(&pool).await;
+    let chrome = PageChrome::load(&pool, &tenant_id, "settings", &cu).await?;
     let tpl = FormTpl {
+        chrome,
         tenant_id,
-        active: "settings",
-        csrf_token: CSRF_TOKEN_VALUE,
-        student_count: sc,
         is_edit: true,
         year,
         error: None,
@@ -132,10 +108,11 @@ pub async fn edit_handler(
 pub async fn create_handler(
     Path(tenant_id): Path<String>,
     Extension(pool): Extension<SqlitePool>,
+    Extension(CurrentUser(user)): Extension<CurrentUser>,
     Form(form): Form<AcademicYearForm>,
 ) -> Result<Response, AppError> {
     if let Err(msg) = form.validate() {
-        return render_form_error(&pool, tenant_id, false, form, msg).await;
+        return render_form_error(&pool, &user, tenant_id, false, form, msg).await;
     }
 
     let id = Uuid::new_v4().to_string();
@@ -153,7 +130,7 @@ pub async fn create_handler(
 
     if let Err(e) = res {
         let msg = friendly_db_error(&e, &[("academic_years.name", "That academic year name already exists.")]);
-        return render_form_error(&pool, tenant_id, false, form, msg).await;
+        return render_form_error(&pool, &user, tenant_id, false, form, msg).await;
     }
 
     Ok(Redirect::to(&format!("/web/{}/settings/academic-years", tenant_id)).into_response())
@@ -162,10 +139,11 @@ pub async fn create_handler(
 pub async fn update_handler(
     Path((tenant_id, id)): Path<(String, String)>,
     Extension(pool): Extension<SqlitePool>,
+    Extension(CurrentUser(user)): Extension<CurrentUser>,
     Form(form): Form<AcademicYearForm>,
 ) -> Result<Response, AppError> {
     if let Err(msg) = form.validate() {
-        return render_form_error_edit(&pool, tenant_id, id, form, msg).await;
+        return render_form_error_edit(&pool, &user, tenant_id, id, form, msg).await;
     }
 
     let res = sqlx::query(
@@ -183,7 +161,7 @@ pub async fn update_handler(
 
     if let Err(e) = res {
         let msg = friendly_db_error(&e, &[("academic_years.name", "That academic year name already exists.")]);
-        return render_form_error_edit(&pool, tenant_id, id, form, msg).await;
+        return render_form_error_edit(&pool, &user, tenant_id, id, form, msg).await;
     }
 
     Ok(Redirect::to(&format!("/web/{}/settings/academic-years", tenant_id)).into_response())
@@ -222,6 +200,7 @@ pub async fn set_current_handler(
 
 async fn render_form_error(
     pool: &SqlitePool,
+    user: &User,
     tenant_id: String,
     is_edit: bool,
     form: AcademicYearForm,
@@ -234,12 +213,10 @@ async fn render_form_error(
         status: form.status,
         ..blank_year()
     };
-    let sc = student_count(pool).await;
+    let chrome = PageChrome::load_with_user(pool, &tenant_id, "settings", user).await?;
     let tpl = FormTpl {
+        chrome,
         tenant_id,
-        active: "settings",
-        csrf_token: CSRF_TOKEN_VALUE,
-        student_count: sc,
         is_edit,
         year,
         error: Some(error),
@@ -249,6 +226,7 @@ async fn render_form_error(
 
 async fn render_form_error_edit(
     pool: &SqlitePool,
+    user: &User,
     tenant_id: String,
     id: String,
     form: AcademicYearForm,
@@ -262,12 +240,10 @@ async fn render_form_error_edit(
         status: form.status,
         ..blank_year()
     };
-    let sc = student_count(pool).await;
+    let chrome = PageChrome::load_with_user(pool, &tenant_id, "settings", user).await?;
     let tpl = FormTpl {
+        chrome,
         tenant_id,
-        active: "settings",
-        csrf_token: CSRF_TOKEN_VALUE,
-        student_count: sc,
         is_edit: true,
         year,
         error: Some(error),

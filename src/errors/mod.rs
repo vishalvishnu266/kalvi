@@ -16,6 +16,10 @@ struct ErrorPage {
 pub enum AppError {
     NotFound(String),
     ValidationError(String),
+    /// The user is authenticated but not permitted to access the resource.
+    /// Rendered as a friendly 403 page rather than a redirect (so they know
+    /// *why* they can't proceed, and switching accounts is a conscious act).
+    Forbidden(String),
     Database(sqlx::Error),
     Unexpected(String),
 }
@@ -33,6 +37,7 @@ impl IntoResponse for AppError {
         let (status, message) = match self {
             AppError::NotFound(m) => (StatusCode::NOT_FOUND, m),
             AppError::ValidationError(m) => (StatusCode::UNPROCESSABLE_ENTITY, m),
+            AppError::Forbidden(m) => (StatusCode::FORBIDDEN, m),
             AppError::Database(e) => {
                 tracing::error!("db error: {e}");
                 (StatusCode::INTERNAL_SERVER_ERROR, "Database error".into())

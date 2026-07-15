@@ -1,16 +1,17 @@
+//! Landing page after login — per-tenant summary stats + recent students.
 use askama::Template;
 use axum::{extract::Path, response::Html, Extension};
 use sqlx::SqlitePool;
 
+use crate::auth_middleware::CurrentUser;
 use crate::errors::AppError;
 use crate::models::student::Student;
+use crate::utils::page::PageChrome;
 
 #[derive(Template)]
 #[template(path = "dashboard.html")]
 struct DashboardTpl {
-    tenant_id: String,
-    active: &'static str,
-    student_count: i64,
+    chrome: PageChrome,
 
     total_students: i64,
     active_students: i64,
@@ -23,30 +24,33 @@ struct DashboardTpl {
 pub async fn tenant_dashboard_handler(
     Path(tenant_id): Path<String>,
     Extension(pool): Extension<SqlitePool>,
+    Extension(cu): Extension<CurrentUser>,
 ) -> Result<Html<String>, AppError> {
+    let chrome = PageChrome::load(&pool, &tenant_id, "dashboard", &cu).await?;
+
     let total_students: i64 =
         sqlx::query_scalar("SELECT COUNT(*) FROM students").fetch_one(&pool).await?;
     let active_students: i64 =
         sqlx::query_scalar("SELECT COUNT(*) FROM students WHERE status = 'Active'")
-            .fetch_one(&pool).await?;
+            .fetch_one(&pool)
+            .await?;
     let pending_students: i64 =
         sqlx::query_scalar("SELECT COUNT(*) FROM students WHERE status = 'Pending'")
-            .fetch_one(&pool).await?;
+            .fetch_one(&pool)
+            .await?;
     let inactive_students: i64 =
-        sqlx::query_scalar("SELECT COUNT(*) FROM students WHERE status IN ('Inactive','Suspended')")
-            .fetch_one(&pool).await?;
+        sqlx::query_scalar("SELECT COUNT(*) FROM students WHERE status = 'Inactive'")
+            .fetch_one(&pool)
+            .await?;
 
-    let recent_students =
-        sqlx::query_as::<_, Student>(
-            "SELECT * FROM students ORDER BY created_at DESC, admission_date DESC LIMIT 5",
-        )
-        .fetch_all(&pool)
-        .await?;
+    let recent_students = sqlx::query_as::<_, Student>(
+        "SELECT * FROM students ORDER BY created_at DESC LIMIT 5",
+    )
+    .fetch_all(&pool)
+    .await?;
 
     let tpl = DashboardTpl {
-        tenant_id,
-        active: "dashboard",
-        student_count: total_students,
+        chrome,
         total_students,
         active_students,
         pending_students,

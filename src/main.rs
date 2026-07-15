@@ -1,3 +1,4 @@
+mod auth_middleware;
 mod controllers;
 mod csrf_middleware;
 mod errors;

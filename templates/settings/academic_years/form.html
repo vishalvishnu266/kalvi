@@ -31,7 +31,7 @@
   </div>
   <form method="post"
         action="{% if is_edit %}/web/{{ tenant_id }}/settings/academic-years/{{ year.id }}/update{% else %}/web/{{ tenant_id }}/settings/academic-years/create{% endif %}">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="csrf_token" value="{{ chrome.csrf_token }}">
 
     <div class="card-body">
       {% if let Some(e) = error %}

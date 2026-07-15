@@ -1,7 +1,10 @@
 pub mod academic_year_controller;
+pub mod account_controller;
+pub mod auth_controller;
 pub mod dashboard_controller;
 pub mod settings_controller;
 pub mod student_controller;
+pub mod user_controller;
 
 /// Fixed option lists used by both the filter dropdowns and the form.
 pub const CLASS_OPTIONS: &[&str] = &["6", "7", "8", "9", "10", "11", "12"];
