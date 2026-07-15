@@ -1,6 +1,5 @@
 mod controllers;
 mod errors;
-mod views;
 mod routes;
 mod state;
 mod tenant_db_middleware;

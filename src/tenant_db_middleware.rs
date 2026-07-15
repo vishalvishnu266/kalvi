@@ -41,7 +41,7 @@ pub async fn tenant_db_middleware(
                         .and_then(|v| v.to_str().ok())
                         .unwrap_or("unknown");
                     error!("Failed to connect to database: {} ", e);
-                    return Html(crate::views::error::error_page(&format!("Failed to connect to database: {}", e), request_id)).into_response();
+                    return Html(format!("<h1>Database connection error</h1><p>Request ID: {}</p>", request_id)).into_response();
                 }
             }
         }

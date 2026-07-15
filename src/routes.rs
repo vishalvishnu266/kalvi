@@ -1,20 +1,16 @@
 use axum::{routing::{get}, Router, middleware};
 use axum::response::Response;
-use crate::controllers::test_controller;
 use crate::public_middleware;
 use crate::state::AppState;
 use crate::tenant_db_middleware::tenant_db_middleware;
 pub fn create_routes(state: AppState) -> Router {
     let public_router = Router::new()
         .route("/", get(|| async { "Hello, World!" }))
-        .route("/storybook", get(crate::controllers::component_controller::storybook_root_handler))
-        .route("/storybook/{page}", get(crate::controllers::component_controller::storybook_handler))
-        .route("/dashboard", get(test_controller::dashboard_handler))
         .layer(middleware::from_fn(public_middleware::public_middleware))
         .layer(middleware::map_response(add_security_headers));
 
     let web_router = Router::new()
-        .route("/{tenant_id}/test", get(test_controller::test_handler))
+        .route("/{tenant_id}/test", get(|| async { "Hello, World!" }))
         .layer(middleware::from_fn_with_state(state.clone(), tenant_db_middleware));
 
     Router::new()
