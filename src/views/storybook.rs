@@ -15,40 +15,20 @@ pub fn render(page: u32) -> String {
         _ => render_dashboard_page(),
     };
 
-    format!(
-        //language=HTML
-        r#"
-        <div class="flex flex-col lg:flex-row min-h-screen lg:min-h-[90vh] max-w-[1600px] mx-auto lg:rounded-[2rem] overflow-hidden shadow-2xl border border-white/20 relative z-10">
-            <div class="lg:hidden p-4 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md border-b border-white/20 flex items-center justify-between">
-                <span class="text-xl font-black tracking-tighter text-slate-800 dark:text-white">KALVI <span class="text-primary">ERP</span></span>
-                <button onclick="document.getElementById('mobile-sidebar').classList.toggle('hidden')" class="p-2 bg-primary/10 text-primary rounded-lg">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
-                </button>
-            </div>
-            <div id="mobile-sidebar" class="hidden lg:block">
-                {sidebar}
-            </div>
-            <div class="flex-1 p-4 sm:p-8 lg:p-16 overflow-y-auto bg-white/40 dark:bg-slate-900/40 backdrop-blur-md">
-                {content}
-            </div>
-        </div>
-        "#,
-        sidebar = components::sidebar(sidebar_items),
-        content = content
-    )
+    crate::views::layout::app_layout("Kalvi ERP Storybook", sidebar_items, &content)
 }
 
 fn render_dashboard_page() -> String {
     let stats = format!(
         //language=HTML
         r#"<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-            {}
-            {}
-            {}
+            {s1}
+            {s2}
+            {s3}
         </div>"#,
-        components::stats_card("Q3 Revenue", "$248,500", "+18.2%", true),
-        components::stats_card("Active Projects", "42", "+4", true),
-        components::stats_card("Risk Factor", "2.4%", "-0.5%", false)
+        s1 = components::stats_card("Q3 Revenue", "$248,500", "+18.2%", true),
+        s2 = components::stats_card("Active Projects", "42", "+4", true),
+        s3 = components::stats_card("Risk Factor", "2.4%", "-0.5%", false)
     );
 
     let headers = vec!["Project Name", "Lead", "Budget", "Status", "Deadline"];
@@ -61,10 +41,7 @@ fn render_dashboard_page() -> String {
     format!(
         //language=HTML
         r#"
-        <header class="mb-8 sm:mb-12">
-            <h1 class="text-3xl sm:text-5xl font-black text-slate-800 dark:text-white mb-4 tracking-tighter">Executive <span class="text-primary">Overview</span></h1>
-            <p class="text-slate-500 dark:text-slate-400 text-lg sm:text-xl max-w-2xl">Real-time performance metrics and high-level project statuses for your enterprise.</p>
-        </header>
+        {header}
         
         {stats}
         
@@ -76,6 +53,7 @@ fn render_dashboard_page() -> String {
             {table}
         </div>
         "#,
+        header = components::page_header("Executive", "Overview", "Real-time performance metrics and high-level project statuses for your enterprise."),
         stats = stats,
         table = components::table(headers, rows),
         button = components::button("Export Report", "secondary")
@@ -92,47 +70,45 @@ fn render_forms_page() -> String {
                     <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                     Identity Information
                 </h3>
-                {}
-                {}
-                {}
+                {f1}
+                {f2}
+                {f3}
             </div>
             <div class="space-y-6">
                 <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
                     <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
                     System Preferences
                 </h3>
-                {}
-                {}
-                {}
+                {f4}
+                {f5}
+                {f6}
             </div>
         </div>
         <div class="mt-12 pt-8 border-t border-slate-100 dark:border-slate-800/50 flex justify-end gap-4">
-            {}
-            {}
+            {b1}
+            {b2}
         </div>
         "#,
-        components::form_input("Full Display Name", "name", "text", "e.g. Jonathan Smith", None),
-        components::form_input("Recovery Email", "email", "email", "jonathan@acme.com", Some("Email is already registered in our system")),
-        components::form_select("Primary Role", "role", vec![("admin", "Administrator"), ("editor", "Editor"), ("viewer", "Viewer")]),
-        components::form_toggle("Enable Multi-Factor Authentication", "mfa"),
-        components::form_toggle("Beta Feature Access", "beta"),
-        components::form_checkbox("Usage Analytics", "analytics", "Share anonymous usage data to help us improve your experience."),
-        components::button("Cancel Changes", "secondary"),
-        components::button("Save Configuration", "primary")
+        f1 = components::form_input("Full Display Name", "name", "text", "e.g. Jonathan Smith", None),
+        f2 = components::form_input("Recovery Email", "email", "email", "jonathan@acme.com", Some("Email is already registered in our system")),
+        f3 = components::form_select("Primary Role", "role", vec![("admin", "Administrator"), ("editor", "Editor"), ("viewer", "Viewer")]),
+        f4 = components::form_toggle("Enable Multi-Factor Authentication", "mfa"),
+        f5 = components::form_toggle("Beta Feature Access", "beta"),
+        f6 = components::form_checkbox("Usage Analytics", "analytics", "Share anonymous usage data to help us improve your experience."),
+        b1 = components::button("Cancel Changes", "secondary"),
+        b2 = components::button("Save Configuration", "primary")
     );
 
     format!(
         //language=HTML
         r#"
-        <header class="mb-8 sm:mb-12">
-            <h1 class="text-3xl sm:text-5xl font-black text-slate-800 dark:text-white mb-4 tracking-tighter">Interface <span class="text-primary">Elements</span></h1>
-            <p class="text-slate-500 dark:text-slate-400 text-lg sm:text-xl max-w-2xl">A comprehensive set of professional form controls with validation states and dark mode support.</p>
-        </header>
+        {header}
 
         <div class="glass-card p-6 sm:p-10">
             {fields}
         </div>
         "#,
+        header = components::page_header("Interface", "Elements", "A comprehensive set of professional form controls with validation states and dark mode support."),
         fields = form_fields
     )
 }

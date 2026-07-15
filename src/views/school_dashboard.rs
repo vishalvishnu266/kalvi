@@ -19,15 +19,15 @@ pub fn render() -> String {
     let stats = format!(
         //language=HTML
         r#"<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-            {}
-            {}
-            {}
-            {}
+            {s1}
+            {s2}
+            {s3}
+            {s4}
         </div>"#,
-        components::stats_card("Total Students", "1,248", "+12", true),
-        components::stats_card("Average Attendance", "94.2%", "+2.1%", true),
-        components::stats_card("Fee Collection", "$42.5k", "-1.2%", false),
-        components::stats_card("Upcoming Exams", "3", "Next week", true)
+        s1 = components::stats_card("Total Students", "1,248", "+12", true),
+        s2 = components::stats_card("Average Attendance", "94.2%", "+2.1%", true),
+        s3 = components::stats_card("Fee Collection", "$42.5k", "-1.2%", false),
+        s4 = components::stats_card("Upcoming Exams", "3", "Next week", true)
     );
 
     let headers = vec!["Student Name", "Grade", "Section", "Status", "Attendance"];
@@ -41,10 +41,7 @@ pub fn render() -> String {
     let content = format!(
         //language=HTML
         r#"
-        <header class="mb-8 sm:mb-12">
-            <h1 class="text-3xl sm:text-5xl font-black text-slate-800 dark:text-white mb-4 tracking-tighter">School <span class="text-primary">Dashboard</span></h1>
-            <p class="text-slate-500 dark:text-slate-400 text-lg sm:text-xl max-w-2xl">Overview of student performance, attendance, and institution metrics.</p>
-        </header>
+        {header}
         
         {stats}
         
@@ -52,50 +49,28 @@ pub fn render() -> String {
             <div class="lg:col-span-2">
                 <div class="flex items-center justify-between mb-8">
                     <h2 class="text-2xl font-bold text-slate-800 dark:text-white">Recent Student Activity</h2>
-                    {}
+                    {button}
                 </div>
                 {table}
             </div>
             <div class="space-y-8">
-                {}
-                {}
+                {card1}
+                {card2}
             </div>
         </div>
         "#,
+        header = components::page_header("School", "Dashboard", "Overview of student performance, attendance, and institution metrics."),
         stats = stats,
         table = components::table(headers, rows),
         button = components::button("Add Student", "primary"),
-        card1 = components::card("Notices", "<ul class='space-y-3 text-sm'>
-            <li class='p-3 bg-primary/5 rounded-xl border border-primary/10'>Parent-Teacher meeting on Friday.</li>
-            <li class='p-3 bg-slate-50 dark:bg-slate-800 rounded-xl'>Winter break starts from Dec 20th.</li>
-        </ul>"),
-        card2 = components::card("Quick Actions", "<div class='grid grid-cols-2 gap-3'>
-            <button class='p-4 bg-slate-50 dark:bg-slate-800 rounded-xl hover:bg-primary/5 transition-colors text-xs font-semibold'>Take Attendance</button>
-            <button class='p-4 bg-slate-50 dark:bg-slate-800 rounded-xl hover:bg-primary/5 transition-colors text-xs font-semibold'>Generate Report</button>
-            <button class='p-4 bg-slate-50 dark:bg-slate-800 rounded-xl hover:bg-primary/5 transition-colors text-xs font-semibold'>Collect Fees</button>
-            <button class='p-4 bg-slate-50 dark:bg-slate-800 rounded-xl hover:bg-primary/5 transition-colors text-xs font-semibold'>Send SMS</button>
-        </div>")
+        card1 = components::notice_list("Notices", vec![
+            ("Parent-Teacher meeting on Friday.", true),
+            ("Winter break starts from Dec 20th.", false),
+        ]),
+        card2 = components::quick_actions(vec![
+            "Take Attendance", "Generate Report", "Collect Fees", "Send SMS"
+        ])
     );
 
-    format!(
-        //language=HTML
-        r#"
-        <div class="flex flex-col lg:flex-row min-h-screen lg:min-h-[90vh] max-w-[1600px] mx-auto lg:rounded-[2rem] overflow-hidden shadow-2xl border border-white/20 relative z-10">
-            <div class="lg:hidden p-4 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md border-b border-white/20 flex items-center justify-between">
-                <span class="text-xl font-black tracking-tighter text-slate-800 dark:text-white">KALVI <span class="text-primary">ERP</span></span>
-                <button onclick="document.getElementById('mobile-sidebar').classList.toggle('hidden')" class="p-2 bg-primary/10 text-primary rounded-lg">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
-                </button>
-            </div>
-            <div id="mobile-sidebar" class="hidden lg:block">
-                {sidebar}
-            </div>
-            <div class="flex-1 p-4 sm:p-8 lg:p-16 overflow-y-auto bg-white/40 dark:bg-slate-900/40 backdrop-blur-md">
-                {content}
-            </div>
-        </div>
-        "#,
-        sidebar = components::sidebar(sidebar_items),
-        content = content
-    )
+    crate::views::layout::app_layout("School ERP Dashboard", sidebar_items, &content)
 }

@@ -1,3 +1,18 @@
+pub fn page_header(title: &str, highlight: &str, description: &str) -> String {
+    format!(
+        //language=HTML
+        r#"
+        <header class="mb-8 sm:mb-12">
+            <h1 class="text-3xl sm:text-5xl font-black text-slate-800 dark:text-white mb-4 tracking-tighter">{title} <span class="text-primary">{highlight}</span></h1>
+            <p class="text-slate-500 dark:text-slate-400 text-lg sm:text-xl max-w-2xl">{description}</p>
+        </header>
+        "#,
+        title = title,
+        highlight = highlight,
+        description = description
+    )
+}
+
 pub fn card(title: &str, content: &str) -> String {
     format!(
         //language=HTML
@@ -171,18 +186,18 @@ pub fn table(headers: Vec<&str>, rows: Vec<Vec<String>>) -> String {
     let header_html: String = headers.into_iter().map(|h| {
         format!(
             //language=HTML
-            r#"<th class="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{}</th>"#, h)
+            r#"<th class="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{h}</th>"#, h = h)
     }).collect();
 
     let rows_html: String = rows.into_iter().map(|row| {
         let cells: String = row.into_iter().map(|cell| {
             format!(
                 //language=HTML
-                r#"<td class="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm font-medium text-slate-700 dark:text-slate-300">{}</td>"#, cell)
+                r#"<td class="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm font-medium text-slate-700 dark:text-slate-300">{cell}</td>"#, cell = cell)
         }).collect();
-        format!(
-            //language=HTML
-            r#"<tr class="border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">{}</tr>"#, cells)
+            format!(
+                //language=HTML
+                r#"<tr class="border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">{cells}</tr>"#, cells = cells)
     }).collect();
 
     format!(
@@ -291,4 +306,69 @@ pub fn modal(id: &str, title: &str, content: &str, footer: &str) -> String {
         content = content,
         footer = footer
     )
+}
+
+pub fn alert(title: &str, message: &str, variant: &str, footer: Option<&str>) -> String {
+    let color_classes = match variant {
+        "danger" => "bg-rose-50 border-rose-200 text-rose-700",
+        "success" => "bg-emerald-50 border-emerald-200 text-emerald-700",
+        "warning" => "bg-amber-50 border-amber-200 text-amber-700",
+        _ => "bg-blue-50 border-blue-200 text-blue-700"
+    };
+
+    let footer_html = footer.map(|f| format!(
+        //language=HTML
+        r#"<p class="mt-2 text-xs opacity-75 font-medium tracking-wider uppercase">{f}</p>"#, f = f
+    )).unwrap_or_default();
+
+    format!(
+        //language=HTML
+        r#"
+        <div class="{color_classes} border px-4 sm:px-6 py-4 rounded-2xl relative break-words overflow-hidden" role="alert">
+            <div class="flex flex-col gap-1">
+                <strong class="font-bold text-lg">{title}</strong>
+                <span class="block text-sm sm:text-base">{message}</span>
+                {footer_html}
+            </div>
+        </div>
+        "#,
+        color_classes = color_classes,
+        title = title,
+        message = message,
+        footer_html = footer_html
+    )
+}
+
+pub fn notice_list(title: &str, notices: Vec<(&str, bool)>) -> String {
+    let items_html: String = notices.into_iter().map(|(text, important)| {
+        let bg_class = if important { "bg-primary/5 border-primary/10" } else { "bg-slate-50 dark:bg-slate-800 border-transparent" };
+        format!(
+            //language=HTML
+            r#"<li class="p-3 {bg_class} rounded-xl border text-sm">{text}</li>"#,
+            bg_class = bg_class,
+            text = text
+        )
+    }).collect();
+
+    card(title, &format!(
+        //language=HTML
+        r#"<ul class="space-y-3">{items_html}</ul>"#,
+        items_html = items_html
+    ))
+}
+
+pub fn quick_actions(actions: Vec<&str>) -> String {
+    let buttons_html: String = actions.into_iter().map(|action| {
+        format!(
+            //language=HTML
+            r#"<button class="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl hover:bg-primary/5 hover:scale-105 active:scale-95 transition-all text-xs font-semibold text-slate-700 dark:text-slate-300 border border-transparent hover:border-primary/10">{action}</button>"#,
+            action = action
+        )
+    }).collect();
+
+    card("Quick Actions", &format!(
+        //language=HTML
+        r#"<div class="grid grid-cols-2 gap-3">{buttons_html}</div>"#,
+        buttons_html = buttons_html
+    ))
 }
