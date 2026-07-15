@@ -1,4 +1,6 @@
+pub mod academic_year_controller;
 pub mod dashboard_controller;
+pub mod settings_controller;
 pub mod student_controller;
 
 /// Fixed option lists used by both the filter dropdowns and the form.

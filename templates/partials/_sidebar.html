@@ -40,7 +40,8 @@
 
     <li class="nav-label">System</li>
     <li class="nav-item">
-      <a href="#" class="nav-link">
+      <a href="/web/{{ tenant_id }}/settings"
+         class="nav-link {% if active == "settings" %}active{% endif %}">
         <i class="fas fa-cog"></i> Settings
       </a>
     </li>

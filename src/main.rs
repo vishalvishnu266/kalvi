@@ -6,6 +6,7 @@ mod public_middleware;
 mod routes;
 mod state;
 mod tenant_db_middleware;
+mod utils;
 
 use axum::{extract::Request, Router};
 use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
@@ -34,6 +35,12 @@ async fn main() {
     let master_db = SqlitePool::connect_with(master_opts)
         .await
         .expect("Failed to connect to master DB");
+
+    // Run master DB migrations at boot (fail-fast if broken).
+    sqlx::migrate!("./resources/migration/master")
+        .run(&master_db)
+        .await
+        .expect("Failed to run master DB migrations");
 
     let state = AppState {
         master_db,

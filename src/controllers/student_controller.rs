@@ -5,12 +5,15 @@ use axum::{
     response::{Html, IntoResponse, Redirect, Response},
     Extension,
 };
+// HeaderMap is still needed as an extractor param on list_students_handler,
+// but the local `is_turbo_frame` helper now lives in `utils::crud`.
 use sqlx::SqlitePool;
 use uuid::Uuid;
 
 use crate::csrf_middleware::CSRF_TOKEN_VALUE;
 use crate::errors::AppError;
 use crate::models::student::{Student, StudentFilters, StudentForm};
+use crate::utils::crud::{friendly_db_error, is_turbo_frame, opt, wrap_turbo_frame};
 
 use super::{CLASS_OPTIONS, GENDER_OPTIONS, SECTION_OPTIONS, STATUS_OPTIONS};
 
@@ -38,10 +41,6 @@ struct ListFrameTpl<'a> {
     tenant_id: String,
     csrf_token: &'a str,
     students: Vec<Student>,
-}
-
-fn is_turbo_frame(headers: &HeaderMap) -> bool {
-    headers.get("Turbo-Frame").is_some()
 }
 
 async fn load_students(
@@ -98,10 +97,7 @@ pub async fn list_students_handler(
             students,
         };
         // Wrap in the same <turbo-frame id="students-list"> so Turbo swaps it in place.
-        let body = format!(
-            r#"<turbo-frame id="students-list">{}</turbo-frame>"#,
-            tpl.render()?
-        );
+        let body = wrap_turbo_frame("students-list", tpl.render()?);
         return Ok(Html(body).into_response());
     }
 
@@ -259,7 +255,7 @@ pub async fn create_student_handler(
     .await;
 
     if let Err(e) = res {
-        let msg = friendly_db_error(&e);
+        let msg = friendly_db_error(&e, &[("admission_no", "Admission number already exists.")]);
         return render_form_with_error(&pool, tenant_id, false, None, form, msg).await;
     }
 
@@ -314,7 +310,7 @@ pub async fn update_student_handler(
     .await;
 
     if let Err(e) = res {
-        let msg = friendly_db_error(&e);
+        let msg = friendly_db_error(&e, &[("admission_no", "Admission number already exists.")]);
         return render_form_with_error(&pool, tenant_id, true, Some(student_id), form, msg).await;
     }
 
@@ -333,19 +329,6 @@ pub async fn delete_student_handler(
 }
 
 // ---------------- Helpers ----------------
-
-fn opt(s: &str) -> Option<String> {
-    let t = s.trim();
-    if t.is_empty() { None } else { Some(t.to_string()) }
-}
-
-fn friendly_db_error(e: &sqlx::Error) -> String {
-    let s = e.to_string();
-    if s.contains("UNIQUE") && s.contains("admission_no") {
-        return "Admission number already exists.".into();
-    }
-    format!("Database error: {}", s)
-}
 
 async fn render_form_with_error(
     pool: &SqlitePool,

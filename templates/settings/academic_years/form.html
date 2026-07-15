@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}{% if is_edit %}Edit{% else %}New{% endif %} Academic Year - SchoolDesk ERP{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+  <div>
+    <h1>{% if is_edit %}Edit Academic Year{% else %}New Academic Year{% endif %}</h1>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/web/{{ tenant_id }}/dashboard">Home</a></li>
+        <li class="breadcrumb-item"><a href="/web/{{ tenant_id }}/settings">Settings</a></li>
+        <li class="breadcrumb-item">
+          <a href="/web/{{ tenant_id }}/settings/academic-years">Academic Years</a>
+        </li>
+        <li class="breadcrumb-item active text-muted-custom">
+          {% if is_edit %}Edit{% else %}New{% endif %}
+        </li>
+      </ol>
+    </nav>
+  </div>
+  <a href="/web/{{ tenant_id }}/settings/academic-years" class="btn btn-soft">
+    <i class="fas fa-arrow-left me-1"></i> Back
+  </a>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <i class="fas fa-calendar-alt me-2 text-accent"></i>
+    Academic Year Details
+  </div>
+  <form method="post"
+        action="{% if is_edit %}/web/{{ tenant_id }}/settings/academic-years/{{ year.id }}/update{% else %}/web/{{ tenant_id }}/settings/academic-years/create{% endif %}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+    <div class="card-body">
+      {% if let Some(e) = error %}
+      <div class="alert alert-danger">{{ e }}</div>
+      {% endif %}
+
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label">Name <span class="text-danger">*</span></label>
+          <input type="text" name="name" class="form-control" required
+                 value="{{ year.name }}" placeholder="2025-26">
+          <div class="form-text text-muted-custom">Must be unique.</div>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Start Date <span class="text-danger">*</span></label>
+          <input type="date" name="start_date" class="form-control" required
+                 value="{{ year.start_date }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">End Date <span class="text-danger">*</span></label>
+          <input type="date" name="end_date" class="form-control" required
+                 value="{{ year.end_date }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Status</label>
+          <select name="status" class="form-select">
+            <option value="active"   {% if year.status == "active"   %}selected{% endif %}>Active</option>
+            <option value="archived" {% if year.status == "archived" %}selected{% endif %}>Archived</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-body border-top d-flex justify-content-end gap-2"
+         style="border-color: var(--divider) !important;">
+      <a href="/web/{{ tenant_id }}/settings/academic-years" class="btn btn-soft">Cancel</a>
+      <button type="submit" class="btn btn-accent">
+        <i class="fas fa-save me-1"></i>
+        {% if is_edit %}Update{% else %}Save{% endif %}
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

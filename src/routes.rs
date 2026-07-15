@@ -6,7 +6,9 @@ use axum::{
     Router,
 };
 
-use crate::controllers::{dashboard_controller, student_controller};
+use crate::controllers::{
+    academic_year_controller, dashboard_controller, settings_controller, student_controller,
+};
 use crate::csrf_middleware::csrf_middleware;
 use crate::public_middleware;
 use crate::state::AppState;
@@ -35,6 +37,21 @@ pub fn create_routes(state: AppState) -> Router {
         .route("/{tenant_id}/students/{student_id}/edit", get(student_controller::edit_student_handler))
         .route("/{tenant_id}/students/{student_id}/update", post(student_controller::update_student_handler))
         .route("/{tenant_id}/students/{student_id}/delete", post(student_controller::delete_student_handler))
+
+        // ---- Settings ----
+        .route("/{tenant_id}/settings",         get(settings_controller::index_handler))
+        .route("/{tenant_id}/settings/general", post(settings_controller::update_general_handler))
+
+        // ---- Academic Years (settings sub-page) ----
+        .route("/{tenant_id}/settings/academic-years",             get(academic_year_controller::list_handler))
+        .route("/{tenant_id}/settings/academic-years/new",         get(academic_year_controller::new_handler))
+        .route("/{tenant_id}/settings/academic-years/create",      post(academic_year_controller::create_handler))
+        .route("/{tenant_id}/settings/academic-years/{id}/edit",   get(academic_year_controller::edit_handler))
+        .route("/{tenant_id}/settings/academic-years/{id}/update", post(academic_year_controller::update_handler))
+        .route("/{tenant_id}/settings/academic-years/{id}/delete", post(academic_year_controller::delete_handler))
+        .route("/{tenant_id}/settings/academic-years/{id}/set-current",
+               post(academic_year_controller::set_current_handler))
+
         .layer(middleware::from_fn(csrf_middleware))
         .layer(middleware::from_fn_with_state(state.clone(), tenant_db_middleware));
 

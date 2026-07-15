@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Academic Years - SchoolDesk ERP{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+  <div>
+    <h1>Academic Years</h1>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/web/{{ tenant_id }}/dashboard">Home</a></li>
+        <li class="breadcrumb-item"><a href="/web/{{ tenant_id }}/settings">Settings</a></li>
+        <li class="breadcrumb-item active text-muted-custom">Academic Years</li>
+      </ol>
+    </nav>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="/web/{{ tenant_id }}/settings/academic-years/new" class="btn btn-accent">
+      <i class="fas fa-plus me-1"></i> New Academic Year
+    </a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header d-flex align-items-center justify-content-between">
+    <span>Showing <strong>{{ years.len() }}</strong> academic year{% if years.len() != 1 %}s{% endif %}</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Start</th>
+          <th>End</th>
+          <th>Status</th>
+          <th>Current</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for y in years %}
+        <tr>
+          <td class="fw-600">{{ y.name }}</td>
+          <td>{{ y.start_date }}</td>
+          <td>{{ y.end_date }}</td>
+          <td><span class="badge {{ y.status_badge_class() }}">{{ y.status }}</span></td>
+          <td>
+            {% if y.is_current_bool() %}
+              <span class="badge badge-success-soft"><i class="fas fa-star me-1"></i>Current</span>
+            {% else %}
+              <form method="post"
+                    action="/web/{{ tenant_id }}/settings/academic-years/{{ y.id }}/set-current"
+                    class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button type="submit" class="btn btn-sm btn-soft" title="Set as current">
+                  <i class="far fa-star"></i> Set current
+                </button>
+              </form>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <div class="d-inline-flex gap-1">
+              <a class="btn btn-sm btn-soft"
+                 href="/web/{{ tenant_id }}/settings/academic-years/{{ y.id }}/edit"
+                 title="Edit"><i class="fas fa-edit"></i></a>
+              {% if !y.is_current_bool() %}
+              <form method="post"
+                    action="/web/{{ tenant_id }}/settings/academic-years/{{ y.id }}/delete"
+                    class="d-inline"
+                    onsubmit="return confirm('Delete academic year {{ y.name }}?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button class="btn btn-sm btn-soft text-danger" title="Delete" type="submit">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+        {% if years.is_empty() %}
+        <tr>
+          <td colspan="6" class="text-center text-muted-custom py-5">
+            <i class="fas fa-calendar-times fs-2 d-block mb-2"></i>
+            No academic years configured yet.
+            <a href="/web/{{ tenant_id }}/settings/academic-years/new">Add the first one</a>.
+          </td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
