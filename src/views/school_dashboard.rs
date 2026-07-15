@@ -2,46 +2,56 @@ use crate::views::components;
 use crate::controllers::dashboard_controller::Student;
 
 pub fn render(tenant_id: &str, students: Vec<Student>) -> String {
-    let dashboard_link = format!("/web/{}/dashboard", tenant_id);
-    let students_link = format!("/web/{}/students", tenant_id);
-    
     let sidebar_items = vec![
-        ("Dashboard", "speedometer2", true, dashboard_link.as_str()),
-        ("Students", "people", false, students_link.as_str()),
+        ("Dashboard", "house-chimney", true, &format!("/web/{}/dashboard", tenant_id)),
+        ("Students", "user-graduate", false, &format!("/web/{}/students", tenant_id)),
         ("Attendance", "calendar-check", false, "#"),
-        ("Fees", "cash-stack", false, "#"),
-        ("Exams", "journal-bookmark", false, "#"),
-        ("Settings", "gear", false, "#"),
+        ("Fees", "file-invoice-dollar", false, "#"),
+        ("Exams", "pen-to-square", false, "#"),
+        ("Settings", "sliders", false, "#"),
     ];
-
+    
     let stats = format!(
         //language=HTML
-        r##"<div class="row g-4 mb-5">
+        r##"<div class="row g-3 mb-4">
             <div class="col-sm-6 col-lg-3">{s1}</div>
             <div class="col-sm-6 col-lg-3">{s2}</div>
             <div class="col-sm-6 col-lg-3">{s3}</div>
             <div class="col-sm-6 col-lg-3">{s4}</div>
         </div>"##,
-        s1 = components::stats_card("Total Students", &format!("{}", students.len()), "+0", true),
-        s2 = components::stats_card("Average Attendance", "94.2%", "+0%", true),
-        s3 = components::stats_card("Fee Collection", "$0", "0%", false),
-        s4 = components::stats_card("Upcoming Exams", "0", "None", true)
+        s1 = components::stat_card("Total Students", &format!("{}", students.len()), "+12%", "user-graduate", true),
+        s2 = components::stat_card("Attendance", "94.2%", "+2.1%", "calendar-check", true),
+        s3 = components::stat_card("Fee Collected", "$42.5k", "-1.2%", "circle-dollar-to-slot", false),
+        s4 = components::stat_card("Active Exams", "3", "0", "file-lines", true)
     );
 
-    let headers = vec!["Student Name", "Grade", "Section", "Status", "Attendance"];
+    let headers = vec!["Student", "Grade", "Section", "Status", "Attendance", ""];
     let rows: Vec<Vec<String>> = students.into_iter().map(|s| {
-        let status_color = match s.status.as_str() {
-            "Present" => "green",
-            "Absent" => "red",
-            "Late" => "blue",
-            _ => "gray"
+        let variant = match s.status.as_str() {
+            "Present" => "success",
+            "Absent" => "danger",
+            "Late" => "warning",
+            _ => "info"
         };
         vec![
-            s.name,
+            format!(r##"
+                <div class="d-flex align-items-center gap-2">
+                    <img src="https://ui-avatars.com/api/?name={}&background=random" class="rounded-circle" width="32">
+                    <span class="fw-medium">{}</span>
+                </div>
+            "##, s.name, s.name),
             s.grade,
             s.section,
-            components::badge(&s.status, status_color),
-            format!("{:.1}%", s.attendance_pct)
+            components::badge(&s.status, variant),
+            format!(r##"
+                <div class="d-flex align-items-center gap-2" style="width: 100px;">
+                    <div class="progress w-100" style="height: 6px;">
+                        <div class="progress-bar bg-accent" style="width: {}%"></div>
+                    </div>
+                    <span class="smaller fw-bold">{}%</span>
+                </div>
+            "##, s.attendance_pct, s.attendance_pct),
+            format!(r##"<button class="btn btn-soft btn-sm"><i class="fa-solid fa-chevron-right"></i></button>"##)
         ]
     }).collect();
 
@@ -49,38 +59,23 @@ pub fn render(tenant_id: &str, students: Vec<Student>) -> String {
         //language=HTML
         r##"
         {header}
-        
         {stats}
         
-        <div class="row g-4">
-            <div class="col-lg-8">
-                <div class="d-flex align-items-center justify-content-between mb-4">
-                    <h3 class="fw-bold text-body">Recent Student Activity</h3>
-                    {button}
-                </div>
-                <div class="card glass-card border-0 shadow-sm overflow-hidden p-0">
-                    {table}
-                </div>
-            </div>
-            <div class="col-lg-4">
-                <div class="d-flex flex-column gap-4">
-                    {card1}
-                    {card2}
-                </div>
-            </div>
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-header bg-transparent border-0 d-flex align-items-center justify-content-between p-4 pb-0">
+            <h5 class="fw-bold mb-0">Recent Activity</h5>
+            <a href="/web/{tid}/students" class="btn btn-soft btn-sm fw-bold">View All</a>
+          </div>
+          <div class="card-body p-4">
+            {table}
+          </div>
         </div>
         "##,
-        header = components::page_header("Institution", "Overview", &format!("Monitoring metrics for Tenant ID: {}", tenant_id)),
+        header = components::page_header("Dashboard Overview", "Welcome back to your administration portal.", vec![("Home", "/"), ("Dashboard", "#")]),
         stats = stats,
         table = components::table(headers, rows),
-        button = components::button("Add Student", "primary", Some("plus-lg")),
-        card1 = components::notice_list("Recent Notices", vec![
-            ("System successfully initialized for this tenant.", true),
-        ]),
-        card2 = components::quick_actions(vec![
-            "Take Attendance", "Generate Report", "Collect Fees", "Send SMS"
-        ])
+        tid = tenant_id
     );
 
-    crate::views::layout::app_layout("School ERP Dashboard", sidebar_items, &content)
+    crate::views::layout::app_layout("Dashboard", sidebar_items, &content)
 }

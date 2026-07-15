@@ -4,8 +4,10 @@ mod routes;
 mod state;
 mod tenant_db_middleware;
 mod public_middleware;
+mod csrf_middleware;
 
 use axum::{extract::Request, Router};
+use tower_http::services::ServeDir;
 use sqlx::SqlitePool;
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::RwLock;
@@ -34,6 +36,7 @@ async fn main() {
 
     // Build our application with a route
     let app = routes::create_routes(state)
+        .nest_service("/public", ServeDir::new("public"))
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(|request: &Request| {

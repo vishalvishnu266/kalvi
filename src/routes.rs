@@ -1,6 +1,7 @@
 use axum::{routing::{get, post}, Router, middleware};
 use axum::response::Response;
 use crate::public_middleware;
+use crate::csrf_middleware::csrf_middleware;
 use crate::state::AppState;
 use crate::tenant_db_middleware::tenant_db_middleware;
 use crate::controllers::{dashboard_controller, student_controller};
@@ -21,6 +22,7 @@ pub fn create_routes(state: AppState) -> Router {
         .route("/{tenant_id}/students/{student_id}/edit", get(student_controller::edit_student_handler))
         .route("/{tenant_id}/students/{student_id}/update", post(student_controller::update_student_handler))
         .route("/{tenant_id}/students/{student_id}/delete", post(student_controller::delete_student_handler))
+        .layer(middleware::from_fn(csrf_middleware))
         .layer(middleware::from_fn_with_state(state.clone(), tenant_db_middleware));
 
     Router::new()
