@@ -56,7 +56,7 @@ fn render_dashboard_page() -> String {
         header = components::page_header("Executive", "Overview", "Real-time performance metrics and high-level project statuses for your enterprise."),
         stats = stats,
         table = components::table(headers, rows),
-        button = components::button("Export Report", "secondary")
+        button = components::button("Export Report", "secondary", Some(r#"<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>"#))
     )
 }
 
@@ -95,8 +95,8 @@ fn render_forms_page() -> String {
         f4 = components::form_toggle("Enable Multi-Factor Authentication", "mfa"),
         f5 = components::form_toggle("Beta Feature Access", "beta"),
         f6 = components::form_checkbox("Usage Analytics", "analytics", "Share anonymous usage data to help us improve your experience."),
-        b1 = components::button("Cancel Changes", "secondary"),
-        b2 = components::button("Save Configuration", "primary")
+        b1 = components::button("Cancel Changes", "secondary", Some(r#"<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>"#)),
+        b2 = components::button("Save Configuration", "primary", Some(r#"<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>"#))
     );
 
     format!(

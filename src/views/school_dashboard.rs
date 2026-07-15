@@ -62,7 +62,7 @@ pub fn render() -> String {
         header = components::page_header("School", "Dashboard", "Overview of student performance, attendance, and institution metrics."),
         stats = stats,
         table = components::table(headers, rows),
-        button = components::button("Add Student", "primary"),
+        button = components::button("Add Student", "primary", Some(r#"<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>"#)),
         card1 = components::notice_list("Notices", vec![
             ("Parent-Teacher meeting on Friday.", true),
             ("Winter break starts from Dec 20th.", false),

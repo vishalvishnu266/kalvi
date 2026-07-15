@@ -29,7 +29,7 @@ pub fn card(title: &str, content: &str) -> String {
     )
 }
 
-pub fn button(label: &str, variant: &str) -> String {
+pub fn button(label: &str, variant: &str, icon: Option<&str>) -> String {
     let classes = match variant {
         "primary" => "bg-primary hover:opacity-90 text-white shadow-lg shadow-primary/30",
         "secondary" => "bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-white hover:bg-slate-300 dark:hover:bg-slate-600",
@@ -37,9 +37,15 @@ pub fn button(label: &str, variant: &str) -> String {
         _ => "bg-primary text-white"
     };
     
+    let icon_html = icon.map(|i| format!(
+        //language=HTML
+        r#"<span class="w-5 h-5">{i}</span>"#, i = i
+    )).unwrap_or_default();
+
     format!(
         //language=HTML
-        r#"<button class="px-6 py-2.5 rounded-xl font-medium transition-all duration-200 hover:scale-105 active:scale-95 active:brightness-90 active:shadow-inner {classes}">{label}</button>"#,
+        r#"<button class="px-6 py-2.5 rounded-xl font-medium transition-all duration-100 hover:scale-105 active:scale-90 active:brightness-90 active:shadow-inner flex items-center justify-center gap-2 {classes}">{icon_html}<span>{label}</span></button>"#,
+        icon_html = icon_html,
         label = label,
         classes = classes
     )
@@ -233,7 +239,7 @@ pub fn sidebar(items: Vec<(&str, &str, bool, &str)>) -> String {
         format!(
             //language=HTML
             r#"
-            <a href="{link}" class="flex items-center gap-3 px-6 py-4 transition-all active:scale-95 {active_classes}">
+            <a href="{link}" class="flex items-center gap-3 px-6 py-4 transition-all duration-100 active:scale-95 active:brightness-90 {active_classes}">
                 <span class="w-5 h-5">{icon}</span>
                 <span class="font-semibold text-sm">{label}</span>
             </a>
@@ -361,7 +367,7 @@ pub fn quick_actions(actions: Vec<&str>) -> String {
     let buttons_html: String = actions.into_iter().map(|action| {
         format!(
             //language=HTML
-            r#"<button class="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl hover:bg-primary/5 hover:scale-105 active:scale-95 active:brightness-90 transition-all text-xs font-semibold text-slate-700 dark:text-slate-300 border border-transparent hover:border-primary/10">{action}</button>"#,
+            r#"<button class="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl hover:bg-primary/5 hover:scale-105 active:scale-90 active:brightness-90 transition-all duration-100 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-transparent hover:border-primary/10">{action}</button>"#,
             action = action
         )
     }).collect();
