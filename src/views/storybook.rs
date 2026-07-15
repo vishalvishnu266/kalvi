@@ -84,9 +84,9 @@ fn render_forms_page() -> String {
                 {f6}
             </div>
         </div>
-        <div class="mt-12 pt-8 border-t border-slate-100 dark:border-slate-800/50 flex justify-end gap-4">
-            {b1}
-            {b2}
+        <div class="mt-12 pt-8 border-t border-slate-100 dark:border-slate-800/50 flex flex-col sm:flex-row justify-end gap-4">
+            <div class="w-full sm:w-auto">{b1}</div>
+            <div class="w-full sm:w-auto">{b2}</div>
         </div>
         "#,
         f1 = components::form_input("Full Display Name", "name", "text", "e.g. Jonathan Smith", None),

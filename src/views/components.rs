@@ -44,7 +44,7 @@ pub fn button(label: &str, variant: &str, icon: Option<&str>) -> String {
 
     format!(
         //language=HTML
-        r#"<button class="px-6 py-2.5 rounded-xl font-medium transition-all duration-100 hover:scale-105 active:scale-90 active:brightness-90 active:shadow-inner flex items-center justify-center gap-2 {classes}">{icon_html}<span>{label}</span></button>"#,
+        r#"<button class="w-full sm:w-auto px-6 py-2.5 rounded-xl font-medium transition-all duration-100 hover:scale-105 active:scale-90 active:brightness-90 active:shadow-inner flex items-center justify-center gap-2 {classes}">{icon_html}<span>{label}</span></button>"#,
         icon_html = icon_html,
         label = label,
         classes = classes
