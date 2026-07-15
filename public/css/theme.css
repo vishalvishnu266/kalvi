@@ -195,6 +195,10 @@ a:hover { color: var(--accent-hover); }
 .sidebar-nav .nav-item { margin-bottom: 2px; }
 
 .sidebar-nav .nav-link {
+  /* Override Bootstrap .nav-link CSS variables so hover/focus don't collapse to undefined values */
+  --bs-nav-link-color: var(--sidebar-color);
+  --bs-nav-link-hover-color: var(--sidebar-active-color);
+  --bs-nav-link-disabled-color: var(--muted-color);
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -214,14 +218,15 @@ a:hover { color: var(--accent-hover); }
   opacity: 0.7;
 }
 
-.sidebar-nav .nav-link:hover {
-  background: var(--sidebar-hover-bg);
-  color: var(--sidebar-active-color);
+.sidebar-nav .nav-link:hover,
+.sidebar-nav .nav-link:focus {
+  background: var(--sidebar-hover-bg) !important;
+  color: var(--sidebar-active-color) !important;
 }
 
 .sidebar-nav .nav-link.active {
-  background: var(--sidebar-active-bg);
-  color: var(--sidebar-active-color);
+  background: var(--sidebar-active-bg) !important;
+  color: var(--sidebar-active-color) !important;
 }
 
 .sidebar-nav .nav-link.active i { opacity: 1; }
@@ -304,9 +309,10 @@ a:hover { color: var(--accent-hover); }
   position: relative;
 }
 
-.navbar-actions .btn-icon:hover {
-  background: var(--sidebar-hover-bg);
-  color: var(--body-color);
+.navbar-actions .btn-icon:hover,
+.navbar-actions .btn-icon:focus {
+  background: var(--sidebar-hover-bg) !important;
+  color: var(--body-color) !important;
 }
 
 .navbar-actions .btn-icon .notif-dot {
@@ -459,6 +465,18 @@ a:hover { color: var(--accent-hover); }
    BUTTONS
    ============================================================ */
 .btn-accent {
+  --bs-btn-color: hsl(var(--primary-foreground));
+  --bs-btn-bg: hsl(var(--primary));
+  --bs-btn-border-color: transparent;
+  --bs-btn-hover-color: hsl(var(--primary-foreground));
+  --bs-btn-hover-bg: hsl(var(--primary));
+  --bs-btn-hover-border-color: transparent;
+  --bs-btn-active-color: hsl(var(--primary-foreground));
+  --bs-btn-active-bg: hsl(var(--primary));
+  --bs-btn-active-border-color: transparent;
+  --bs-btn-disabled-color: hsl(var(--primary-foreground));
+  --bs-btn-disabled-bg: hsl(var(--primary));
+  --bs-btn-disabled-border-color: transparent;
   background: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
   border: 1px solid transparent;
@@ -469,14 +487,26 @@ a:hover { color: var(--accent-hover); }
   transition: opacity 0.2s;
 }
 
-.btn-accent:hover {
+.btn-accent:hover,
+.btn-accent:focus,
+.btn-accent:active {
+  background: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
   opacity: 0.9;
-  color: hsl(var(--primary-foreground));
 }
 
 .btn-accent:active { transform: scale(0.98); }
 
 .btn-outline-accent {
+  --bs-btn-color: hsl(var(--foreground));
+  --bs-btn-bg: hsl(var(--background));
+  --bs-btn-border-color: hsl(var(--input));
+  --bs-btn-hover-color: hsl(var(--accent-foreground));
+  --bs-btn-hover-bg: hsl(var(--accent-v));
+  --bs-btn-hover-border-color: hsl(var(--input));
+  --bs-btn-active-color: hsl(var(--accent-foreground));
+  --bs-btn-active-bg: hsl(var(--accent-v));
+  --bs-btn-active-border-color: hsl(var(--input));
   border: 1px solid hsl(var(--input));
   color: hsl(var(--foreground));
   background: hsl(var(--background));
@@ -487,12 +517,23 @@ a:hover { color: var(--accent-hover); }
   transition: all 0.2s;
 }
 
-.btn-outline-accent:hover {
-  background: hsl(var(--accent-v));
-  color: hsl(var(--accent-foreground));
+.btn-outline-accent:hover,
+.btn-outline-accent:focus,
+.btn-outline-accent:active {
+  background: hsl(var(--accent-v)) !important;
+  color: hsl(var(--accent-foreground)) !important;
 }
 
 .btn-soft {
+  --bs-btn-color: var(--badge-soft-color);
+  --bs-btn-bg: var(--badge-soft-bg);
+  --bs-btn-border-color: transparent;
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: var(--accent);
+  --bs-btn-hover-border-color: transparent;
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: var(--accent);
+  --bs-btn-active-border-color: transparent;
   background: var(--badge-soft-bg);
   color: var(--badge-soft-color);
   border: none;
@@ -502,9 +543,11 @@ a:hover { color: var(--accent-hover); }
   padding: 0.5rem 1.15rem;
 }
 
-.btn-soft:hover {
-  background: var(--accent);
-  color: #fff;
+.btn-soft:hover,
+.btn-soft:focus,
+.btn-soft:active {
+  background: var(--accent) !important;
+  color: #fff !important;
 }
 
 /* ============================================================
@@ -573,6 +616,11 @@ a:hover { color: var(--accent-hover); }
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
+.form-control:hover, .form-select:hover {
+  color: var(--input-color);
+  background: var(--input-bg);
+}
+
 .form-control:focus, .form-select:focus {
   background: var(--input-bg);
   color: var(--input-color);
@@ -627,6 +675,24 @@ a:hover { color: var(--accent-hover); }
 /* ============================================================
    PAGINATION
    ============================================================ */
+.pagination {
+  /* Override Bootstrap pagination CSS variables so hover/focus/active resolve to theme colors */
+  --bs-pagination-color: hsl(var(--foreground));
+  --bs-pagination-bg: transparent;
+  --bs-pagination-border-color: hsl(var(--input));
+  --bs-pagination-hover-color: hsl(var(--accent-foreground));
+  --bs-pagination-hover-bg: hsl(var(--accent-v));
+  --bs-pagination-hover-border-color: hsl(var(--input));
+  --bs-pagination-focus-color: hsl(var(--accent-foreground));
+  --bs-pagination-focus-bg: hsl(var(--accent-v));
+  --bs-pagination-active-color: hsl(var(--primary-foreground));
+  --bs-pagination-active-bg: hsl(var(--primary));
+  --bs-pagination-active-border-color: hsl(var(--primary));
+  --bs-pagination-disabled-color: hsl(var(--muted-foreground));
+  --bs-pagination-disabled-bg: transparent;
+  --bs-pagination-disabled-border-color: hsl(var(--input));
+}
+
 .pagination .page-link {
   background: transparent;
   border: 1px solid hsl(var(--input));
@@ -638,21 +704,33 @@ a:hover { color: var(--accent-hover); }
   transition: all 0.2s;
 }
 
-.pagination .page-link:hover {
-  background: hsl(var(--accent-v));
-  color: hsl(var(--accent-foreground));
+.pagination .page-link:hover,
+.pagination .page-link:focus {
+  background: hsl(var(--accent-v)) !important;
+  color: hsl(var(--accent-foreground)) !important;
 }
 
 .pagination .page-item.active .page-link {
-  background: hsl(var(--primary));
-  border-color: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
+  background: hsl(var(--primary)) !important;
+  border-color: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
 }
 
 /* ============================================================
    DROPDOWN OVERRIDES
    ============================================================ */
 .dropdown-menu {
+  /* Override Bootstrap dropdown CSS variables so item hover/active don't render invisible */
+  --bs-dropdown-color: hsl(var(--popover-foreground));
+  --bs-dropdown-bg: hsl(var(--popover));
+  --bs-dropdown-border-color: hsl(var(--border));
+  --bs-dropdown-link-color: hsl(var(--popover-foreground));
+  --bs-dropdown-link-hover-color: hsl(var(--accent-foreground));
+  --bs-dropdown-link-hover-bg: hsl(var(--accent-v));
+  --bs-dropdown-link-active-color: hsl(var(--accent-foreground));
+  --bs-dropdown-link-active-bg: hsl(var(--accent-v));
+  --bs-dropdown-link-disabled-color: hsl(var(--muted-foreground));
+  --bs-dropdown-header-color: hsl(var(--muted-foreground));
   background: hsl(var(--popover));
   color: hsl(var(--popover-foreground));
   border: 1px solid hsl(var(--border));
@@ -671,9 +749,22 @@ a:hover { color: var(--accent-hover); }
   transition: background-color 0.2s;
 }
 
-.dropdown-item:hover {
-  background: hsl(var(--accent-v));
-  color: hsl(var(--accent-foreground));
+.dropdown-item:hover,
+.dropdown-item:focus,
+.dropdown-item.active,
+.dropdown-item:active {
+  background: hsl(var(--accent-v)) !important;
+  color: hsl(var(--accent-foreground)) !important;
+}
+
+/* Preserve semantic colors on hover for utility-modified dropdown items (e.g. Logout) */
+.dropdown-item.text-danger:hover,
+.dropdown-item.text-danger:focus {
+  color: var(--bs-danger) !important;
+}
+.dropdown-item.text-success:hover,
+.dropdown-item.text-success:focus {
+  color: var(--bs-success) !important;
 }
 
 /* ============================================================
