@@ -2,9 +2,9 @@ pub fn page_header(title: &str, highlight: &str, description: &str) -> String {
     format!(
         //language=HTML
         r##"
-        <header class="mb-4 mb-md-5">
-            <h1 class="display-4 fw-black text-body mb-3 tracking-tighter">{title} <span class="text-primary">{highlight}</span></h1>
-            <p class="lead text-secondary max-w-2xl">{description}</p>
+        <header class="mb-4">
+            <h1 class="fw-black text-body mb-2">{title} <span class="text-primary">{highlight}</span></h1>
+            <p class="text-secondary">{description}</p>
         </header>
         "##,
         title = title,
@@ -17,12 +17,12 @@ pub fn card(title: &str, content: &str) -> String {
     format!(
         //language=HTML
         r##"
-        <div class="card glass-card shadow-sm border-0 p-3 p-md-4 transition-all duration-300">
-            <div class="card-body">
-                <h5 class="card-title fw-bold text-body mb-4">{title}</h5>
-                <div class="card-text text-secondary">
-                    {content}
-                </div>
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-transparent border-0 pt-4 px-4">
+                <h5 class="card-title fw-bold mb-0">{title}</h5>
+            </div>
+            <div class="card-body px-4 pb-4">
+                {content}
             </div>
         </div>
         "##,
@@ -151,20 +151,19 @@ pub fn badge(label: &str, color: &str) -> String {
 
 pub fn stats_card(label: &str, value: &str, trend: &str, is_up: bool) -> String {
     let trend_color = if is_up { "text-success" } else { "text-danger" };
-    let trend_icon = if is_up { "bi-graph-up-arrow" } else { "bi-graph-down-arrow" };
+    let trend_icon = if is_up { "bi-arrow-up-right" } else { "bi-arrow-down-right" };
 
     format!(
         //language=HTML
         r##"
-        <div class="card glass-card shadow-sm border-0 h-100 transition-all duration-300">
+        <div class="card shadow-sm h-100">
             <div class="card-body p-4">
-                <p class="small fw-bold text-secondary text-uppercase mb-2 tracking-wider">{label}</p>
-                <div class="d-flex align-items-end justify-content-between">
-                    <h3 class="fw-black text-body mb-0">{value}</h3>
-                    <div class="small fw-bold {trend_color}">
-                        <i class="bi {trend_icon} me-1"></i>
-                        {trend}
-                    </div>
+                <div class="text-secondary small fw-bold mb-1">{label}</div>
+                <div class="d-flex align-items-center justify-content-between">
+                    <h2 class="mb-0 fw-bold">{value}</h2>
+                    <span class="{trend_color} small fw-bold">
+                        <i class="bi {trend_icon} me-1"></i>{trend}
+                    </span>
                 </div>
             </div>
         </div>
@@ -181,29 +180,29 @@ pub fn table(headers: Vec<&str>, rows: Vec<Vec<String>>) -> String {
     let header_html: String = headers.into_iter().map(|h| {
         format!(
             //language=HTML
-            r##"<th class="border-0 small fw-bold text-secondary text-uppercase py-3">{h}</th>"##, h = h)
+            r##"<th class="bg-light text-secondary small fw-bold border-bottom py-3">{h}</th>"##, h = h)
     }).collect();
 
     let rows_html: String = rows.into_iter().map(|row| {
         let cells: String = row.into_iter().map(|cell| {
             format!(
                 //language=HTML
-                r##"<td class="py-3 text-body align-middle">{cell}</td>"##, cell = cell)
+                r##"<td class="py-3 align-middle">{cell}</td>"##, cell = cell)
         }).collect();
             format!(
                 //language=HTML
-                r##"<tr class="border-bottom border-light-subtle">{cells}</tr>"##, cells = cells)
+                r##"<tr>{cells}</tr>"##, cells = cells)
     }).collect();
 
     format!(
         //language=HTML
         r##"
         <div class="table-responsive">
-            <table class="table table-hover mb-0">
+            <table class="table table-hover border align-middle mb-0">
                 <thead>
                     <tr>{header_html}</tr>
                 </thead>
-                <tbody class="border-0">
+                <tbody>
                     {rows_html}
                 </tbody>
             </table>
@@ -216,14 +215,16 @@ pub fn table(headers: Vec<&str>, rows: Vec<Vec<String>>) -> String {
 
 pub fn sidebar(items: Vec<(&str, &str, bool, &str)>) -> String {
     let items_html: String = items.into_iter().map(|(label, icon, active, link)| {
-        let active_class = if active { "active bg-primary-subtle text-primary fw-bold" } else { "text-secondary" };
+        let active_class = if active { "active bg-primary text-white" } else { "link-body-emphasis" };
         format!(
             //language=HTML
             r##"
-            <a href="{link}" class="nav-link p-3 rounded-3 d-flex align-items-center gap-3 transition-all mb-1 {active_class}">
-                <i class="bi bi-{icon} fs-5"></i>
-                <span>{label}</span>
-            </a>
+            <li>
+                <a href="{link}" class="nav-link {active_class} d-flex align-items-center gap-3 py-2 px-3 rounded-2 mb-1">
+                    <i class="bi bi-{icon} fs-5"></i>
+                    {label}
+                </a>
+            </li>
             "##,
             label = label,
             icon = icon,
@@ -235,26 +236,26 @@ pub fn sidebar(items: Vec<(&str, &str, bool, &str)>) -> String {
     format!(
         //language=HTML
         r##"
-        <div class="d-flex flex-column h-100 p-4 glass-card border-0 rounded-0 border-end">
-            <div class="d-flex align-items-center gap-3 mb-5 px-2">
-                <div class="bg-primary rounded-3 d-flex align-items-center justify-content-center text-white shadow" style="width: 40px; height: 40px;">
-                    <i class="bi bi-lightning-fill fs-4"></i>
-                </div>
-                <span class="h4 mb-0 fw-black tracking-tighter">KALVI <span class="text-primary">ERP</span></span>
-            </div>
-            
-            <nav class="nav flex-column nav-pills flex-grow-1">
+        <div class="d-flex flex-column p-3 h-100 border-end bg-body-tertiary">
+            <a href="/" class="d-flex align-items-center mb-4 px-2 text-decoration-none text-body">
+                <i class="bi bi-lightning-fill text-primary fs-3 me-2"></i>
+                <span class="fs-4 fw-black tracking-tighter">KALVI <span class="text-primary">ERP</span></span>
+            </a>
+            <hr>
+            <ul class="nav nav-pills flex-column mb-auto">
                 {items_html}
-            </nav>
-            
-            <div class="mt-auto pt-4 border-top border-light-subtle">
-                <div class="d-flex align-items-center gap-3 px-2">
-                    <img src="https://ui-avatars.com/api/?name=Admin+User&background=random" class="rounded-circle shadow-sm" width="40" height="40" alt="Avatar">
-                    <div class="overflow-hidden">
-                        <p class="small fw-bold text-body mb-0 text-truncate">Admin User</p>
-                        <p class="extra-small text-secondary mb-0">Super Admin</p>
-                    </div>
-                </div>
+            </ul>
+            <hr>
+            <div class="dropdown px-2">
+                <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle text-body" data-bs-toggle="dropdown">
+                    <img src="https://ui-avatars.com/api/?name=Admin+User" alt="" width="32" height="32" class="rounded-circle me-2 shadow-sm">
+                    <strong class="small">Admin User</strong>
+                </a>
+                <ul class="dropdown-menu shadow">
+                    <li><a class="dropdown-item small" href="#">Profile</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item small" href="#">Sign out</a></li>
+                </ul>
             </div>
         </div>
         "##,
@@ -323,10 +324,10 @@ pub fn alert(title: &str, message: &str, variant: &str, footer: Option<&str>) ->
 
 pub fn notice_list(title: &str, notices: Vec<(&str, bool)>) -> String {
     let items_html: String = notices.into_iter().map(|(text, important)| {
-        let border_class = if important { "border-primary shadow-sm" } else { "border-light-subtle" };
+        let border_class = if important { "border-primary fw-bold" } else { "" };
         format!(
             //language=HTML
-            r##"<li class="list-group-item bg-body-tertiary rounded-3 mb-2 border {border_class} small">{text}</li>"##,
+            r##"<li class="list-group-item py-3 {border_class}">{text}</li>"##,
             border_class = border_class,
             text = text
         )
@@ -334,7 +335,7 @@ pub fn notice_list(title: &str, notices: Vec<(&str, bool)>) -> String {
 
     card(title, &format!(
         //language=HTML
-        r##"<ul class="list-group list-group-flush bg-transparent">{items_html}</ul>"##,
+        r##"<ul class="list-group list-group-flush border rounded-3">{items_html}</ul>"##,
         items_html = items_html
     ))
 }
@@ -345,7 +346,7 @@ pub fn quick_actions(actions: Vec<&str>) -> String {
             //language=HTML
             r##"
             <div class="col-6">
-                <button class="btn btn-light border w-100 py-3 small fw-bold text-secondary hover-primary transition-all shadow-sm">
+                <button class="btn btn-outline-primary w-100 py-3 small fw-bold">
                     {action}
                 </button>
             </div>
