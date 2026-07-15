@@ -21,11 +21,11 @@ pub fn render(page: u32) -> String {
 fn render_dashboard_page() -> String {
     let stats = format!(
         //language=HTML
-        r#"<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-            {s1}
-            {s2}
-            {s3}
-        </div>"#,
+        r##"<div class="row g-4 mb-5">
+            <div class="col-md-4">{s1}</div>
+            <div class="col-md-4">{s2}</div>
+            <div class="col-md-4">{s3}</div>
+        </div>"##,
         s1 = components::stats_card("Q3 Revenue", "$248,500", "+18.2%", true),
         s2 = components::stats_card("Active Projects", "42", "+4", true),
         s3 = components::stats_card("Risk Factor", "2.4%", "-0.5%", false)
@@ -40,74 +40,76 @@ fn render_dashboard_page() -> String {
 
     format!(
         //language=HTML
-        r#"
+        r##"
         {header}
         
         {stats}
         
-        <div class="mt-16">
-            <div class="flex items-center justify-between mb-8">
-                <h2 class="text-2xl font-bold text-slate-800 dark:text-white">Active Engagements</h2>
+        <div class="mt-5">
+            <div class="d-flex align-items-center justify-content-between mb-4">
+                <h3 class="fw-bold text-body">Active Engagements</h3>
                 {button}
             </div>
-            {table}
+            <div class="card glass-card border-0 shadow-sm overflow-hidden p-0">
+                {table}
+            </div>
         </div>
-        "#,
+        "##,
         header = components::page_header("Executive", "Overview", "Real-time performance metrics and high-level project statuses for your enterprise."),
         stats = stats,
         table = components::table(headers, rows),
-        button = components::button("Export Report", "secondary", Some(r#"<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>"#))
+        button = components::button("Export Report", "secondary", Some("download"))
     )
 }
 
 fn render_forms_page() -> String {
     let form_fields = format!(
         //language=HTML
-        r#"
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
-            <div class="space-y-6">
-                <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
-                    <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+        r##"
+        <div class="row g-5">
+            <div class="col-md-6">
+                <h5 class="fw-bold mb-4 d-flex align-items-center gap-2">
+                    <i class="bi bi-person-badge text-primary"></i>
                     Identity Information
-                </h3>
+                </h5>
                 {f1}
                 {f2}
                 {f3}
             </div>
-            <div class="space-y-6">
-                <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
-                    <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+            <div class="col-md-6">
+                <h5 class="fw-bold mb-4 d-flex align-items-center gap-2">
+                    <i class="bi bi-sliders text-primary"></i>
                     System Preferences
-                </h3>
+                </h5>
                 {f4}
                 {f5}
                 {f6}
             </div>
         </div>
-        <div class="mt-12 pt-8 border-t border-slate-100 dark:border-slate-800/50 flex flex-col sm:flex-row justify-end gap-4">
-            <div class="w-full sm:w-auto">{b1}</div>
-            <div class="w-full sm:w-auto">{b2}</div>
+        <div class="mt-5 pt-4 border-top d-flex flex-column flex-sm-row justify-content-end gap-3">
+            {b1}
+            {b2}
         </div>
-        "#,
+        "##,
         f1 = components::form_input("Full Display Name", "name", "text", "e.g. Jonathan Smith", None),
         f2 = components::form_input("Recovery Email", "email", "email", "jonathan@acme.com", Some("Email is already registered in our system")),
         f3 = components::form_select("Primary Role", "role", vec![("admin", "Administrator"), ("editor", "Editor"), ("viewer", "Viewer")]),
         f4 = components::form_toggle("Enable Multi-Factor Authentication", "mfa"),
         f5 = components::form_toggle("Beta Feature Access", "beta"),
         f6 = components::form_checkbox("Usage Analytics", "analytics", "Share anonymous usage data to help us improve your experience."),
-        b1 = components::button("Cancel Changes", "secondary", Some(r#"<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>"#)),
-        b2 = components::button("Save Configuration", "primary", Some(r#"<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>"#))
+        b1 = components::button("Cancel Changes", "secondary", Some("x-circle")),
+        b2 = components::button("Save Configuration", "primary", Some("check-circle"))
     );
 
     format!(
         //language=HTML
-        r#"
+        r##"
         {header}
 
-        <div class="glass-card p-6 sm:p-10">
+        <div class="card glass-card border-0 shadow-sm p-4 p-md-5">
             {fields}
         </div>
-        "#,
+        "##,
         header = components::page_header("Interface", "Elements", "A comprehensive set of professional form controls with validation states and dark mode support."),
         fields = form_fields
     )

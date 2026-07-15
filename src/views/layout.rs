@@ -3,38 +3,32 @@ pub fn base_layout(title: &str, content: &str) -> String {
         //language=HTML
         r##"
         <!DOCTYPE html>
-        <html lang="en" class="light">
+        <html lang="en">
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>{title}</title>
-            <script src="https://cdn.tailwindcss.com"></script>
-            <script>
-                tailwind.config = {{
-                    darkMode: 'class',
-                    theme: {{
-                        extend: {{
-                            colors: {{
-                                primary: 'var(--primary-color, #4f46e5)',
-                            }},
-                            boxShadow: {{
-                                'subtle': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
-                            }}
-                        }}
-                    }}
-                }}
-            </script>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+            <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
             <style>
                 :root {{
                     --primary-color: #4f46e5;
+                    --bs-primary: var(--primary-color);
+                    --bs-primary-rgb: 79, 70, 229;
                 }}
+
+                [data-bs-theme="dark"] {{
+                    --bs-body-bg: #020617;
+                    --bs-body-color: #f8fafc;
+                    --bs-tertiary-bg: rgba(15, 23, 42, 0.6);
+                }}
+
                 body {{
                     background-color: #f8fafc;
                     min-height: 100vh;
                 }}
-                .dark body {{
-                    background-color: #020617;
-                }}
+
                 .bg-mesh {{
                     position: fixed;
                     top: 0;
@@ -46,64 +40,110 @@ pub fn base_layout(title: &str, content: &str) -> String {
                     pointer-events: none;
                     z-index: 0;
                 }}
+
                 .glass-card {{
                     background: rgba(255, 255, 255, 0.7);
                     backdrop-filter: blur(12px);
                     border: 1px solid rgba(255, 255, 255, 0.3);
+                    border-radius: 1.5rem;
                 }}
-                .dark .glass-card {{
+
+                [data-bs-theme="dark"] .glass-card {{
                     background: rgba(15, 23, 42, 0.6);
                     border: 1px solid rgba(255, 255, 255, 0.05);
                 }}
+
+                .btn-primary {{
+                    background-color: var(--primary-color);
+                    border-color: var(--primary-color);
+                }}
+
+                .btn-primary:hover {{
+                    background-color: var(--primary-color);
+                    border-color: var(--primary-color);
+                    filter: brightness(0.9);
+                    transform: scale(1.05);
+                }}
+                
+                .btn {{
+                    transition: all 0.2s ease;
+                    border-radius: 0.75rem;
+                }}
+                
+                .btn:active {{
+                    transform: scale(0.9) !important;
+                }}
+                
+                .form-control, .form-select {{
+                    border-radius: 0.75rem;
+                    padding: 0.625rem 1rem;
+                }}
+
+                .hover-primary:hover {{
+                    background-color: var(--bs-primary-bg-subtle) !important;
+                    color: var(--bs-primary) !important;
+                    border-color: var(--bs-primary) !important;
+                    transform: translateY(-2px);
+                }}
+
+                .fw-black {{ font-weight: 900; }}
+                .extra-small {{ font-size: 0.7rem; }}
+                .backdrop-blur {{ backdrop-filter: blur(8px); }}
             </style>
             <script src="https://unpkg.com/@hotwired/turbo@8.0.0/dist/turbo.es2017-umd.js"></script>
         </head>
-        <body class="antialiased transition-colors duration-300 text-slate-900 dark:text-slate-100">
+        <body class="transition-colors duration-300">
             <div class="bg-mesh"></div>
-            <div id="theme-controls" class="fixed top-4 right-4 z-50 flex gap-2 items-center bg-white/50 p-2 rounded-full backdrop-blur-md border border-white/20 shadow-lg">
-                <input type="color" id="primaryColorPicker" value="#4f46e5" class="w-8 h-8 rounded-full border-none cursor-pointer" title="Primary Color">
-                <button id="themeToggle" class="p-2 rounded-full bg-slate-800 text-white dark:bg-white dark:text-slate-800" title="Toggle Theme">
-                    <svg id="sunIcon" class="hidden w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                    <svg id="moonIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
-                </button>
+            <div id="theme-controls" class="fixed-top mt-4 me-4 d-flex justify-content-end align-items-center gap-2 z-3">
+                <div class="bg-white bg-opacity-50 p-2 rounded-pill backdrop-blur shadow-sm border border-white border-opacity-20 d-flex gap-2">
+                    <input type="color" id="primaryColorPicker" value="#4f46e5" class="form-control form-control-color border-0 bg-transparent p-0 rounded-circle" style="width: 32px; height: 32px;" title="Primary Color">
+                    <button id="themeToggle" class="btn btn-dark btn-sm rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;" title="Toggle Theme">
+                        <i id="themeIcon" class="bi bi-moon-stars"></i>
+                    </button>
+                </div>
             </div>
             
             <script>
                 const root = document.documentElement;
                 const colorPicker = document.getElementById('primaryColorPicker');
                 const themeToggle = document.getElementById('themeToggle');
-                const sunIcon = document.getElementById('sunIcon');
-                const moonIcon = document.getElementById('moonIcon');
+                const themeIcon = document.getElementById('themeIcon');
+
+                function hexToRgb(hex) {{
+                    const result = /^#?([a-f\d]{{2}})([a-f\d]{{2}})([a-f\d]{{2}})$/i.exec(hex);
+                    return result ? `${{parseInt(result[1], 16)}}, ${{parseInt(result[2], 16)}}, ${{parseInt(result[3], 16)}}` : '79, 70, 229';
+                }}
 
                 // Load preferences
                 const savedColor = localStorage.getItem('primary-color') || '#4f46e5';
                 const savedTheme = localStorage.getItem('theme') || 'light';
                 
                 root.style.setProperty('--primary-color', savedColor);
+                root.style.setProperty('--bs-primary-rgb', hexToRgb(savedColor));
                 colorPicker.value = savedColor;
                 
                 if (savedTheme === 'dark') {{
-                    root.classList.add('dark');
-                    sunIcon.classList.remove('hidden');
-                    moonIcon.classList.add('hidden');
+                    root.setAttribute('data-bs-theme', 'dark');
+                    themeIcon.className = 'bi bi-sun-fill';
                 }}
 
                 colorPicker.addEventListener('input', (e) => {{
                     const color = e.target.value;
                     root.style.setProperty('--primary-color', color);
+                    root.style.setProperty('--bs-primary-rgb', hexToRgb(color));
                     localStorage.setItem('primary-color', color);
                 }});
 
                 themeToggle.addEventListener('click', () => {{
-                    root.classList.toggle('dark');
-                    const isDark = root.classList.contains('dark');
-                    sunIcon.classList.toggle('hidden', !isDark);
-                    moonIcon.classList.toggle('hidden', isDark);
-                    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+                    const currentTheme = root.getAttribute('data-bs-theme');
+                    const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                    root.setAttribute('data-bs-theme', nextTheme);
+                    themeIcon.className = nextTheme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-stars';
+                    localStorage.setItem('theme', nextTheme);
                 }});
             </script>
 
-            <main class="container mx-auto py-6 sm:py-12 px-4 max-w-full overflow-x-hidden">
+            <main class="container py-4 py-md-5 position-relative z-1">
                 {content}
             </main>
         </body>
@@ -119,18 +159,31 @@ pub fn app_layout(title: &str, sidebar_items: Vec<(&str, &str, bool, &str)>, con
     let layout_content = format!(
         //language=HTML
         r##"
-        <div class="flex flex-col lg:flex-row min-h-screen lg:min-h-[90vh] max-w-[1600px] mx-auto lg:rounded-[2rem] overflow-hidden shadow-2xl border border-white/20 relative z-10">
-            <div class="lg:hidden p-4 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md border-b border-white/20 flex items-center justify-between">
-                <span class="text-xl font-black tracking-tighter text-slate-800 dark:text-white">KALVI <span class="text-primary">ERP</span></span>
-                <button onclick="document.getElementById('mobile-sidebar').classList.toggle('hidden')" class="p-2 bg-primary/10 text-primary rounded-lg hover:scale-105 active:scale-90 active:brightness-90 transition-all duration-100">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
-                </button>
-            </div>
-            <div id="mobile-sidebar" class="hidden lg:block shrink-0">
-                {sidebar}
-            </div>
-            <div class="flex-1 p-4 sm:p-8 lg:p-16 overflow-y-auto bg-white/40 dark:bg-slate-900/40 backdrop-blur-md">
-                {content}
+        <div class="container-fluid p-0">
+            <div class="row g-0 min-vh-100">
+                <!-- Mobile Nav -->
+                <div class="col-12 d-lg-none p-3 glass-card border-0 border-bottom rounded-0 d-flex align-items-center justify-content-between sticky-top z-2">
+                    <span class="h4 mb-0 fw-black tracking-tighter">KALVI <span class="text-primary">ERP</span></span>
+                    <button class="btn btn-link text-primary p-2" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarCollapse">
+                        <i class="bi bi-list fs-3"></i>
+                    </button>
+                </div>
+                
+                <!-- Sidebar -->
+                <div class="col-lg-auto d-lg-block collapse" id="sidebarCollapse" style="width: 280px;">
+                    <div class="h-100">
+                        {sidebar}
+                    </div>
+                </div>
+                
+                <!-- Content -->
+                <div class="col h-100 min-vh-100">
+                    <div class="p-4 p-md-5 h-100">
+                        <div class="glass-card border-0 shadow-lg h-100 overflow-auto p-4 p-md-5">
+                            {content}
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
         "##,

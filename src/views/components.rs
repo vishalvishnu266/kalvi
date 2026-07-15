@@ -1,12 +1,12 @@
 pub fn page_header(title: &str, highlight: &str, description: &str) -> String {
     format!(
         //language=HTML
-        r#"
-        <header class="mb-8 sm:mb-12">
-            <h1 class="text-3xl sm:text-5xl font-black text-slate-800 dark:text-white mb-4 tracking-tighter">{title} <span class="text-primary">{highlight}</span></h1>
-            <p class="text-slate-500 dark:text-slate-400 text-lg sm:text-xl max-w-2xl">{description}</p>
+        r##"
+        <header class="mb-4 mb-md-5">
+            <h1 class="display-4 fw-black text-body mb-3 tracking-tighter">{title} <span class="text-primary">{highlight}</span></h1>
+            <p class="lead text-secondary max-w-2xl">{description}</p>
         </header>
-        "#,
+        "##,
         title = title,
         highlight = highlight,
         description = description
@@ -16,62 +16,64 @@ pub fn page_header(title: &str, highlight: &str, description: &str) -> String {
 pub fn card(title: &str, content: &str) -> String {
     format!(
         //language=HTML
-        r#"
-        <div class="glass-card shadow-subtle rounded-2xl p-4 sm:p-6 overflow-hidden transition-all duration-300 hover:shadow-xl break-words">
-            <h3 class="text-lg font-semibold text-slate-800 dark:text-white mb-4">{title}</h3>
-            <div class="text-slate-600 dark:text-slate-300">
-                {content}
+        r##"
+        <div class="card glass-card shadow-sm border-0 p-3 p-md-4 transition-all duration-300">
+            <div class="card-body">
+                <h5 class="card-title fw-bold text-body mb-4">{title}</h5>
+                <div class="card-text text-secondary">
+                    {content}
+                </div>
             </div>
         </div>
-        "#,
+        "##,
         title = title,
         content = content
     )
 }
 
 pub fn button(label: &str, variant: &str, icon: Option<&str>) -> String {
-    let classes = match variant {
-        "primary" => "bg-primary hover:opacity-90 text-white shadow-lg shadow-primary/30",
-        "secondary" => "bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-white hover:bg-slate-300 dark:hover:bg-slate-600",
-        "danger" => "bg-rose-500 hover:bg-rose-600 text-white shadow-lg shadow-rose-500/30",
-        _ => "bg-primary text-white"
+    let bootstrap_variant = match variant {
+        "primary" => "btn-primary shadow-primary-sm",
+        "secondary" => "btn-light border text-body",
+        "danger" => "btn-danger",
+        _ => "btn-primary"
     };
     
     let icon_html = icon.map(|i| format!(
         //language=HTML
-        r#"<span class="w-5 h-5">{i}</span>"#, i = i
+        r##"<i class="bi bi-{i} me-2"></i>"##, i = i
     )).unwrap_or_default();
 
     format!(
         //language=HTML
-        r#"<button class="w-full sm:w-auto px-6 py-2.5 rounded-xl font-medium transition-all duration-100 hover:scale-105 active:scale-90 active:brightness-90 active:shadow-inner flex items-center justify-center gap-2 {classes}">{icon_html}<span>{label}</span></button>"#,
+        r##"<button class="btn {bootstrap_variant} px-4 py-2 fw-medium d-inline-flex align-items-center justify-content-center">{icon_html}<span>{label}</span></button>"##,
+        bootstrap_variant = bootstrap_variant,
         icon_html = icon_html,
-        label = label,
-        classes = classes
+        label = label
     )
 }
 
 pub fn form_input(label: &str, name: &str, input_type: &str, placeholder: &str, error: Option<&str>) -> String {
-    let border_class = if error.is_some() { "border-rose-500 ring-rose-500/20" } else { "border-slate-200 dark:border-slate-700 focus:border-primary focus:ring-primary/20" };
+    let is_invalid = if error.is_some() { "is-invalid" } else { "" };
     let error_html = error.map(|e| format!(
         //language=HTML
-        r#"<p class="mt-1.5 text-xs font-medium text-rose-500">{}</p>"#, e)).unwrap_or_default();
+        r##"<div class="invalid-feedback fw-medium">{e}</div>"##, e = e)).unwrap_or_default();
 
     format!(
         //language=HTML
-        r#"
-        <div class="mb-5">
-            <label for="{name}" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">{label}</label>
+        r##"
+        <div class="mb-4">
+            <label for="{name}" class="form-label small fw-bold text-secondary mb-2">{label}</label>
             <input type="{input_type}" name="{name}" id="{name}" placeholder="{placeholder}" 
-                class="w-full px-4 py-3 rounded-xl bg-white/50 dark:bg-slate-800/50 border {border_class} focus:ring-2 outline-none transition-all dark:text-white placeholder:text-slate-400">
+                class="form-control bg-body-tertiary border-0 {is_invalid}">
             {error_html}
         </div>
-        "#,
+        "##,
         name = name,
         label = label,
         input_type = input_type,
         placeholder = placeholder,
-        border_class = border_class,
+        is_invalid = is_invalid,
         error_html = error_html
     )
 }
@@ -80,20 +82,19 @@ pub fn form_select(label: &str, name: &str, options: Vec<(&str, &str)>) -> Strin
     let options_html: String = options.into_iter().map(|(val, lab)| {
         format!(
             //language=HTML
-            r#"<option value="{}">{}</option>"#, val, lab)
+            r##"<option value="{val}">{lab}</option>"##, val = val, lab = lab)
     }).collect();
 
     format!(
         //language=HTML
-        r#"
-        <div class="mb-5">
-            <label for="{name}" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">{label}</label>
-            <select name="{name}" id="{name}" 
-                class="w-full px-4 py-3 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all dark:text-white appearance-none cursor-pointer">
+        r##"
+        <div class="mb-4">
+            <label for="{name}" class="form-label small fw-bold text-secondary mb-2">{label}</label>
+            <select name="{name}" id="{name}" class="form-select bg-body-tertiary border-0 cursor-pointer">
                 {options_html}
             </select>
         </div>
-        "#,
+        "##,
         name = name,
         label = label,
         options_html = options_html
@@ -103,18 +104,15 @@ pub fn form_select(label: &str, name: &str, options: Vec<(&str, &str)>) -> Strin
 pub fn form_checkbox(label: &str, name: &str, description: &str) -> String {
     format!(
         //language=HTML
-        r#"
-        <div class="flex items-start mb-5">
-            <div class="flex items-center h-5">
-                <input id="{name}" name="{name}" type="checkbox" 
-                    class="w-5 h-5 rounded border-slate-300 text-primary focus:ring-primary/20 cursor-pointer">
-            </div>
-            <div class="ml-3 text-sm">
-                <label for="{name}" class="font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">{label}</label>
-                <p class="text-slate-500 dark:text-slate-400 text-xs">{description}</p>
-            </div>
+        r##"
+        <div class="form-check mb-4">
+            <input id="{name}" name="{name}" type="checkbox" class="form-check-input">
+            <label for="{name}" class="form-check-label ms-2">
+                <span class="d-block fw-bold small text-body">{label}</span>
+                <span class="text-secondary small">{description}</span>
+            </label>
         </div>
-        "#,
+        "##,
         name = name,
         label = label,
         description = description
@@ -124,62 +122,53 @@ pub fn form_checkbox(label: &str, name: &str, description: &str) -> String {
 pub fn form_toggle(label: &str, name: &str) -> String {
     format!(
         //language=HTML
-        r#"
-        <div class="flex items-center justify-between mb-5">
-            <span class="flex-grow flex flex-col">
-                <span class="text-sm font-semibold text-slate-700 dark:text-slate-300">{label}</span>
-            </span>
-            <button type="button" id="{name}" role="switch" onclick="this.classList.toggle('bg-primary'); this.querySelector('span').classList.toggle('translate-x-5')"
-                class="bg-slate-200 dark:bg-slate-700 relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary/20">
-                <span class="translate-x-0 pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
-            </button>
+        r##"
+        <div class="form-check form-switch d-flex justify-content-between align-items-center mb-4 ps-0">
+            <label class="form-check-label fw-bold small text-body" for="{name}">{label}</label>
+            <input class="form-check-input ms-0" type="checkbox" role="switch" id="{name}" name="{name}">
         </div>
-        "#,
+        "##,
         label = label,
         name = name
     )
 }
 
 pub fn badge(label: &str, color: &str) -> String {
-    let color_classes = match color {
-        "green" => "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-        "red" => "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400",
-        "blue" => "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-        _ => "bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300"
+    let color_class = match color {
+        "green" => "bg-success-subtle text-success border-success-subtle",
+        "red" => "bg-danger-subtle text-danger border-danger-subtle",
+        "blue" => "bg-primary-subtle text-primary border-primary-subtle",
+        _ => "bg-secondary-subtle text-secondary border-secondary-subtle"
     };
 
     format!(
         //language=HTML
-        r#"<span class="px-2.5 py-1 rounded-full text-xs font-semibold {color_classes}">{label}</span>"#,
+        r##"<span class="badge {color_class} border rounded-pill fw-bold" style="font-size: 0.7rem;">{label}</span>"##,
         label = label,
-        color_classes = color_classes
+        color_class = color_class
     )
 }
 
 pub fn stats_card(label: &str, value: &str, trend: &str, is_up: bool) -> String {
-    let trend_color = if is_up { "text-emerald-500" } else { "text-rose-500" };
-    let trend_icon = if is_up { 
-        //language=HTML
-        r#"<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>"# 
-    } else { 
-        //language=HTML
-        r#"<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0v-8m0 8l-8-8-4 4-6-6"></path></svg>"# 
-    };
+    let trend_color = if is_up { "text-success" } else { "text-danger" };
+    let trend_icon = if is_up { "bi-graph-up-arrow" } else { "bi-graph-down-arrow" };
 
     format!(
         //language=HTML
-        r#"
-        <div class="glass-card shadow-subtle rounded-2xl p-4 sm:p-6 transition-all duration-300 hover:translate-y-[-2px] break-words">
-            <p class="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wider">{label}</p>
-            <div class="flex items-end justify-between gap-2">
-                <h4 class="text-xl sm:text-2xl font-bold text-slate-800 dark:text-white truncate">{value}</h4>
-                <div class="flex items-center gap-1 {trend_color} text-xs sm:text-sm font-semibold shrink-0">
-                    {trend_icon}
-                    <span>{trend}</span>
+        r##"
+        <div class="card glass-card shadow-sm border-0 h-100 transition-all duration-300">
+            <div class="card-body p-4">
+                <p class="small fw-bold text-secondary text-uppercase mb-2 tracking-wider">{label}</p>
+                <div class="d-flex align-items-end justify-content-between">
+                    <h3 class="fw-black text-body mb-0">{value}</h3>
+                    <div class="small fw-bold {trend_color}">
+                        <i class="bi {trend_icon} me-1"></i>
+                        {trend}
+                    </div>
                 </div>
             </div>
         </div>
-        "#,
+        "##,
         label = label,
         value = value,
         trend = trend,
@@ -192,38 +181,34 @@ pub fn table(headers: Vec<&str>, rows: Vec<Vec<String>>) -> String {
     let header_html: String = headers.into_iter().map(|h| {
         format!(
             //language=HTML
-            r#"<th class="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{h}</th>"#, h = h)
+            r##"<th class="border-0 small fw-bold text-secondary text-uppercase py-3">{h}</th>"##, h = h)
     }).collect();
 
     let rows_html: String = rows.into_iter().map(|row| {
         let cells: String = row.into_iter().map(|cell| {
             format!(
                 //language=HTML
-                r#"<td class="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm font-medium text-slate-700 dark:text-slate-300">{cell}</td>"#, cell = cell)
+                r##"<td class="py-3 text-body align-middle">{cell}</td>"##, cell = cell)
         }).collect();
             format!(
                 //language=HTML
-                r#"<tr class="border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">{cells}</tr>"#, cells = cells)
+                r##"<tr class="border-bottom border-light-subtle">{cells}</tr>"##, cells = cells)
     }).collect();
 
     format!(
         //language=HTML
-        r#"
-        <div class="glass-card shadow-subtle rounded-2xl overflow-hidden">
-            <div class="overflow-x-auto -mx-4 sm:mx-0">
-                <div class="inline-block min-w-full align-middle">
-                    <table class="min-w-full divide-y divide-slate-100 dark:divide-slate-800/50">
-                        <thead class="bg-slate-50/50 dark:bg-slate-800/50">
-                            <tr>{header_html}</tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100 dark:divide-slate-800/50">
-                            {rows_html}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+        r##"
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>{header_html}</tr>
+                </thead>
+                <tbody class="border-0">
+                    {rows_html}
+                </tbody>
+            </table>
         </div>
-        "#,
+        "##,
         header_html = header_html,
         rows_html = rows_html
     )
@@ -231,22 +216,18 @@ pub fn table(headers: Vec<&str>, rows: Vec<Vec<String>>) -> String {
 
 pub fn sidebar(items: Vec<(&str, &str, bool, &str)>) -> String {
     let items_html: String = items.into_iter().map(|(label, icon, active, link)| {
-        let active_classes = if active {
-            "bg-primary/10 text-primary border-r-4 border-primary"
-        } else {
-            "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50"
-        };
+        let active_class = if active { "active bg-primary-subtle text-primary fw-bold" } else { "text-secondary" };
         format!(
             //language=HTML
-            r#"
-            <a href="{link}" class="flex items-center gap-3 px-6 py-4 transition-all duration-100 active:scale-95 active:brightness-90 {active_classes}">
-                <span class="w-5 h-5">{icon}</span>
-                <span class="font-semibold text-sm">{label}</span>
+            r##"
+            <a href="{link}" class="nav-link p-3 rounded-3 d-flex align-items-center gap-3 transition-all mb-1 {active_class}">
+                <i class="bi bi-{icon} fs-5"></i>
+                <span>{label}</span>
             </a>
-            "#,
+            "##,
             label = label,
             icon = icon,
-            active_classes = active_classes,
+            active_class = active_class,
             link = link
         )
     }).collect();
@@ -254,30 +235,28 @@ pub fn sidebar(items: Vec<(&str, &str, bool, &str)>) -> String {
     format!(
         //language=HTML
         r##"
-        <aside class="w-full lg:w-72 glass-card lg:border-r border-white/20 dark:border-slate-700/50 h-full flex flex-col">
-            <div class="p-8">
-                <div class="hidden lg:flex items-center gap-3 mb-10">
-                    <div class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/30">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                    </div>
-                    <span class="text-2xl font-black tracking-tighter text-slate-800 dark:text-white">KALVI <span class="text-primary">ERP</span></span>
+        <div class="d-flex flex-column h-100 p-4 glass-card border-0 rounded-0 border-end">
+            <div class="d-flex align-items-center gap-3 mb-5 px-2">
+                <div class="bg-primary rounded-3 d-flex align-items-center justify-content-center text-white shadow" style="width: 40px; height: 40px;">
+                    <i class="bi bi-lightning-fill fs-4"></i>
                 </div>
-                <nav class="space-y-1">
-                    {items_html}
-                </nav>
+                <span class="h4 mb-0 fw-black tracking-tighter">KALVI <span class="text-primary">ERP</span></span>
             </div>
-            <div class="mt-auto p-8 border-t border-slate-100 dark:border-slate-800/50">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
-                        <img src="https://ui-avatars.com/api/?name=Admin+User&background=random" alt="Avatar">
-                    </div>
-                    <div>
-                        <p class="text-sm font-bold text-slate-800 dark:text-white">Admin User</p>
-                        <p class="text-xs text-slate-500">Super Administrator</p>
+            
+            <nav class="nav flex-column nav-pills flex-grow-1">
+                {items_html}
+            </nav>
+            
+            <div class="mt-auto pt-4 border-top border-light-subtle">
+                <div class="d-flex align-items-center gap-3 px-2">
+                    <img src="https://ui-avatars.com/api/?name=Admin+User&background=random" class="rounded-circle shadow-sm" width="40" height="40" alt="Avatar">
+                    <div class="overflow-hidden">
+                        <p class="small fw-bold text-body mb-0 text-truncate">Admin User</p>
+                        <p class="extra-small text-secondary mb-0">Super Admin</p>
                     </div>
                 </div>
             </div>
-        </aside>
+        </div>
         "##,
         items_html = items_html
     )
@@ -287,20 +266,17 @@ pub fn modal(id: &str, title: &str, content: &str, footer: &str) -> String {
     format!(
         //language=HTML
         r##"
-        <div id="{id}" class="fixed inset-0 z-[60] hidden">
-            <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
-            <div class="absolute inset-0 flex items-center justify-center p-4">
-                <div class="glass-card w-full max-w-lg rounded-3xl shadow-2xl animate-in fade-in zoom-in duration-300 overflow-hidden">
-                    <div class="px-8 py-6 border-b border-slate-100 dark:border-slate-800/50 flex justify-between items-center">
-                        <h3 class="text-xl font-bold text-slate-800 dark:text-white">{title}</h3>
-                        <button onclick="document.getElementById('{id}').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                        </button>
+        <div class="modal fade" id="{id}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content glass-card border-0 shadow">
+                    <div class="modal-header border-bottom border-light-subtle px-4 py-3">
+                        <h5 class="modal-title fw-bold">{title}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <div class="p-8 text-slate-600 dark:text-slate-300">
+                    <div class="modal-body p-4">
                         {content}
                     </div>
-                    <div class="px-8 py-6 bg-slate-50/50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800/50 flex justify-end gap-3">
+                    <div class="modal-footer border-top border-light-subtle bg-body-tertiary rounded-bottom-4 px-4 py-3">
                         {footer}
                     </div>
                 </div>
@@ -315,30 +291,30 @@ pub fn modal(id: &str, title: &str, content: &str, footer: &str) -> String {
 }
 
 pub fn alert(title: &str, message: &str, variant: &str, footer: Option<&str>) -> String {
-    let color_classes = match variant {
-        "danger" => "bg-rose-50 border-rose-200 text-rose-700",
-        "success" => "bg-emerald-50 border-emerald-200 text-emerald-700",
-        "warning" => "bg-amber-50 border-amber-200 text-amber-700",
-        _ => "bg-blue-50 border-blue-200 text-blue-700"
+    let bootstrap_variant = match variant {
+        "danger" => "alert-danger",
+        "success" => "alert-success",
+        "warning" => "alert-warning",
+        _ => "alert-info"
     };
 
     let footer_html = footer.map(|f| format!(
         //language=HTML
-        r#"<p class="mt-2 text-xs opacity-75 font-medium tracking-wider uppercase">{f}</p>"#, f = f
+        r##"<p class="mt-2 mb-0 small opacity-75 fw-bold text-uppercase tracking-wider">{f}</p>"##, f = f
     )).unwrap_or_default();
 
     format!(
         //language=HTML
-        r#"
-        <div class="{color_classes} border px-4 sm:px-6 py-4 rounded-2xl relative break-words overflow-hidden" role="alert">
-            <div class="flex flex-col gap-1">
-                <strong class="font-bold text-lg">{title}</strong>
-                <span class="block text-sm sm:text-base">{message}</span>
+        r##"
+        <div class="alert {bootstrap_variant} border-0 shadow-sm rounded-4 p-4 mb-0" role="alert">
+            <div class="d-flex flex-col gap-1">
+                <strong class="h5 fw-bold mb-1">{title}</strong>
+                <span class="text-body">{message}</span>
                 {footer_html}
             </div>
         </div>
-        "#,
-        color_classes = color_classes,
+        "##,
+        bootstrap_variant = bootstrap_variant,
         title = title,
         message = message,
         footer_html = footer_html
@@ -347,18 +323,18 @@ pub fn alert(title: &str, message: &str, variant: &str, footer: Option<&str>) ->
 
 pub fn notice_list(title: &str, notices: Vec<(&str, bool)>) -> String {
     let items_html: String = notices.into_iter().map(|(text, important)| {
-        let bg_class = if important { "bg-primary/5 border-primary/10" } else { "bg-slate-50 dark:bg-slate-800 border-transparent" };
+        let border_class = if important { "border-primary shadow-sm" } else { "border-light-subtle" };
         format!(
             //language=HTML
-            r#"<li class="p-3 {bg_class} rounded-xl border text-sm">{text}</li>"#,
-            bg_class = bg_class,
+            r##"<li class="list-group-item bg-body-tertiary rounded-3 mb-2 border {border_class} small">{text}</li>"##,
+            border_class = border_class,
             text = text
         )
     }).collect();
 
     card(title, &format!(
         //language=HTML
-        r#"<ul class="space-y-3">{items_html}</ul>"#,
+        r##"<ul class="list-group list-group-flush bg-transparent">{items_html}</ul>"##,
         items_html = items_html
     ))
 }
@@ -367,14 +343,20 @@ pub fn quick_actions(actions: Vec<&str>) -> String {
     let buttons_html: String = actions.into_iter().map(|action| {
         format!(
             //language=HTML
-            r#"<button class="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl hover:bg-primary/5 hover:scale-105 active:scale-90 active:brightness-90 transition-all duration-100 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-transparent hover:border-primary/10">{action}</button>"#,
+            r##"
+            <div class="col-6">
+                <button class="btn btn-light border w-100 py-3 small fw-bold text-secondary hover-primary transition-all shadow-sm">
+                    {action}
+                </button>
+            </div>
+            "##,
             action = action
         )
     }).collect();
 
     card("Quick Actions", &format!(
         //language=HTML
-        r#"<div class="grid grid-cols-2 gap-3">{buttons_html}</div>"#,
+        r##"<div class="row g-2">{buttons_html}</div>"##,
         buttons_html = buttons_html
     ))
 }
