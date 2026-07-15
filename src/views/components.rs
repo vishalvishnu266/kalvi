@@ -1,7 +1,8 @@
 pub fn card(title: &str, content: &str) -> String {
     format!(
+        //language=HTML
         r#"
-        <div class="glass-card shadow-subtle rounded-2xl p-6 overflow-hidden transition-all duration-300 hover:shadow-xl">
+        <div class="glass-card shadow-subtle rounded-2xl p-4 sm:p-6 overflow-hidden transition-all duration-300 hover:shadow-xl break-words">
             <h3 class="text-lg font-semibold text-slate-800 dark:text-white mb-4">{title}</h3>
             <div class="text-slate-600 dark:text-slate-300">
                 {content}
@@ -22,6 +23,7 @@ pub fn button(label: &str, variant: &str) -> String {
     };
     
     format!(
+        //language=HTML
         r#"<button class="px-6 py-2.5 rounded-xl font-medium transition-all duration-200 active:scale-95 {classes}">{label}</button>"#,
         label = label,
         classes = classes
@@ -30,9 +32,12 @@ pub fn button(label: &str, variant: &str) -> String {
 
 pub fn form_input(label: &str, name: &str, input_type: &str, placeholder: &str, error: Option<&str>) -> String {
     let border_class = if error.is_some() { "border-rose-500 ring-rose-500/20" } else { "border-slate-200 dark:border-slate-700 focus:border-primary focus:ring-primary/20" };
-    let error_html = error.map(|e| format!(r#"<p class="mt-1.5 text-xs font-medium text-rose-500">{}</p>"#, e)).unwrap_or_default();
+    let error_html = error.map(|e| format!(
+        //language=HTML
+        r#"<p class="mt-1.5 text-xs font-medium text-rose-500">{}</p>"#, e)).unwrap_or_default();
 
     format!(
+        //language=HTML
         r#"
         <div class="mb-5">
             <label for="{name}" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">{label}</label>
@@ -52,10 +57,13 @@ pub fn form_input(label: &str, name: &str, input_type: &str, placeholder: &str, 
 
 pub fn form_select(label: &str, name: &str, options: Vec<(&str, &str)>) -> String {
     let options_html: String = options.into_iter().map(|(val, lab)| {
-        format!(r#"<option value="{}">{}</option>"#, val, lab)
+        format!(
+            //language=HTML
+            r#"<option value="{}">{}</option>"#, val, lab)
     }).collect();
 
     format!(
+        //language=HTML
         r#"
         <div class="mb-5">
             <label for="{name}" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">{label}</label>
@@ -73,6 +81,7 @@ pub fn form_select(label: &str, name: &str, options: Vec<(&str, &str)>) -> Strin
 
 pub fn form_checkbox(label: &str, name: &str, description: &str) -> String {
     format!(
+        //language=HTML
         r#"
         <div class="flex items-start mb-5">
             <div class="flex items-center h-5">
@@ -93,12 +102,13 @@ pub fn form_checkbox(label: &str, name: &str, description: &str) -> String {
 
 pub fn form_toggle(label: &str, name: &str) -> String {
     format!(
+        //language=HTML
         r#"
         <div class="flex items-center justify-between mb-5">
             <span class="flex-grow flex flex-col">
                 <span class="text-sm font-semibold text-slate-700 dark:text-slate-300">{label}</span>
             </span>
-            <button type="button" role="switch" onclick="this.classList.toggle('bg-primary'); this.querySelector('span').classList.toggle('translate-x-5')"
+            <button type="button" id="{name}" role="switch" onclick="this.classList.toggle('bg-primary'); this.querySelector('span').classList.toggle('translate-x-5')"
                 class="bg-slate-200 dark:bg-slate-700 relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary/20">
                 <span class="translate-x-0 pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
             </button>
@@ -118,6 +128,7 @@ pub fn badge(label: &str, color: &str) -> String {
     };
 
     format!(
+        //language=HTML
         r#"<span class="px-2.5 py-1 rounded-full text-xs font-semibold {color_classes}">{label}</span>"#,
         label = label,
         color_classes = color_classes
@@ -127,18 +138,21 @@ pub fn badge(label: &str, color: &str) -> String {
 pub fn stats_card(label: &str, value: &str, trend: &str, is_up: bool) -> String {
     let trend_color = if is_up { "text-emerald-500" } else { "text-rose-500" };
     let trend_icon = if is_up { 
+        //language=HTML
         r#"<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>"# 
     } else { 
+        //language=HTML
         r#"<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0v-8m0 8l-8-8-4 4-6-6"></path></svg>"# 
     };
 
     format!(
+        //language=HTML
         r#"
-        <div class="glass-card shadow-subtle rounded-2xl p-6 transition-all duration-300 hover:translate-y-[-2px]">
-            <p class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1 text-uppercase tracking-wider">{label}</p>
-            <div class="flex items-end justify-between">
-                <h4 class="text-2xl font-bold text-slate-800 dark:text-white">{value}</h4>
-                <div class="flex items-center gap-1 {trend_color} text-sm font-semibold">
+        <div class="glass-card shadow-subtle rounded-2xl p-4 sm:p-6 transition-all duration-300 hover:translate-y-[-2px] break-words">
+            <p class="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wider">{label}</p>
+            <div class="flex items-end justify-between gap-2">
+                <h4 class="text-xl sm:text-2xl font-bold text-slate-800 dark:text-white truncate">{value}</h4>
+                <div class="flex items-center gap-1 {trend_color} text-xs sm:text-sm font-semibold shrink-0">
                     {trend_icon}
                     <span>{trend}</span>
                 </div>
@@ -155,28 +169,37 @@ pub fn stats_card(label: &str, value: &str, trend: &str, is_up: bool) -> String 
 
 pub fn table(headers: Vec<&str>, rows: Vec<Vec<String>>) -> String {
     let header_html: String = headers.into_iter().map(|h| {
-        format!(r#"<th class="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{}</th>"#, h)
+        format!(
+            //language=HTML
+            r#"<th class="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{}</th>"#, h)
     }).collect();
 
     let rows_html: String = rows.into_iter().map(|row| {
         let cells: String = row.into_iter().map(|cell| {
-            format!(r#"<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-700 dark:text-slate-300">{}</td>"#, cell)
+            format!(
+                //language=HTML
+                r#"<td class="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm font-medium text-slate-700 dark:text-slate-300">{}</td>"#, cell)
         }).collect();
-        format!(r#"<tr class="border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">{}</tr>"#, cells)
+        format!(
+            //language=HTML
+            r#"<tr class="border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">{}</tr>"#, cells)
     }).collect();
 
     format!(
+        //language=HTML
         r#"
         <div class="glass-card shadow-subtle rounded-2xl overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead class="bg-slate-50/50 dark:bg-slate-800/50">
-                        <tr>{header_html}</tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800/50">
-                        {rows_html}
-                    </tbody>
-                </table>
+            <div class="overflow-x-auto -mx-4 sm:mx-0">
+                <div class="inline-block min-w-full align-middle">
+                    <table class="min-w-full divide-y divide-slate-100 dark:divide-slate-800/50">
+                        <thead class="bg-slate-50/50 dark:bg-slate-800/50">
+                            <tr>{header_html}</tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 dark:divide-slate-800/50">
+                            {rows_html}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
         "#,
@@ -193,6 +216,7 @@ pub fn sidebar(items: Vec<(&str, &str, bool, &str)>) -> String {
             "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50"
         };
         format!(
+            //language=HTML
             r#"
             <a href="{link}" class="flex items-center gap-3 px-6 py-4 transition-all {active_classes}">
                 <span class="w-5 h-5">{icon}</span>
@@ -207,10 +231,11 @@ pub fn sidebar(items: Vec<(&str, &str, bool, &str)>) -> String {
     }).collect();
 
     format!(
+        //language=HTML
         r#"
-        <aside class="w-72 glass-card border-r border-white/20 dark:border-slate-700/50 h-full hidden lg:flex flex-col">
+        <aside class="w-full lg:w-72 glass-card lg:border-r border-white/20 dark:border-slate-700/50 h-full flex flex-col">
             <div class="p-8">
-                <div class="flex items-center gap-3 mb-10">
+                <div class="hidden lg:flex items-center gap-3 mb-10">
                     <div class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/30">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                     </div>
@@ -239,6 +264,7 @@ pub fn sidebar(items: Vec<(&str, &str, bool, &str)>) -> String {
 
 pub fn modal(id: &str, title: &str, content: &str, footer: &str) -> String {
     format!(
+        //language=HTML
         r#"
         <div id="{id}" class="fixed inset-0 z-[60] hidden">
             <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"></div>

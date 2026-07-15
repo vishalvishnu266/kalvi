@@ -1,5 +1,6 @@
 pub fn base_layout(title: &str, content: &str) -> String {
     format!(
+        //language=HTML
         r#"
         <!DOCTYPE html>
         <html lang="en" class="light">
@@ -59,9 +60,9 @@ pub fn base_layout(title: &str, content: &str) -> String {
         </head>
         <body class="antialiased transition-colors duration-300 text-slate-900 dark:text-slate-100">
             <div class="bg-mesh"></div>
-            <div id="theme-controls" class="fixed top-4 right-4 z-50 flex gap-2 bg-white/50 p-2 rounded-full backdrop-blur-md border border-white/20 shadow-lg">
-                <input type="color" id="primaryColorPicker" value=" #4f46e5" class="w-8 h-8 rounded-full border-none cursor-pointer ">
-                <button id="themeToggle" class="p-2 rounded-full bg-slate-800 text-white dark:bg-white dark:text-slate-800">
+            <div id="theme-controls" class="fixed top-4 right-4 z-50 flex gap-2 items-center bg-white/50 p-2 rounded-full backdrop-blur-md border border-white/20 shadow-lg">
+                <input type="color" id="primaryColorPicker" value="#4f46e5" class="w-8 h-8 rounded-full border-none cursor-pointer" title="Primary Color">
+                <button id="themeToggle" class="p-2 rounded-full bg-slate-800 text-white dark:bg-white dark:text-slate-800" title="Toggle Theme">
                     <svg id="sunIcon" class="hidden w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
                     <svg id="moonIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
                 </button>
@@ -102,7 +103,7 @@ pub fn base_layout(title: &str, content: &str) -> String {
                 }});
             </script>
 
-            <main class="container mx-auto py-12 px-4">
+            <main class="container mx-auto py-6 sm:py-12 px-4 max-w-full overflow-x-hidden">
                 {content}
             </main>
         </body>

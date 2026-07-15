@@ -2,9 +2,12 @@ use crate::views::components;
 
 pub fn render(page: u32) -> String {
     let sidebar_items = vec![
-        ("Dashboard", r#"<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>"#, page == 1, "/storybook/1"),
-        ("Forms & Inputs", r#"<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>"#, page == 2, "/storybook/2"),
-        ("UI Elements", r#"<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>"#, false, "#"),
+        ("Dashboard", //language=HTML
+        r#"<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>"#, page == 1, "/storybook/1"),
+        ("Forms & Inputs", //language=HTML
+        r#"<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>"#, page == 2, "/storybook/2"),
+        ("UI Elements", //language=HTML
+        r#"<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>"#, false, "#"),
     ];
 
     let content = match page {
@@ -13,10 +16,19 @@ pub fn render(page: u32) -> String {
     };
 
     format!(
+        //language=HTML
         r#"
-        <div class="flex min-h-[90vh] max-w-[1600px] mx-auto rounded-[2rem] overflow-hidden shadow-2xl border border-white/20 relative z-10">
-            {sidebar}
-            <div class="flex-1 p-8 lg:p-16 overflow-y-auto bg-white/40 dark:bg-slate-900/40 backdrop-blur-md">
+        <div class="flex flex-col lg:flex-row min-h-screen lg:min-h-[90vh] max-w-[1600px] mx-auto lg:rounded-[2rem] overflow-hidden shadow-2xl border border-white/20 relative z-10">
+            <div class="lg:hidden p-4 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md border-b border-white/20 flex items-center justify-between">
+                <span class="text-xl font-black tracking-tighter text-slate-800 dark:text-white">KALVI <span class="text-primary">ERP</span></span>
+                <button onclick="document.getElementById('mobile-sidebar').classList.toggle('hidden')" class="p-2 bg-primary/10 text-primary rounded-lg">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                </button>
+            </div>
+            <div id="mobile-sidebar" class="hidden lg:block">
+                {sidebar}
+            </div>
+            <div class="flex-1 p-4 sm:p-8 lg:p-16 overflow-y-auto bg-white/40 dark:bg-slate-900/40 backdrop-blur-md">
                 {content}
             </div>
         </div>
@@ -28,7 +40,8 @@ pub fn render(page: u32) -> String {
 
 fn render_dashboard_page() -> String {
     let stats = format!(
-        r#"<div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+        //language=HTML
+        r#"<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
             {}
             {}
             {}
@@ -46,10 +59,11 @@ fn render_dashboard_page() -> String {
     ];
 
     format!(
+        //language=HTML
         r#"
-        <header class="mb-12">
-            <h1 class="text-5xl font-black text-slate-800 dark:text-white mb-4 tracking-tighter">Executive <span class="text-primary">Overview</span></h1>
-            <p class="text-slate-500 dark:text-slate-400 text-xl max-w-2xl">Real-time performance metrics and high-level project statuses for your enterprise.</p>
+        <header class="mb-8 sm:mb-12">
+            <h1 class="text-3xl sm:text-5xl font-black text-slate-800 dark:text-white mb-4 tracking-tighter">Executive <span class="text-primary">Overview</span></h1>
+            <p class="text-slate-500 dark:text-slate-400 text-lg sm:text-xl max-w-2xl">Real-time performance metrics and high-level project statuses for your enterprise.</p>
         </header>
         
         {stats}
@@ -57,7 +71,7 @@ fn render_dashboard_page() -> String {
         <div class="mt-16">
             <div class="flex items-center justify-between mb-8">
                 <h2 class="text-2xl font-bold text-slate-800 dark:text-white">Active Engagements</h2>
-                {}
+                {button}
             </div>
             {table}
         </div>
@@ -70,6 +84,7 @@ fn render_dashboard_page() -> String {
 
 fn render_forms_page() -> String {
     let form_fields = format!(
+        //language=HTML
         r#"
         <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
             <div class="space-y-6">
@@ -107,13 +122,14 @@ fn render_forms_page() -> String {
     );
 
     format!(
+        //language=HTML
         r#"
-        <header class="mb-12">
-            <h1 class="text-5xl font-black text-slate-800 dark:text-white mb-4 tracking-tighter">Interface <span class="text-primary">Elements</span></h1>
-            <p class="text-slate-500 dark:text-slate-400 text-xl max-w-2xl">A comprehensive set of professional form controls with validation states and dark mode support.</p>
+        <header class="mb-8 sm:mb-12">
+            <h1 class="text-3xl sm:text-5xl font-black text-slate-800 dark:text-white mb-4 tracking-tighter">Interface <span class="text-primary">Elements</span></h1>
+            <p class="text-slate-500 dark:text-slate-400 text-lg sm:text-xl max-w-2xl">A comprehensive set of professional form controls with validation states and dark mode support.</p>
         </header>
 
-        <div class="glass-card p-10">
+        <div class="glass-card p-6 sm:p-10">
             {fields}
         </div>
         "#,
