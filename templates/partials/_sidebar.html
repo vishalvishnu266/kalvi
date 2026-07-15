@@ -1,0 +1,53 @@
+<aside class="sidebar">
+  <a href="/web/{{ tenant_id }}/dashboard" class="sidebar-brand" data-turbo-frame="_top">
+    <div class="brand-icon"><i class="fas fa-graduation-cap"></i></div>
+    SchoolDesk
+  </a>
+  <ul class="sidebar-nav">
+    <li class="nav-label">Main</li>
+    <li class="nav-item">
+      <a href="/web/{{ tenant_id }}/dashboard"
+         class="nav-link {% if active == "dashboard" %}active{% endif %}">
+        <i class="fas fa-th-large"></i> Dashboard
+      </a>
+    </li>
+
+    <li class="nav-label">Academics</li>
+    <li class="nav-item">
+      <a href="/web/{{ tenant_id }}/students"
+         class="nav-link {% if active == "students" %}active{% endif %}">
+        <i class="fas fa-user-graduate"></i> Students
+        <span class="badge bg-accent rounded-pill">{{ student_count }}</span>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="#" class="nav-link">
+        <i class="fas fa-chalkboard-teacher"></i> Teachers
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="#" class="nav-link">
+        <i class="fas fa-calendar-check"></i> Attendance
+      </a>
+    </li>
+
+    <li class="nav-label">Finance</li>
+    <li class="nav-item">
+      <a href="#" class="nav-link">
+        <i class="fas fa-file-invoice-dollar"></i> Fees &amp; Payments
+      </a>
+    </li>
+
+    <li class="nav-label">System</li>
+    <li class="nav-item">
+      <a href="#" class="nav-link">
+        <i class="fas fa-cog"></i> Settings
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="/" class="nav-link" data-turbo="false">
+        <i class="fas fa-sign-out-alt"></i> Logout
+      </a>
+    </li>
+  </ul>
+</aside>

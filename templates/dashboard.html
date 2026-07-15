@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - SchoolDesk ERP{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+  <div>
+    <h1>Dashboard</h1>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/web/{{ tenant_id }}/dashboard">Home</a></li>
+        <li class="breadcrumb-item active text-muted-custom">Dashboard</li>
+      </ol>
+    </nav>
+  </div>
+  <div class="d-flex gap-2">
+    <button class="btn btn-soft"><i class="fas fa-download me-1"></i> Export</button>
+    <a href="/web/{{ tenant_id }}/students/new" class="btn btn-accent">
+      <i class="fas fa-plus me-1"></i> Add Student
+    </a>
+  </div>
+</div>
+
+<!-- Stat cards -->
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    <div class="card stat-card"><div class="card-body">
+      <div class="d-flex align-items-start justify-content-between">
+        <div>
+          <p class="stat-label mb-1">Total Students</p>
+          <h3 class="stat-value">{{ total_students }}</h3>
+          <span class="stat-change text-success"><i class="fas fa-user-graduate me-1"></i>Enrolled</span>
+        </div>
+        <div class="stat-icon" style="background: var(--accent-light); color: var(--accent);">
+          <i class="fas fa-user-graduate"></i>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+  <div class="col-sm-6 col-xl-3">
+    <div class="card stat-card"><div class="card-body">
+      <div class="d-flex align-items-start justify-content-between">
+        <div>
+          <p class="stat-label mb-1">Active</p>
+          <h3 class="stat-value">{{ active_students }}</h3>
+          <span class="stat-change text-success"><i class="fas fa-check me-1"></i>Currently attending</span>
+        </div>
+        <div class="stat-icon" style="background: hsl(145,60%,90%); color: hsl(145,60%,35%);">
+          <i class="fas fa-check-circle"></i>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+  <div class="col-sm-6 col-xl-3">
+    <div class="card stat-card"><div class="card-body">
+      <div class="d-flex align-items-start justify-content-between">
+        <div>
+          <p class="stat-label mb-1">Pending</p>
+          <h3 class="stat-value">{{ pending_students }}</h3>
+          <span class="stat-change text-warning"><i class="fas fa-hourglass-half me-1"></i>Awaiting approval</span>
+        </div>
+        <div class="stat-icon" style="background: hsl(38,90%,90%); color: hsl(30,80%,42%);">
+          <i class="fas fa-hourglass-half"></i>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+  <div class="col-sm-6 col-xl-3">
+    <div class="card stat-card"><div class="card-body">
+      <div class="d-flex align-items-start justify-content-between">
+        <div>
+          <p class="stat-label mb-1">Inactive</p>
+          <h3 class="stat-value">{{ inactive_students }}</h3>
+          <span class="stat-change text-danger"><i class="fas fa-user-slash me-1"></i>Not attending</span>
+        </div>
+        <div class="stat-icon" style="background: hsl(0,70%,92%); color: hsl(0,72%,45%);">
+          <i class="fas fa-user-slash"></i>
+        </div>
+      </div>
+    </div></div>
+  </div>
+</div>
+
+<!-- Recent enrollments -->
+<div class="card">
+  <div class="card-header d-flex align-items-center justify-content-between">
+    <span><i class="fas fa-users me-2 text-accent"></i>Recent Enrollments</span>
+    <a href="/web/{{ tenant_id }}/students" class="btn btn-sm btn-soft">View All</a>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Student</th>
+          <th>Class</th>
+          <th>Roll No</th>
+          <th>Guardian</th>
+          <th>Status</th>
+          <th>Admission Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in recent_students %}
+        <tr>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <div class="avatar avatar-sm" style="background: hsl({{ s.avatar_hue }},70%,55%);">{{ s.initials }}</div>
+              <div>
+                <div class="fw-600">{{ s.full_name }}</div>
+                <div class="fs-xs text-muted-custom">{{ s.admission_no }}</div>
+              </div>
+            </div>
+          </td>
+          <td>{{ s.class_name }}-{{ s.section }}</td>
+          <td>{{ s.roll_no }}</td>
+          <td>
+            <div class="fs-sm">{{ s.guardian_name }}</div>
+            <div class="fs-xs text-muted-custom">{{ s.guardian_phone }}</div>
+          </td>
+          <td>
+            <span class="badge {{ s.status_badge_class() }}">{{ s.status }}</span>
+          </td>
+          <td class="text-muted-custom">{{ s.admission_date }}</td>
+        </tr>
+        {% endfor %}
+        {% if recent_students.is_empty() %}
+        <tr><td colspan="6" class="text-center text-muted-custom py-4">No students yet. <a href="/web/{{ tenant_id }}/students/new">Add your first student</a>.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

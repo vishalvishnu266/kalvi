@@ -1,0 +1,33 @@
+<nav class="main-navbar">
+  <button class="sidebar-toggler me-3" type="button">
+    <i class="fas fa-bars"></i>
+  </button>
+
+  <div class="navbar-search d-none d-md-block">
+    <i class="fas fa-search"></i>
+    <input type="text" placeholder="Search students, teachers, fees...">
+  </div>
+
+  <div class="navbar-actions">
+    <button class="btn-icon" id="theme-toggle" title="Toggle dark/light mode" type="button">
+      <i class="fas fa-sun" id="theme-icon-sun"></i>
+      <i class="fas fa-moon" id="theme-icon-moon" style="display:none;"></i>
+    </button>
+    <button class="btn-icon" type="button">
+      <i class="fas fa-bell"></i>
+      <span class="notif-dot"></span>
+    </button>
+    <div class="dropdown">
+      <div class="d-flex align-items-center gap-2" data-bs-toggle="dropdown" role="button">
+        <div class="avatar" style="background: var(--accent);">AK</div>
+      </div>
+      <ul class="dropdown-menu dropdown-menu-end mt-2">
+        <li><h6 class="dropdown-header">Admin Kumar</h6></li>
+        <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>Profile</a></li>
+        <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Settings</a></li>
+        <li><hr class="dropdown-divider" style="border-color: var(--divider);"></li>
+        <li><a class="dropdown-item text-danger" href="/" data-turbo="false"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
