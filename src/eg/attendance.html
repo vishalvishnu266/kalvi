@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Attendance - SchoolDesk ERP</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="css/theme.css" rel="stylesheet">
+</head>
+<body>
+
+<div class="sidebar-overlay"></div>
+
+<!-- ====== SIDEBAR ====== -->
+<aside class="sidebar">
+  <a href="dashboard.html" class="sidebar-brand">
+    <div class="brand-icon"><i class="fas fa-graduation-cap"></i></div>
+    SchoolDesk
+  </a>
+  <ul class="sidebar-nav">
+    <li class="nav-label">Main</li>
+    <li class="nav-item"><a href="dashboard.html" class="nav-link"><i class="fas fa-th-large"></i> Dashboard</a></li>
+    <li class="nav-label">Academics</li>
+    <li class="nav-item"><a href="students.html" class="nav-link"><i class="fas fa-user-graduate"></i> Students <span class="badge bg-accent rounded-pill">2,458</span></a></li>
+    <li class="nav-item"><a href="teachers.html" class="nav-link"><i class="fas fa-chalkboard-teacher"></i> Teachers</a></li>
+    <li class="nav-item"><a href="attendance.html" class="nav-link active"><i class="fas fa-calendar-check"></i> Attendance</a></li>
+    <li class="nav-label">Finance</li>
+    <li class="nav-item"><a href="fees.html" class="nav-link"><i class="fas fa-file-invoice-dollar"></i> Fees & Payments <span class="badge badge-danger-soft rounded-pill">12</span></a></li>
+    <li class="nav-label">System</li>
+    <li class="nav-item"><a href="settings.html" class="nav-link"><i class="fas fa-cog"></i> Settings</a></li>
+    <li class="nav-item"><a href="login.html" class="nav-link"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+  </ul>
+</aside>
+
+<!-- ====== TOP NAVBAR ====== -->
+<nav class="main-navbar">
+  <button class="sidebar-toggler me-3"><i class="fas fa-bars"></i></button>
+  <div class="navbar-search d-none d-md-block">
+    <i class="fas fa-search"></i>
+    <input type="text" placeholder="Search...">
+  </div>
+  <div class="navbar-actions">
+    <button class="btn-icon" id="theme-toggle" title="Toggle dark/light mode">
+      <i class="fas fa-sun" id="theme-icon-sun"></i>
+      <i class="fas fa-moon" id="theme-icon-moon" style="display:none;"></i>
+    </button>
+    <button class="btn-icon"><i class="fas fa-bell"></i><span class="notif-dot"></span></button>
+    <div class="dropdown">
+      <div class="d-flex align-items-center gap-2" data-bs-toggle="dropdown">
+        <div class="avatar" style="background: var(--accent);">AK</div>
+      </div>
+      <ul class="dropdown-menu dropdown-menu-end mt-2">
+        <li><h6 class="dropdown-header">Admin Kumar</h6></li>
+        <li><a class="dropdown-item" href="settings.html"><i class="fas fa-cog me-2"></i>Settings</a></li>
+        <li><hr class="dropdown-divider" style="border-color:var(--divider);"></li>
+        <li><a class="dropdown-item text-danger" href="login.html"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<!-- ====== MAIN CONTENT ====== -->
+<main class="main-content">
+  <div class="page-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+    <div>
+      <h1>Attendance</h1>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="dashboard.html">Home</a></li>
+          <li class="breadcrumb-item active text-muted-custom">Attendance</li>
+        </ol>
+      </nav>
+    </div>
+    <div class="d-flex gap-2">
+      <button class="btn btn-soft"><i class="fas fa-file-export me-1"></i> Export Report</button>
+      <button class="btn btn-accent"><i class="fas fa-check-double me-1"></i> Mark Attendance</button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+      <div class="card stat-card">
+        <div class="card-body">
+          <div class="d-flex align-items-start justify-content-between">
+            <div>
+              <p class="stat-label mb-1">Present Today</p>
+              <h3 class="stat-value text-success">2,271</h3>
+              <span class="stat-change text-muted-custom">of 2,458 students</span>
+            </div>
+            <div class="stat-icon" style="background: hsl(145,60%,90%); color: hsl(145,60%,35%);">
+              <i class="fas fa-user-check"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card stat-card">
+        <div class="card-body">
+          <div class="d-flex align-items-start justify-content-between">
+            <div>
+              <p class="stat-label mb-1">Absent Today</p>
+              <h3 class="stat-value text-danger">142</h3>
+              <span class="stat-change text-muted-custom">5.8% of total</span>
+            </div>
+            <div class="stat-icon" style="background: hsl(0,80%,92%); color: hsl(0,70%,45%);">
+              <i class="fas fa-user-xmark"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card stat-card">
+        <div class="card-body">
+          <div class="d-flex align-items-start justify-content-between">
+            <div>
+              <p class="stat-label mb-1">Late Arrivals</p>
+              <h3 class="stat-value" style="color: hsl(38,90%,45%);">45</h3>
+              <span class="stat-change text-muted-custom">1.8% of total</span>
+            </div>
+            <div class="stat-icon" style="background: hsl(38,90%,90%); color: hsl(30,80%,42%);">
+              <i class="fas fa-clock"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="card stat-card">
+        <div class="card-body">
+          <div class="d-flex align-items-start justify-content-between">
+            <div>
+              <p class="stat-label mb-1">Avg This Month</p>
+              <h3 class="stat-value text-accent">92.4%</h3>
+              <span class="stat-change text-success"><i class="fas fa-arrow-up me-1"></i>+0.8%</span>
+            </div>
+            <div class="stat-icon" style="background: var(--accent-light); color: var(--accent);">
+              <i class="fas fa-chart-line"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters & Date -->
+  <div class="card mb-4">
+    <div class="card-body py-3">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-3">
+          <label class="form-label">Date</label>
+          <input type="date" class="form-control" value="2026-07-06">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Class</label>
+          <select class="form-select">
+            <option>All Classes</option>
+            <option selected>Class 10</option>
+            <option>Class 9</option><option>Class 11</option><option>Class 12</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Section</label>
+          <select class="form-select">
+            <option selected>A</option><option>B</option><option>C</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Search Student</label>
+          <input type="text" class="form-control" placeholder="Name or Roll No...">
+        </div>
+        <div class="col-md-2">
+          <button class="btn btn-accent w-100"><i class="fas fa-search me-1"></i>Load</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Attendance Table -->
+  <div class="card">
+    <div class="card-header d-flex align-items-center justify-content-between">
+      <span><i class="fas fa-clipboard-list me-2 text-accent"></i>Class 10-A · July 6, 2026 · <span class="text-muted-custom">38 students</span></span>
+      <div class="d-flex gap-2">
+        <button class="btn btn-sm btn-soft" title="Mark all present"><i class="fas fa-check-double me-1"></i>All Present</button>
+      </div>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Roll</th>
+            <th>Student</th>
+            <th>Status</th>
+            <th>Time In</th>
+            <th>Remark</th>
+            <th>Monthly %</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="fw-600">1001</td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="avatar avatar-sm" style="background: hsl(245,70%,65%);">AP</div>
+                <span class="fw-600">Aarav Patel</span>
+              </div>
+            </td>
+            <td>
+              <div class="btn-group btn-group-sm" role="group">
+                <input type="radio" class="btn-check" name="att1" id="att1p" checked>
+                <label class="btn btn-outline-success" for="att1p"><i class="fas fa-check"></i></label>
+                <input type="radio" class="btn-check" name="att1" id="att1a">
+                <label class="btn btn-outline-danger" for="att1a"><i class="fas fa-xmark"></i></label>
+                <input type="radio" class="btn-check" name="att1" id="att1l">
+                <label class="btn btn-outline-warning" for="att1l"><i class="fas fa-clock"></i></label>
+              </div>
+            </td>
+            <td class="text-muted-custom fs-sm">8:15 AM</td>
+            <td><input type="text" class="form-control form-control-sm" placeholder="—" style="max-width:140px;"></td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="progress flex-fill" style="height:5px; max-width:80px;">
+                  <div class="progress-bar bg-success" style="width:96%;"></div>
+                </div>
+                <span class="fs-xs fw-600 text-success">96%</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td class="fw-600">1002</td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="avatar avatar-sm" style="background: hsl(170,65%,42%);">DB</div>
+                <span class="fw-600">Divya Bhatt</span>
+              </div>
+            </td>
+            <td>
+              <div class="btn-group btn-group-sm" role="group">
+                <input type="radio" class="btn-check" name="att2" id="att2p" checked>
+                <label class="btn btn-outline-success" for="att2p"><i class="fas fa-check"></i></label>
+                <input type="radio" class="btn-check" name="att2" id="att2a">
+                <label class="btn btn-outline-danger" for="att2a"><i class="fas fa-xmark"></i></label>
+                <input type="radio" class="btn-check" name="att2" id="att2l">
+                <label class="btn btn-outline-warning" for="att2l"><i class="fas fa-clock"></i></label>
+              </div>
+            </td>
+            <td class="text-muted-custom fs-sm">8:10 AM</td>
+            <td><input type="text" class="form-control form-control-sm" placeholder="—" style="max-width:140px;"></td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="progress flex-fill" style="height:5px; max-width:80px;">
+                  <div class="progress-bar bg-success" style="width:100%;"></div>
+                </div>
+                <span class="fs-xs fw-600 text-success">100%</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td class="fw-600">1003</td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="avatar avatar-sm" style="background: hsl(0,70%,55%);">KN</div>
+                <span class="fw-600">Karan Nair</span>
+              </div>
+            </td>
+            <td>
+              <div class="btn-group btn-group-sm" role="group">
+                <input type="radio" class="btn-check" name="att3" id="att3p">
+                <label class="btn btn-outline-success" for="att3p"><i class="fas fa-check"></i></label>
+                <input type="radio" class="btn-check" name="att3" id="att3a" checked>
+                <label class="btn btn-outline-danger" for="att3a"><i class="fas fa-xmark"></i></label>
+                <input type="radio" class="btn-check" name="att3" id="att3l">
+                <label class="btn btn-outline-warning" for="att3l"><i class="fas fa-clock"></i></label>
+              </div>
+            </td>
+            <td class="text-muted-custom fs-sm">—</td>
+            <td><input type="text" class="form-control form-control-sm" value="Sick leave" style="max-width:140px;"></td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="progress flex-fill" style="height:5px; max-width:80px;">
+                  <div class="progress-bar bg-warning" style="width:78%;"></div>
+                </div>
+                <span class="fs-xs fw-600 text-warning">78%</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td class="fw-600">1004</td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="avatar avatar-sm" style="background: hsl(345,70%,55%);">MR</div>
+                <span class="fw-600">Meera Reddy</span>
+              </div>
+            </td>
+            <td>
+              <div class="btn-group btn-group-sm" role="group">
+                <input type="radio" class="btn-check" name="att4" id="att4p">
+                <label class="btn btn-outline-success" for="att4p"><i class="fas fa-check"></i></label>
+                <input type="radio" class="btn-check" name="att4" id="att4a">
+                <label class="btn btn-outline-danger" for="att4a"><i class="fas fa-xmark"></i></label>
+                <input type="radio" class="btn-check" name="att4" id="att4l" checked>
+                <label class="btn btn-outline-warning" for="att4l"><i class="fas fa-clock"></i></label>
+              </div>
+            </td>
+            <td class="text-muted-custom fs-sm">8:42 AM</td>
+            <td><input type="text" class="form-control form-control-sm" value="Bus delayed" style="max-width:140px;"></td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="progress flex-fill" style="height:5px; max-width:80px;">
+                  <div class="progress-bar bg-success" style="width:91%;"></div>
+                </div>
+                <span class="fs-xs fw-600 text-success">91%</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td class="fw-600">1005</td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="avatar avatar-sm" style="background: hsl(200,70%,50%);">SJ</div>
+                <span class="fw-600">Sahil Jain</span>
+              </div>
+            </td>
+            <td>
+              <div class="btn-group btn-group-sm" role="group">
+                <input type="radio" class="btn-check" name="att5" id="att5p" checked>
+                <label class="btn btn-outline-success" for="att5p"><i class="fas fa-check"></i></label>
+                <input type="radio" class="btn-check" name="att5" id="att5a">
+                <label class="btn btn-outline-danger" for="att5a"><i class="fas fa-xmark"></i></label>
+                <input type="radio" class="btn-check" name="att5" id="att5l">
+                <label class="btn btn-outline-warning" for="att5l"><i class="fas fa-clock"></i></label>
+              </div>
+            </td>
+            <td class="text-muted-custom fs-sm">8:05 AM</td>
+            <td><input type="text" class="form-control form-control-sm" placeholder="—" style="max-width:140px;"></td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="progress flex-fill" style="height:5px; max-width:80px;">
+                  <div class="progress-bar bg-success" style="width:94%;"></div>
+                </div>
+                <span class="fs-xs fw-600 text-success">94%</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td class="fw-600">1006</td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="avatar avatar-sm" style="background: hsl(270,65%,55%);">TA</div>
+                <span class="fw-600">Tanvi Agarwal</span>
+              </div>
+            </td>
+            <td>
+              <div class="btn-group btn-group-sm" role="group">
+                <input type="radio" class="btn-check" name="att6" id="att6p" checked>
+                <label class="btn btn-outline-success" for="att6p"><i class="fas fa-check"></i></label>
+                <input type="radio" class="btn-check" name="att6" id="att6a">
+                <label class="btn btn-outline-danger" for="att6a"><i class="fas fa-xmark"></i></label>
+                <input type="radio" class="btn-check" name="att6" id="att6l">
+                <label class="btn btn-outline-warning" for="att6l"><i class="fas fa-clock"></i></label>
+              </div>
+            </td>
+            <td class="text-muted-custom fs-sm">8:12 AM</td>
+            <td><input type="text" class="form-control form-control-sm" placeholder="—" style="max-width:140px;"></td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="progress flex-fill" style="height:5px; max-width:80px;">
+                  <div class="progress-bar bg-danger" style="width:68%;"></div>
+                </div>
+                <span class="fs-xs fw-600 text-danger">68%</span>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card-body border-top d-flex flex-wrap align-items-center justify-content-between gap-2" style="border-color: var(--divider) !important;">
+      <div class="d-flex gap-3 fs-sm">
+        <span><i class="fas fa-circle text-success me-1" style="font-size:0.5rem;vertical-align:middle;"></i> Present: <strong>32</strong></span>
+        <span><i class="fas fa-circle text-danger me-1" style="font-size:0.5rem;vertical-align:middle;"></i> Absent: <strong>4</strong></span>
+        <span><i class="fas fa-circle text-warning me-1" style="font-size:0.5rem;vertical-align:middle;"></i> Late: <strong>2</strong></span>
+      </div>
+      <button class="btn btn-accent"><i class="fas fa-save me-1"></i>Save Attendance</button>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/theme.js"></script>
+</body>
+</html>

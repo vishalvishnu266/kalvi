@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings - SchoolDesk ERP</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="css/theme.css" rel="stylesheet">
+</head>
+<body>
+
+<div class="sidebar-overlay"></div>
+
+<!-- ====== SIDEBAR ====== -->
+<aside class="sidebar">
+  <a href="dashboard.html" class="sidebar-brand">
+    <div class="brand-icon"><i class="fas fa-graduation-cap"></i></div>
+    SchoolDesk
+  </a>
+  <ul class="sidebar-nav">
+    <li class="nav-label">Main</li>
+    <li class="nav-item"><a href="dashboard.html" class="nav-link"><i class="fas fa-th-large"></i> Dashboard</a></li>
+    <li class="nav-label">Academics</li>
+    <li class="nav-item"><a href="students.html" class="nav-link"><i class="fas fa-user-graduate"></i> Students <span class="badge bg-accent rounded-pill">2,458</span></a></li>
+    <li class="nav-item"><a href="teachers.html" class="nav-link"><i class="fas fa-chalkboard-teacher"></i> Teachers</a></li>
+    <li class="nav-item"><a href="attendance.html" class="nav-link"><i class="fas fa-calendar-check"></i> Attendance</a></li>
+    <li class="nav-label">Finance</li>
+    <li class="nav-item"><a href="fees.html" class="nav-link"><i class="fas fa-file-invoice-dollar"></i> Fees & Payments <span class="badge badge-danger-soft rounded-pill">12</span></a></li>
+    <li class="nav-label">System</li>
+    <li class="nav-item"><a href="settings.html" class="nav-link active"><i class="fas fa-cog"></i> Settings</a></li>
+    <li class="nav-item"><a href="login.html" class="nav-link"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+  </ul>
+</aside>
+
+<!-- ====== TOP NAVBAR ====== -->
+<nav class="main-navbar">
+  <button class="sidebar-toggler me-3"><i class="fas fa-bars"></i></button>
+  <div class="navbar-search d-none d-md-block">
+    <i class="fas fa-search"></i>
+    <input type="text" placeholder="Search settings...">
+  </div>
+  <div class="navbar-actions">
+    <button class="btn-icon" id="theme-toggle" title="Toggle dark/light mode">
+      <i class="fas fa-sun" id="theme-icon-sun"></i>
+      <i class="fas fa-moon" id="theme-icon-moon" style="display:none;"></i>
+    </button>
+    <button class="btn-icon"><i class="fas fa-bell"></i><span class="notif-dot"></span></button>
+    <div class="dropdown">
+      <div class="d-flex align-items-center gap-2" data-bs-toggle="dropdown">
+        <div class="avatar" style="background: var(--accent);">AK</div>
+      </div>
+      <ul class="dropdown-menu dropdown-menu-end mt-2">
+        <li><h6 class="dropdown-header">Admin Kumar</h6></li>
+        <li><a class="dropdown-item" href="settings.html"><i class="fas fa-cog me-2"></i>Settings</a></li>
+        <li><hr class="dropdown-divider" style="border-color:var(--divider);"></li>
+        <li><a class="dropdown-item text-danger" href="login.html"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<!-- ====== MAIN CONTENT ====== -->
+<main class="main-content">
+  <div class="page-header">
+    <h1>Settings</h1>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="dashboard.html">Home</a></li>
+        <li class="breadcrumb-item active text-muted-custom">Settings</li>
+      </ol>
+    </nav>
+  </div>
+
+  <div class="row g-4">
+    <!-- Left Column: Settings Navigation -->
+    <div class="col-lg-3">
+      <div class="card">
+        <div class="card-body p-2">
+          <nav class="nav flex-column">
+            <a class="nav-link rounded-2 px-3 py-2 fw-600 d-flex align-items-center gap-2 active" style="background: var(--sidebar-active-bg); color: var(--sidebar-active-color);" href="#appearance">
+              <i class="fas fa-palette"></i> Appearance
+            </a>
+            <a class="nav-link rounded-2 px-3 py-2 fw-500 d-flex align-items-center gap-2 text-muted-custom" href="#profile">
+              <i class="fas fa-user"></i> Profile
+            </a>
+            <a class="nav-link rounded-2 px-3 py-2 fw-500 d-flex align-items-center gap-2 text-muted-custom" href="#school">
+              <i class="fas fa-school"></i> School Info
+            </a>
+            <a class="nav-link rounded-2 px-3 py-2 fw-500 d-flex align-items-center gap-2 text-muted-custom" href="#notifications">
+              <i class="fas fa-bell"></i> Notifications
+            </a>
+            <a class="nav-link rounded-2 px-3 py-2 fw-500 d-flex align-items-center gap-2 text-muted-custom" href="#security">
+              <i class="fas fa-shield-halved"></i> Security
+            </a>
+            <a class="nav-link rounded-2 px-3 py-2 fw-500 d-flex align-items-center gap-2 text-muted-custom" href="#academic">
+              <i class="fas fa-book"></i> Academic Year
+            </a>
+          </nav>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Settings Content -->
+    <div class="col-lg-9">
+
+      <!-- ===== APPEARANCE SETTINGS ===== -->
+      <div class="card mb-4" id="appearance">
+        <div class="card-header">
+          <i class="fas fa-palette me-2 text-accent"></i>Appearance & Theme
+        </div>
+        <div class="card-body">
+          <!-- Theme Mode -->
+          <div class="mb-4">
+            <h6 class="fw-700 mb-1">Theme Mode</h6>
+            <p class="fs-sm text-muted-custom mb-3">Choose between light and dark interface.</p>
+            <div class="row g-3">
+              <div class="col-sm-4">
+                <div class="card h-100 cursor-pointer theme-mode-card" data-mode="light" onclick="ThemeEngine.applyTheme('light')" style="cursor:pointer;">
+                  <div class="card-body text-center p-3">
+                    <div style="width:100%;height:60px;border-radius:8px;background:#f4f6fb;border:1px solid #e5e7eb;margin-bottom:0.75rem;display:flex;align-items:center;justify-content:center;">
+                      <div style="display:flex;gap:6px;align-items:center;">
+                        <div style="width:12px;height:40px;border-radius:4px;background:#fff;border:1px solid #e5e7eb;"></div>
+                        <div style="flex:1;">
+                          <div style="width:50px;height:8px;border-radius:3px;background:#e5e7eb;margin-bottom:4px;"></div>
+                          <div style="width:35px;height:6px;border-radius:3px;background:#e5e7eb;"></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="fw-600 fs-sm"><i class="fas fa-sun me-1"></i>Light</div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-sm-4">
+                <div class="card h-100 cursor-pointer theme-mode-card" data-mode="dark" onclick="ThemeEngine.applyTheme('dark')" style="cursor:pointer;">
+                  <div class="card-body text-center p-3">
+                    <div style="width:100%;height:60px;border-radius:8px;background:#0f1117;border:1px solid #23263a;margin-bottom:0.75rem;display:flex;align-items:center;justify-content:center;">
+                      <div style="display:flex;gap:6px;align-items:center;">
+                        <div style="width:12px;height:40px;border-radius:4px;background:#1a1c27;border:1px solid #23263a;"></div>
+                        <div style="flex:1;">
+                          <div style="width:50px;height:8px;border-radius:3px;background:#23263a;margin-bottom:4px;"></div>
+                          <div style="width:35px;height:6px;border-radius:3px;background:#23263a;"></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="fw-600 fs-sm"><i class="fas fa-moon me-1"></i>Dark</div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-sm-4">
+                <div class="card h-100" style="cursor:pointer;opacity:0.6;" title="Coming soon">
+                  <div class="card-body text-center p-3">
+                    <div style="width:100%;height:60px;border-radius:8px;background:linear-gradient(135deg,#f4f6fb 50%,#0f1117 50%);border:1px solid #e5e7eb;margin-bottom:0.75rem;"></div>
+                    <div class="fw-600 fs-sm"><i class="fas fa-desktop me-1"></i>System <span class="badge badge-soft ms-1">Soon</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <hr style="border-color: var(--divider);">
+
+          <!-- Accent Color -->
+          <div class="mb-4">
+            <h6 class="fw-700 mb-1">Accent Color</h6>
+            <p class="fs-sm text-muted-custom mb-3">Pick a color that matches your brand or preference. It will be applied across buttons, links, active states, and highlights.</p>
+
+            <div class="accent-picker mb-4" style="gap: 0.75rem;">
+              <div class="accent-swatch" data-color="indigo" style="background:hsl(245,75%,55%);width:40px;height:40px;" title="Indigo"></div>
+              <div class="accent-swatch" data-color="blue" style="background:hsl(221,83%,53%);width:40px;height:40px;" title="Blue"></div>
+              <div class="accent-swatch" data-color="cyan" style="background:hsl(199,89%,48%);width:40px;height:40px;" title="Cyan"></div>
+              <div class="accent-swatch" data-color="teal" style="background:hsl(173,58%,39%);width:40px;height:40px;" title="Teal"></div>
+              <div class="accent-swatch" data-color="emerald" style="background:hsl(142,71%,45%);width:40px;height:40px;" title="Emerald"></div>
+              <div class="accent-swatch" data-color="amber" style="background:hsl(38,92%,50%);width:40px;height:40px;" title="Amber"></div>
+              <div class="accent-swatch" data-color="orange" style="background:hsl(24,95%,53%);width:40px;height:40px;" title="Orange"></div>
+              <div class="accent-swatch" data-color="rose" style="background:hsl(346,84%,50%);width:40px;height:40px;" title="Rose"></div>
+              <div class="accent-swatch" data-color="pink" style="background:hsl(322,81%,55%);width:40px;height:40px;" title="Pink"></div>
+              <div class="accent-swatch" data-color="violet" style="background:hsl(262,83%,58%);width:40px;height:40px;" title="Violet"></div>
+              <div class="accent-swatch" data-color="red" style="background:hsl(0,72%,51%);width:40px;height:40px;" title="Red"></div>
+              <div class="accent-swatch" data-color="slate" style="background:hsl(215,25%,27%);width:40px;height:40px;" title="Slate"></div>
+            </div>
+
+            <!-- Live Preview -->
+            <div class="card" style="border: 2px solid var(--accent);">
+              <div class="card-body">
+                <h6 class="fw-700 mb-3"><i class="fas fa-eye me-2 text-accent"></i>Live Preview</h6>
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <p class="fs-sm mb-2"><strong>Buttons</strong></p>
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                      <button class="btn btn-accent btn-sm">Primary Action</button>
+                      <button class="btn btn-outline-accent btn-sm">Outline</button>
+                      <button class="btn btn-soft btn-sm">Soft Style</button>
+                    </div>
+                    <p class="fs-sm mb-2"><strong>Badges</strong></p>
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                      <span class="badge badge-soft">Accent</span>
+                      <span class="badge badge-success-soft">Success</span>
+                      <span class="badge badge-warning-soft">Warning</span>
+                      <span class="badge badge-danger-soft">Danger</span>
+                      <span class="badge badge-info-soft">Info</span>
+                    </div>
+                    <p class="fs-sm mb-2"><strong>Link</strong></p>
+                    <a href="#" class="text-decoration-none">This is an accent-colored link →</a>
+                  </div>
+                  <div class="col-md-6">
+                    <p class="fs-sm mb-2"><strong>Form Controls</strong></p>
+                    <input type="text" class="form-control mb-2" placeholder="Focus me to see accent ring">
+                    <div class="form-check mb-2">
+                      <input class="form-check-input" type="checkbox" checked id="prevCheck">
+                      <label class="form-check-label fs-sm" for="prevCheck">Checkbox with accent</label>
+                    </div>
+                    <p class="fs-sm mb-2"><strong>Progress</strong></p>
+                    <div class="progress mb-2">
+                      <div class="progress-bar" style="width: 65%;"></div>
+                    </div>
+                    <p class="fs-sm mb-2"><strong>Avatar</strong></p>
+                    <div class="d-flex gap-2">
+                      <div class="avatar avatar-sm" style="background: var(--accent);">AK</div>
+                      <div class="avatar avatar-sm" style="background: var(--accent-light); color: var(--accent);">BL</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== PROFILE SETTINGS ===== -->
+      <div class="card mb-4" id="profile">
+        <div class="card-header">
+          <i class="fas fa-user me-2 text-accent"></i>Profile Settings
+        </div>
+        <div class="card-body">
+          <div class="d-flex align-items-center gap-4 mb-4">
+            <div class="avatar avatar-lg" style="background: var(--accent); width:72px; height:72px; font-size:1.5rem; border-radius:16px;">AK</div>
+            <div>
+              <h6 class="fw-700 mb-1">Admin Kumar</h6>
+              <p class="fs-sm text-muted-custom mb-2">Super Administrator</p>
+              <button class="btn btn-sm btn-outline-accent">Change Photo</button>
+            </div>
+          </div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Full Name</label>
+              <input type="text" class="form-control" value="Admin Kumar">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Email</label>
+              <input type="email" class="form-control" value="admin@schooldesk.edu">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Phone</label>
+              <input type="tel" class="form-control" value="+91 98765 43210">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Role</label>
+              <input type="text" class="form-control" value="Super Administrator" disabled>
+            </div>
+          </div>
+          <div class="mt-3 text-end">
+            <button class="btn btn-accent"><i class="fas fa-save me-1"></i>Save Changes</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== SCHOOL INFO ===== -->
+      <div class="card mb-4" id="school">
+        <div class="card-header">
+          <i class="fas fa-school me-2 text-accent"></i>School Information
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">School Name</label>
+              <input type="text" class="form-control" value="Delhi Public School, Sector 22">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Affiliation</label>
+              <select class="form-select">
+                <option selected>CBSE</option>
+                <option>ICSE</option>
+                <option>State Board</option>
+                <option>IB</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Principal Name</label>
+              <input type="text" class="form-control" value="Dr. Meenakshi Sharma">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">School Code</label>
+              <input type="text" class="form-control" value="DPS-SEC22-001">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Phone</label>
+              <input type="tel" class="form-control" value="+91 11 2345 6789">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Email</label>
+              <input type="email" class="form-control" value="info@dpssec22.edu.in">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Address</label>
+              <textarea class="form-control" rows="2">Sector 22, Dwarka, New Delhi - 110077</textarea>
+            </div>
+          </div>
+          <div class="mt-3 text-end">
+            <button class="btn btn-accent"><i class="fas fa-save me-1"></i>Update Info</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== NOTIFICATIONS ===== -->
+      <div class="card mb-4" id="notifications">
+        <div class="card-header">
+          <i class="fas fa-bell me-2 text-accent"></i>Notification Preferences
+        </div>
+        <div class="card-body">
+          <div class="d-flex align-items-center justify-content-between py-2 border-bottom" style="border-color: var(--divider) !important;">
+            <div>
+              <div class="fw-600 fs-sm">Fee Payment Alerts</div>
+              <div class="fs-xs text-muted-custom">Get notified when fees are received or overdue</div>
+            </div>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" checked>
+            </div>
+          </div>
+          <div class="d-flex align-items-center justify-content-between py-2 border-bottom" style="border-color: var(--divider) !important;">
+            <div>
+              <div class="fw-600 fs-sm">Attendance Alerts</div>
+              <div class="fs-xs text-muted-custom">Alert when class attendance drops below threshold</div>
+            </div>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" checked>
+            </div>
+          </div>
+          <div class="d-flex align-items-center justify-content-between py-2 border-bottom" style="border-color: var(--divider) !important;">
+            <div>
+              <div class="fw-600 fs-sm">New Enrollment Notifications</div>
+              <div class="fs-xs text-muted-custom">Notify when a new student is enrolled</div>
+            </div>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" checked>
+            </div>
+          </div>
+          <div class="d-flex align-items-center justify-content-between py-2 border-bottom" style="border-color: var(--divider) !important;">
+            <div>
+              <div class="fw-600 fs-sm">SMS Notifications</div>
+              <div class="fs-xs text-muted-custom">Send SMS to parents for important updates</div>
+            </div>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox">
+            </div>
+          </div>
+          <div class="d-flex align-items-center justify-content-between py-2">
+            <div>
+              <div class="fw-600 fs-sm">Email Reports</div>
+              <div class="fs-xs text-muted-custom">Receive weekly summary reports via email</div>
+            </div>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" checked>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== SECURITY ===== -->
+      <div class="card mb-4" id="security">
+        <div class="card-header">
+          <i class="fas fa-shield-halved me-2 text-accent"></i>Security
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Current Password</label>
+              <input type="password" class="form-control" placeholder="••••••••">
+            </div>
+            <div class="col-md-6"></div>
+            <div class="col-md-6">
+              <label class="form-label">New Password</label>
+              <input type="password" class="form-control" placeholder="••••••••">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Confirm New Password</label>
+              <input type="password" class="form-control" placeholder="••••••••">
+            </div>
+          </div>
+          <div class="mt-3">
+            <button class="btn btn-accent"><i class="fas fa-key me-1"></i>Change Password</button>
+          </div>
+
+          <hr style="border-color: var(--divider);">
+
+          <h6 class="fw-700 mb-3">Two-Factor Authentication</h6>
+          <div class="d-flex align-items-center justify-content-between p-3 rounded-xl" style="background: var(--sidebar-hover-bg);">
+            <div class="d-flex align-items-center gap-3">
+              <div class="stat-icon" style="background: var(--accent-light); color: var(--accent);">
+                <i class="fas fa-mobile-screen"></i>
+              </div>
+              <div>
+                <div class="fw-600 fs-sm">Authenticator App</div>
+                <div class="fs-xs text-muted-custom">Not configured</div>
+              </div>
+            </div>
+            <button class="btn btn-sm btn-outline-accent">Enable</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== ACADEMIC YEAR ===== -->
+      <div class="card" id="academic">
+        <div class="card-header">
+          <i class="fas fa-book me-2 text-accent"></i>Academic Year Settings
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">Current Session</label>
+              <select class="form-select">
+                <option selected>2026-2027</option>
+                <option>2025-2026</option>
+                <option>2024-2025</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Session Start</label>
+              <input type="date" class="form-control" value="2026-04-01">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Session End</label>
+              <input type="date" class="form-control" value="2027-03-31">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Grading System</label>
+              <select class="form-select">
+                <option selected>CBSE (10-point)</option>
+                <option>Percentage Based</option>
+                <option>GPA (4-point)</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Attendance Threshold (%)</label>
+              <input type="number" class="form-control" value="75">
+            </div>
+          </div>
+          <div class="mt-3 text-end">
+            <button class="btn btn-accent"><i class="fas fa-save me-1"></i>Save Settings</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/theme.js"></script>
+</body>
+</html>
