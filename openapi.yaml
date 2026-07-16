@@ -1,0 +1,232 @@
+openapi: 3.0.0
+info:
+  title: Student ERP API
+  description: REST API for managing students and school dashboard statistics.
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000/api
+    description: Local development server
+
+paths:
+  /{tenant_id}/dashboard-stats:
+    get:
+      summary: Get dashboard statistics
+      description: Returns enrollment stats and recent student activity for a specific tenant.
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardStats'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /{tenant_id}/students:
+    get:
+      summary: List students
+      description: Retrieve a list of students with optional filters.
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: q
+          in: query
+          description: Search term for name or admission number
+          schema:
+            type: string
+        - name: class_name
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A list of students
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Student'
+    post:
+      summary: Create a student
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentForm'
+      responses:
+        '201':
+          description: Student created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Student'
+        '409':
+          description: Conflict (e.g. duplicate admission number)
+        '422':
+          description: Validation error
+
+  /{tenant_id}/students/{student_id}:
+    get:
+      summary: Get student by ID
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: student_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Student details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Student'
+        '404':
+          description: Student not found
+    put:
+      summary: Update student
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: student_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentForm'
+      responses:
+        '200':
+          description: Student updated
+        '404':
+          description: Student not found
+    delete:
+      summary: Delete student
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: student_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Student deleted
+
+components:
+  responses:
+    ServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+    DashboardStats:
+      type: object
+      properties:
+        total_students:
+          type: integer
+        active_students:
+          type: integer
+        pending_students:
+          type: integer
+        inactive_students:
+          type: integer
+        recent_students:
+          type: array
+          items:
+            $ref: '#/components/schemas/Student'
+
+    Student:
+      type: object
+      properties:
+        id:
+          type: string
+        admission_no:
+          type: string
+        first_name:
+          type: string
+        last_name:
+          type: string
+        class_name:
+          type: string
+        section:
+          type: string
+        status:
+          type: string
+        admission_date:
+          type: string
+          format: date
+
+    StudentForm:
+      type: object
+      required:
+        - first_name
+        - last_name
+        - admission_no
+        - class_name
+        - section
+      properties:
+        first_name:
+          type: string
+        last_name:
+          type: string
+        admission_no:
+          type: string
+        class_name:
+          type: string
+        section:
+          type: string
+        gender:
+          type: string
+        status:
+          type: string
+
+    Error:
+      type: object
+      properties:
+        status:
+          type: integer
+        message:
+          type: string
+        error_type:
+          type: string

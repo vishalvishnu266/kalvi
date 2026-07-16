@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
+use utoipa::{ToSchema, IntoParams};
 
 /// Row as stored in the DB.
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Default, ToSchema)]
 pub struct Student {
     pub id: String,
     pub admission_no: String,
@@ -56,8 +57,6 @@ impl Student {
         acc % 360
     }
 
-    // Askama-friendly accessors returning empty strings for None options,
-    // so templates can just render `{{ student.email_str() }}`.
     pub fn email_str(&self) -> &str { self.email.as_deref().unwrap_or("") }
     pub fn phone_str(&self) -> &str { self.phone.as_deref().unwrap_or("") }
     pub fn date_of_birth_str(&self) -> &str { self.date_of_birth.as_deref().unwrap_or("") }
@@ -86,7 +85,7 @@ impl Student {
 }
 
 /// Form params (from HTML form POSTs).
-#[derive(Debug, Deserialize, Default)]
+#[derive(Debug, Deserialize, Default, ToSchema)]
 pub struct StudentForm {
     pub csrf_token: Option<String>,
 
@@ -192,7 +191,7 @@ impl StudentForm {
 }
 
 /// Filters for the list page.
-#[derive(Debug, Deserialize, Default, Clone)]
+#[derive(Debug, Deserialize, Default, Clone, IntoParams)]
 pub struct StudentFilters {
     #[serde(default)]
     pub class_name: String,
