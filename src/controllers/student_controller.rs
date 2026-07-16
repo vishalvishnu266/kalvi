@@ -169,7 +169,11 @@ pub async fn create_student_handler(
     let res = StudentService::create(&pool, form.clone()).await;
 
     if let Err(e) = res {
-        let msg = friendly_db_error(&e, &[("admission_no", "Admission number already exists.")]);
+        let msg = match e {
+            AppError::Conflict(m) => m,
+            AppError::Database(ref db_e) => friendly_db_error(db_e, &[("admission_no", "Admission number already exists.")]),
+            _ => "An unexpected error occurred.".to_string(),
+        };
         return render_form_with_error(&pool, tenant_id, false, None, form, msg).await;
     }
 
@@ -188,7 +192,11 @@ pub async fn update_student_handler(
     let res = StudentService::update(&pool, &student_id, form.clone()).await;
 
     if let Err(e) = res {
-        let msg = friendly_db_error(&e, &[("admission_no", "Admission number already exists.")]);
+        let msg = match e {
+            AppError::Conflict(m) => m,
+            AppError::Database(ref db_e) => friendly_db_error(db_e, &[("admission_no", "Admission number already exists.")]),
+            _ => "An unexpected error occurred.".to_string(),
+        };
         return render_form_with_error(&pool, tenant_id, true, Some(student_id), form, msg).await;
     }
 

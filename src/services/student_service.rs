@@ -59,7 +59,7 @@ impl StudentService {
             ..Default::default()
         });
 
-        sqlx::query(
+        let res = sqlx::query(
             r#"INSERT INTO students (
                 id, admission_no, first_name, last_name, email, phone, date_of_birth, gender, blood_group,
                 class_name, section, roll_no, admission_date,
@@ -90,13 +90,23 @@ impl StudentService {
         .bind(&student.postal_code)
         .bind(&student.status)
         .execute(pool)
-        .await?;
+        .await;
 
-        Ok(student)
+        match res {
+            Ok(_) => Ok(student),
+            Err(e) => {
+                let s = e.to_string();
+                if s.contains("UNIQUE") && s.contains("admission_no") {
+                    Err(AppError::Conflict("Admission number already exists.".into()))
+                } else {
+                    Err(AppError::Database(e))
+                }
+            }
+        }
     }
 
     pub async fn update(pool: &SqlitePool, id: &str, form: StudentForm) -> Result<(), AppError> {
-        sqlx::query(
+        let res = sqlx::query(
             r#"UPDATE students SET
                 admission_no=?, first_name=?, last_name=?, email=?, phone=?, date_of_birth=?, gender=?, blood_group=?,
                 class_name=?, section=?, roll_no=?, admission_date=?,
@@ -132,9 +142,19 @@ impl StudentService {
         .bind(form.status.trim())
         .bind(id)
         .execute(pool)
-        .await?;
+        .await;
 
-        Ok(())
+        match res {
+            Ok(_) => Ok(()),
+            Err(e) => {
+                let s = e.to_string();
+                if s.contains("UNIQUE") && s.contains("admission_no") {
+                    Err(AppError::Conflict("Admission number already exists.".into()))
+                } else {
+                    Err(AppError::Database(e))
+                }
+            }
+        }
     }
 
     pub async fn delete(pool: &SqlitePool, id: &str) -> Result<(), AppError> {

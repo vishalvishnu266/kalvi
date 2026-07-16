@@ -26,7 +26,7 @@ pub async fn get_student(
     let student = StudentService::get_by_id(&pool, &student_id).await?;
     match student {
         Some(s) => Ok(Json(s).into_response()),
-        None => Err(AppError::NotFound("Student not found".into())),
+        None => Ok(AppError::NotFound("Student not found".into()).to_json_response()),
     }
 }
 
@@ -34,9 +34,14 @@ pub async fn create_student(
     Extension(pool): Extension<SqlitePool>,
     Json(form): Json<StudentForm>,
 ) -> Result<impl IntoResponse, AppError> {
-    form.validate().map_err(|e| AppError::ValidationError(e))?;
-    let student = StudentService::create(&pool, form).await?;
-    Ok((StatusCode::CREATED, Json(student)))
+    if let Err(e) = form.validate() {
+        return Ok(AppError::ValidationError(e).to_json_response());
+    }
+    
+    match StudentService::create(&pool, form).await {
+        Ok(student) => Ok((StatusCode::CREATED, Json(student)).into_response()),
+        Err(e) => Ok(e.to_json_response()),
+    }
 }
 
 pub async fn update_student(
@@ -44,12 +49,18 @@ pub async fn update_student(
     Extension(pool): Extension<SqlitePool>,
     Json(form): Json<StudentForm>,
 ) -> Result<impl IntoResponse, AppError> {
-    form.validate().map_err(|e| AppError::ValidationError(e))?;
-    StudentService::update(&pool, &student_id, form).await?;
+    if let Err(e) = form.validate() {
+        return Ok(AppError::ValidationError(e).to_json_response());
+    }
+    
+    if let Err(e) = StudentService::update(&pool, &student_id, form).await {
+        return Ok(e.to_json_response());
+    }
+    
     let student = StudentService::get_by_id(&pool, &student_id).await?;
     match student {
         Some(s) => Ok(Json(s).into_response()),
-        None => Err(AppError::NotFound("Student not found".into())),
+        None => Ok(AppError::NotFound("Student not found".into()).to_json_response()),
     }
 }
 
@@ -58,5 +69,5 @@ pub async fn delete_student(
     Extension(pool): Extension<SqlitePool>,
 ) -> Result<impl IntoResponse, AppError> {
     StudentService::delete(&pool, &student_id).await?;
-    Ok(StatusCode::NO_CONTENT)
+    Ok(StatusCode::NO_CONTENT.into_response())
 }

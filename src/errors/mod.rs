@@ -2,6 +2,7 @@ use askama::Template;
 use axum::{
     http::StatusCode,
     response::{Html, IntoResponse, Response},
+    Json,
 };
 
 #[derive(Template)]
@@ -12,12 +13,23 @@ struct ErrorPage {
     request_id: String,
 }
 
+use serde::Serialize;
+
 #[derive(Debug)]
 pub enum AppError {
     NotFound(String),
     ValidationError(String),
+    Conflict(String),
     Database(sqlx::Error),
     Unexpected(String),
+}
+
+#[derive(Serialize)]
+struct ApiErrorResponse {
+    status: u16,
+    message: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    error_type: Option<String>,
 }
 
 impl From<sqlx::Error> for AppError {
@@ -28,35 +40,37 @@ impl From<askama::Error> for AppError {
     fn from(e: askama::Error) -> Self { AppError::Unexpected(e.to_string()) }
 }
 
-impl IntoResponse for AppError {
-    fn into_response(self) -> Response {
-        let (status, message) = match self {
-            AppError::NotFound(m) => (StatusCode::NOT_FOUND, m),
-            AppError::ValidationError(m) => (StatusCode::UNPROCESSABLE_ENTITY, m),
+impl AppError {
+    pub fn to_json_response(&self) -> Response {
+        let (status, message, error_type) = self.get_details();
+        (status, Json(ApiErrorResponse {
+            status: status.as_u16(),
+            message,
+            error_type: Some(error_type.into()),
+        })).into_response()
+    }
+
+    fn get_details(&self) -> (StatusCode, String, &'static str) {
+        match self {
+            AppError::NotFound(m) => (StatusCode::NOT_FOUND, m.clone(), "not_found"),
+            AppError::ValidationError(m) => (StatusCode::UNPROCESSABLE_ENTITY, m.clone(), "validation_error"),
+            AppError::Conflict(m) => (StatusCode::CONFLICT, m.clone(), "conflict"),
             AppError::Database(e) => {
                 tracing::error!("db error: {e}");
-                (StatusCode::INTERNAL_SERVER_ERROR, "Database error".into())
+                (StatusCode::INTERNAL_SERVER_ERROR, "Database error".into(), "database_error")
             }
             AppError::Unexpected(m) => {
                 tracing::error!("unexpected error: {m}");
-                (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong".into())
+                (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong".into(), "unexpected_error")
             }
-        };
+        }
+    }
+}
 
-        // If it's an API request, return JSON. 
-        // Simple heuristic: if we want to be strict, we'd check headers, 
-        // but often we can just have a way to distinguish.
-        // For now, let's keep it simple and maybe just use a different error type for API or check if it's a web route.
-        // Actually, we can check the request's Accept header if we had access to it, 
-        // but into_response doesn't have it.
-        
-        // Let's assume for now we can just return a simple response.
-        // To support both, we might need a more sophisticated error handler.
-        
-        // A common trick is to return a response that can be either HTML or JSON.
-        // But for this task, I'll just keep it as is and maybe suggest a better way if needed.
-        // Wait, the user wants JSON API. If the API returns AppError, it currently returns HTML.
-        
+impl IntoResponse for AppError {
+    fn into_response(self) -> Response {
+        let (status, message, _) = self.get_details();
+
         let page = ErrorPage {
             status: status.as_u16(),
             message: message.clone(),
