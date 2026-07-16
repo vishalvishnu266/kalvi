@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { StudentApi } from '../api/students';
 import { ArrowLeft, Save } from 'lucide-react';
+import { NativeBridge } from '../utils/NativeBridge';
 import { Student } from '../types';
 
 const StudentForm = () => {
@@ -43,9 +44,11 @@ const StudentForm = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['students'] });
             queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+            NativeBridge.hapticSuccess();
             navigate('/students');
         },
         onError: (err: any) => {
+            NativeBridge.hapticError();
             setError(err.response?.data?.message || 'Failed to save student data');
         }
     });
