@@ -38,55 +38,10 @@ impl AcademicYear {
             "badge-info-soft"
         }
     }
-
-    /// List all academic years, most-recent (by start_date) first.
-    pub async fn list_all(pool: &SqlitePool) -> Result<Vec<Self>, AppError> {
-        let rows = sqlx::query_as::<_, AcademicYear>(
-            "SELECT * FROM academic_years ORDER BY start_date DESC",
-        )
-        .fetch_all(pool)
-        .await?;
-        Ok(rows)
-    }
-
-    pub async fn find(pool: &SqlitePool, id: &str) -> Result<Option<Self>, AppError> {
-        Ok(sqlx::query_as::<_, AcademicYear>(
-            "SELECT * FROM academic_years WHERE id = ?",
-        )
-        .bind(id)
-        .fetch_optional(pool)
-        .await?)
-    }
-
-    /// Convenience: return the tenant's current AY (or None if none set).
-    pub async fn current(pool: &SqlitePool) -> Result<Option<Self>, AppError> {
-        Ok(sqlx::query_as::<_, AcademicYear>(
-            "SELECT * FROM academic_years WHERE is_current = 1 LIMIT 1",
-        )
-        .fetch_optional(pool)
-        .await?)
-    }
-
-    /// Mark this AY as the current one, unsetting the previous current AY in
-    /// a single transaction so the partial unique index isn't violated.
-    pub async fn set_current(pool: &SqlitePool, id: &str) -> Result<(), AppError> {
-        let mut tx = pool.begin().await?;
-        sqlx::query("UPDATE academic_years SET is_current = 0 WHERE is_current = 1")
-            .execute(&mut *tx)
-            .await?;
-        sqlx::query(
-            "UPDATE academic_years SET is_current = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-        )
-        .bind(id)
-        .execute(&mut *tx)
-        .await?;
-        tx.commit().await?;
-        Ok(())
-    }
 }
 
 /// Form params for create/update.
-#[derive(Debug, Deserialize, Default)]
+#[derive(Debug, Deserialize, Default, Clone)]
 pub struct AcademicYearForm {
     pub csrf_token: Option<String>,
     pub name: String,

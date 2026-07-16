@@ -4,6 +4,7 @@ use sqlx::SqlitePool;
 
 use crate::errors::AppError;
 use crate::models::student::Student;
+use crate::services::student_service::StudentService;
 
 #[derive(Template)]
 #[template(path = "dashboard.html")]
@@ -24,24 +25,8 @@ pub async fn tenant_dashboard_handler(
     Path(tenant_id): Path<String>,
     Extension(pool): Extension<SqlitePool>,
 ) -> Result<Html<String>, AppError> {
-    let total_students: i64 =
-        sqlx::query_scalar("SELECT COUNT(*) FROM students").fetch_one(&pool).await?;
-    let active_students: i64 =
-        sqlx::query_scalar("SELECT COUNT(*) FROM students WHERE status = 'Active'")
-            .fetch_one(&pool).await?;
-    let pending_students: i64 =
-        sqlx::query_scalar("SELECT COUNT(*) FROM students WHERE status = 'Pending'")
-            .fetch_one(&pool).await?;
-    let inactive_students: i64 =
-        sqlx::query_scalar("SELECT COUNT(*) FROM students WHERE status IN ('Inactive','Suspended')")
-            .fetch_one(&pool).await?;
-
-    let recent_students =
-        sqlx::query_as::<_, Student>(
-            "SELECT * FROM students ORDER BY created_at DESC, admission_date DESC LIMIT 5",
-        )
-        .fetch_all(&pool)
-        .await?;
+    let (total_students, active_students, pending_students, inactive_students, recent_students) =
+        StudentService::get_dashboard_stats(&pool).await?;
 
     let tpl = DashboardTpl {
         tenant_id,

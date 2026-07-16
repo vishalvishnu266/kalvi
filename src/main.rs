@@ -4,6 +4,7 @@ mod errors;
 mod models;
 mod public_middleware;
 mod routes;
+mod services;
 mod state;
 mod tenant_db_middleware;
 mod utils;

@@ -1,13 +1,3 @@
-//! CRUD for the tenant's Academic Years.
-//!
-//! Routes (registered in `routes.rs`):
-//!   GET  /web/{tenant}/settings/academic-years          -> list
-//!   GET  /web/{tenant}/settings/academic-years/new      -> form (create)
-//!   POST /web/{tenant}/settings/academic-years/create   -> insert
-//!   GET  /web/{tenant}/settings/academic-years/{id}/edit
-//!   POST /web/{tenant}/settings/academic-years/{id}/update
-//!   POST /web/{tenant}/settings/academic-years/{id}/delete
-//!   POST /web/{tenant}/settings/academic-years/{id}/set-current
 use askama::Template;
 use axum::{
     extract::{Form, Path},
@@ -15,11 +5,12 @@ use axum::{
     Extension,
 };
 use sqlx::SqlitePool;
-use uuid::Uuid;
 
 use crate::csrf_middleware::CSRF_TOKEN_VALUE;
 use crate::errors::AppError;
 use crate::models::academic_year::{AcademicYear, AcademicYearForm};
+use crate::services::academic_year_service::AcademicYearService;
+use crate::services::student_service::StudentService;
 use crate::utils::crud::friendly_db_error;
 
 // ------------ Templates ------------
@@ -30,7 +21,6 @@ struct IndexTpl<'a> {
     tenant_id: String,
     active: &'static str,
     csrf_token: &'a str,
-    /// Required by shared sidebar partial (badge count).
     student_count: i64,
     years: Vec<AcademicYear>,
 }
@@ -41,19 +31,10 @@ struct FormTpl<'a> {
     tenant_id: String,
     active: &'static str,
     csrf_token: &'a str,
-    /// Required by shared sidebar partial (badge count).
     student_count: i64,
     is_edit: bool,
     year: AcademicYear,
     error: Option<String>,
-}
-
-/// Small helper: fetch the students count (safe fallback to 0).
-async fn student_count(pool: &SqlitePool) -> i64 {
-    sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM students")
-        .fetch_one(pool)
-        .await
-        .unwrap_or(0)
 }
 
 // ------------ List ------------
@@ -62,8 +43,9 @@ pub async fn list_handler(
     Path(tenant_id): Path<String>,
     Extension(pool): Extension<SqlitePool>,
 ) -> Result<Html<String>, AppError> {
-    let years = AcademicYear::list_all(&pool).await?;
-    let sc = student_count(&pool).await;
+    let years = AcademicYearService::list_all(&pool).await?;
+    let sc = StudentService::count(&pool).await.unwrap_or(0);
+
     let tpl = IndexTpl {
         tenant_id,
         active: "settings",
@@ -87,7 +69,7 @@ pub async fn new_handler(
     Path(tenant_id): Path<String>,
     Extension(pool): Extension<SqlitePool>,
 ) -> Result<Html<String>, AppError> {
-    let sc = student_count(&pool).await;
+    let sc = StudentService::count(&pool).await.unwrap_or(0);
     let tpl = FormTpl {
         tenant_id,
         active: "settings",
@@ -104,17 +86,17 @@ pub async fn edit_handler(
     Path((tenant_id, id)): Path<(String, String)>,
     Extension(pool): Extension<SqlitePool>,
 ) -> Result<Response, AppError> {
-    let year = match AcademicYear::find(&pool, &id).await? {
+    let year = match AcademicYearService::find(&pool, &id).await? {
         Some(y) => y,
         None => {
             return Ok(Redirect::to(&format!(
                 "/web/{}/settings/academic-years",
                 tenant_id
             ))
-            .into_response())
+            .into_response());
         }
     };
-    let sc = student_count(&pool).await;
+    let sc = StudentService::count(&pool).await.unwrap_or(0);
     let tpl = FormTpl {
         tenant_id,
         active: "settings",
@@ -138,18 +120,7 @@ pub async fn create_handler(
         return render_form_error(&pool, tenant_id, false, form, msg).await;
     }
 
-    let id = Uuid::new_v4().to_string();
-    let res = sqlx::query(
-        r#"INSERT INTO academic_years (id, name, start_date, end_date, is_current, status)
-           VALUES (?, ?, ?, ?, 0, ?)"#,
-    )
-    .bind(&id)
-    .bind(form.name.trim())
-    .bind(form.start_date.trim())
-    .bind(form.end_date.trim())
-    .bind(form.effective_status())
-    .execute(&pool)
-    .await;
+    let res = AcademicYearService::create(&pool, form.clone()).await;
 
     if let Err(e) = res {
         let msg = friendly_db_error(&e, &[("academic_years.name", "That academic year name already exists.")]);
@@ -168,18 +139,7 @@ pub async fn update_handler(
         return render_form_error_edit(&pool, tenant_id, id, form, msg).await;
     }
 
-    let res = sqlx::query(
-        r#"UPDATE academic_years
-           SET name = ?, start_date = ?, end_date = ?, status = ?, updated_at = CURRENT_TIMESTAMP
-           WHERE id = ?"#,
-    )
-    .bind(form.name.trim())
-    .bind(form.start_date.trim())
-    .bind(form.end_date.trim())
-    .bind(form.effective_status())
-    .bind(&id)
-    .execute(&pool)
-    .await;
+    let res = AcademicYearService::update(&pool, &id, form.clone()).await;
 
     if let Err(e) = res {
         let msg = friendly_db_error(&e, &[("academic_years.name", "That academic year name already exists.")]);
@@ -193,32 +153,22 @@ pub async fn delete_handler(
     Path((tenant_id, id)): Path<(String, String)>,
     Extension(pool): Extension<SqlitePool>,
 ) -> Result<Response, AppError> {
-    // Refuse to delete the current AY (safety guard).
-    if let Some(y) = AcademicYear::find(&pool, &id).await? {
-        if y.is_current_bool() {
-            return Ok(Redirect::to(&format!(
-                "/web/{}/settings/academic-years",
-                tenant_id
-            ))
-            .into_response());
-        }
-    }
-    sqlx::query("DELETE FROM academic_years WHERE id = ?")
-        .bind(&id)
-        .execute(&pool)
-        .await?;
+    AcademicYearService::delete(&pool, &id).await?;
     Ok(Redirect::to(&format!("/web/{}/settings/academic-years", tenant_id)).into_response())
 }
 
 pub async fn set_current_handler(
     Path((tenant_id, id)): Path<(String, String)>,
     Extension(pool): Extension<SqlitePool>,
-) -> Result<Response, AppError> {
-    AcademicYear::set_current(&pool, &id).await?;
-    Ok(Redirect::to(&format!("/web/{}/settings/academic-years", tenant_id)).into_response())
+) -> Result<Redirect, AppError> {
+    AcademicYearService::set_current(&pool, &id).await?;
+    Ok(Redirect::to(&format!(
+        "/web/{}/settings/academic-years",
+        tenant_id
+    )))
 }
 
-// ------------ Local helpers ------------
+// ------------ Helpers ------------
 
 async fn render_form_error(
     pool: &SqlitePool,
@@ -234,7 +184,7 @@ async fn render_form_error(
         status: form.status,
         ..blank_year()
     };
-    let sc = student_count(pool).await;
+    let sc = StudentService::count(pool).await.unwrap_or(0);
     let tpl = FormTpl {
         tenant_id,
         active: "settings",
@@ -262,7 +212,7 @@ async fn render_form_error_edit(
         status: form.status,
         ..blank_year()
     };
-    let sc = student_count(pool).await;
+    let sc = StudentService::count(pool).await.unwrap_or(0);
     let tpl = FormTpl {
         tenant_id,
         active: "settings",
