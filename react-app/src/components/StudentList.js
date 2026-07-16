@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { StudentApi } from '../api/students';
 
-const StudentList = ({ onEdit, onAdd }) => {
+const StudentList = () => {
+    const navigate = useNavigate();
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
@@ -32,7 +34,7 @@ const StudentList = ({ onEdit, onAdd }) => {
         <div className="card shadow-sm">
             <div className="card-header bg-white d-flex justify-content-between align-items-center py-3">
                 <h5 className="mb-0 fw-bold text-primary">Students</h5>
-                <button className="btn btn-primary btn-sm" onClick={onAdd}>
+                <button className="btn btn-primary btn-sm" onClick={() => navigate('/students/new')}>
                     <i className="fas fa-plus me-1"></i> Add Student
                 </button>
             </div>
@@ -72,7 +74,7 @@ const StudentList = ({ onEdit, onAdd }) => {
                                             </span>
                                         </td>
                                         <td className="text-end">
-                                            <button className="btn btn-link btn-sm text-primary me-2" onClick={() => onEdit(student)}>
+                                            <button className="btn btn-link btn-sm text-primary me-2" onClick={() => navigate(`/students/edit/${student.id}`)}>
                                                 <i className="fas fa-edit"></i>
                                             </button>
                                             <button className="btn btn-link btn-sm text-danger" onClick={() => handleDelete(student.id)}>

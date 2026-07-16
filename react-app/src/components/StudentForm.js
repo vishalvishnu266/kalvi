@@ -1,9 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { StudentApi } from '../api/students';
 
-const StudentForm = ({ student, onSave, onCancel }) => {
-    const isEdit = !!student;
-    const [formData, setFormData] = useState(student || {
+const StudentForm = () => {
+    const { id } = useParams();
+    const navigate = useNavigate();
+    const isEdit = !!id;
+    
+    const [formData, setFormData] = useState({
         first_name: '',
         last_name: '',
         admission_no: '',
@@ -16,7 +20,23 @@ const StudentForm = ({ student, onSave, onCancel }) => {
         status: 'Active'
     });
     const [error, setError] = useState(null);
+    const [loading, setLoading] = useState(isEdit);
     const [submitting, setSubmitting] = useState(false);
+
+    useEffect(() => {
+        if (isEdit) {
+            const fetchStudent = async () => {
+                try {
+                    const data = await StudentApi.get(id);
+                    setFormData(data);
+                } catch (err) {
+                    setError('Failed to load student data');
+                }
+                setLoading(false);
+            };
+            fetchStudent();
+        }
+    }, [id, isEdit]);
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -28,16 +48,18 @@ const StudentForm = ({ student, onSave, onCancel }) => {
         setSubmitting(true);
 
         const result = isEdit 
-            ? await StudentApi.update(student.id, formData)
+            ? await StudentApi.update(id, formData)
             : await StudentApi.create(formData);
 
         if (result.error) {
             setError(result.error);
         } else {
-            onSave();
+            navigate('/students');
         }
         setSubmitting(false);
     };
+
+    if (loading) return <div className="text-center py-5">Loading student data...</div>;
 
     return (
         <div className="card shadow-sm">
@@ -77,7 +99,7 @@ const StudentForm = ({ student, onSave, onCancel }) => {
                     </div>
                 </div>
                 <div className="card-footer bg-white border-top-0 d-flex justify-content-end gap-2 py-3">
-                    <button type="button" className="btn btn-light" onClick={onCancel} disabled={submitting}>Cancel</button>
+                    <button type="button" className="btn btn-light" onClick={() => navigate('/students')} disabled={submitting}>Cancel</button>
                     <button type="submit" className="btn btn-primary" disabled={submitting}>
                         {submitting ? 'Saving...' : 'Save Student'}
                     </button>
