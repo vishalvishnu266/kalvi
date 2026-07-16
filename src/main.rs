@@ -14,6 +14,7 @@ use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
 use std::{collections::HashMap, str::FromStr, sync::Arc};
 use tokio::sync::RwLock;
 use tower_http::{
+    cors::{Any, CorsLayer},
     request_id::{MakeRequestUuid, PropagateRequestIdLayer, SetRequestIdLayer},
     services::ServeDir,
     trace::{DefaultOnRequest, DefaultOnResponse, TraceLayer},
@@ -48,8 +49,14 @@ async fn main() {
         tenant_pools: Arc::new(RwLock::new(HashMap::new())),
     };
 
+    let cors = CorsLayer::new()
+        .allow_origin(Any)
+        .allow_methods(Any)
+        .allow_headers(Any);
+
     let app: Router = routes::create_routes(state)
         .nest_service("/public", ServeDir::new("public"))
+        .layer(cors)
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(|request: &Request| {
