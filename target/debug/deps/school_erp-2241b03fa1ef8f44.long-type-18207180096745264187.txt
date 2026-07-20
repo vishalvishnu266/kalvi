@@ -1,0 +1,2 @@
+fn(ExtractServices, axum::Json<NewMovement>) -> impl std::future::Future<Output = Result<axum::Json<StockMovement>, ServiceHttpError>> {move_stock}
+fn(ExtractServices, axum::Json<NewMovement>) -> impl std::future::Future<Output = Result<axum::Json<StockMovement>, ServiceHttpError>> {move_stock}: Handler<_, _>

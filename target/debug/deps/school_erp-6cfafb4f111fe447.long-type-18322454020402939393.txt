@@ -1,0 +1,2 @@
+fn(ExtractServices, axum::Json<Admission>) -> impl std::future::Future<Output = Result<axum::Json<AdmissionResult>, ServiceHttpError>> {admit}
+fn(ExtractServices, axum::Json<Admission>) -> impl std::future::Future<Output = Result<axum::Json<AdmissionResult>, ServiceHttpError>> {admit}: Handler<_, _>

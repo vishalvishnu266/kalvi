@@ -1,0 +1,14 @@
+/Users/user/Desktop/kalvi/k12ERP/target/debug/deps/utoipa_swagger_ui-afa10ca0d215c154.d: /Users/user/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/utoipa-swagger-ui-7.1.0/src/lib.rs /Users/user/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/utoipa-swagger-ui-7.1.0/src/actix.rs /Users/user/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/utoipa-swagger-ui-7.1.0/src/axum.rs /Users/user/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/utoipa-swagger-ui-7.1.0/src/oauth.rs /Users/user/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/utoipa-swagger-ui-7.1.0/src/rocket.rs /Users/user/Desktop/kalvi/k12ERP/target/debug/build/utoipa-swagger-ui-0f2a668fac73077c/out/embed.rs
+
+/Users/user/Desktop/kalvi/k12ERP/target/debug/deps/libutoipa_swagger_ui-afa10ca0d215c154.rlib: /Users/user/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/utoipa-swagger-ui-7.1.0/src/lib.rs /Users/user/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/utoipa-swagger-ui-7.1.0/src/actix.rs /Users/user/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/utoipa-swagger-ui-7.1.0/src/axum.rs /Users/user/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/utoipa-swagger-ui-7.1.0/src/oauth.rs /Users/user/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/utoipa-swagger-ui-7.1.0/src/rocket.rs /Users/user/Desktop/kalvi/k12ERP/target/debug/build/utoipa-swagger-ui-0f2a668fac73077c/out/embed.rs
+
+/Users/user/Desktop/kalvi/k12ERP/target/debug/deps/libutoipa_swagger_ui-afa10ca0d215c154.rmeta: /Users/user/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/utoipa-swagger-ui-7.1.0/src/lib.rs /Users/user/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/utoipa-swagger-ui-7.1.0/src/actix.rs /Users/user/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/utoipa-swagger-ui-7.1.0/src/axum.rs /Users/user/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/utoipa-swagger-ui-7.1.0/src/oauth.rs /Users/user/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/utoipa-swagger-ui-7.1.0/src/rocket.rs /Users/user/Desktop/kalvi/k12ERP/target/debug/build/utoipa-swagger-ui-0f2a668fac73077c/out/embed.rs
+
+/Users/user/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/utoipa-swagger-ui-7.1.0/src/lib.rs:
+/Users/user/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/utoipa-swagger-ui-7.1.0/src/actix.rs:
+/Users/user/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/utoipa-swagger-ui-7.1.0/src/axum.rs:
+/Users/user/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/utoipa-swagger-ui-7.1.0/src/oauth.rs:
+/Users/user/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/utoipa-swagger-ui-7.1.0/src/rocket.rs:
+/Users/user/Desktop/kalvi/k12ERP/target/debug/build/utoipa-swagger-ui-0f2a668fac73077c/out/embed.rs:
+
+# env-dep:OUT_DIR=/Users/user/Desktop/kalvi/k12ERP/target/debug/build/utoipa-swagger-ui-0f2a668fac73077c/out

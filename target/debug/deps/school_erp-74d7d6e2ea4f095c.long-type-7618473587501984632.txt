@@ -1,0 +1,2 @@
+fn(ExtractServices, axum::Json<NewAnnouncement>) -> impl std::future::Future<Output = Result<axum::Json<JsonValue>, ServiceHttpError>> {broadcast}
+fn(ExtractServices, axum::Json<NewAnnouncement>) -> impl std::future::Future<Output = Result<axum::Json<JsonValue>, ServiceHttpError>> {broadcast}: Handler<_, _>

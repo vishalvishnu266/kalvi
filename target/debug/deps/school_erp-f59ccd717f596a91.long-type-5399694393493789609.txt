@@ -1,0 +1,2 @@
+fn(ExtractServices, axum::extract::Path<i64>, axum::Json<repositories::fees::NewStructureItem>) -> impl std::future::Future<Output = Result<axum::Json<FeeStructureItem>, ServiceHttpError>> {add_item}
+fn(ExtractServices, axum::extract::Path<i64>, axum::Json<repositories::fees::NewStructureItem>) -> impl std::future::Future<Output = Result<axum::Json<FeeStructureItem>, ServiceHttpError>> {add_item}: Handler<_, _>

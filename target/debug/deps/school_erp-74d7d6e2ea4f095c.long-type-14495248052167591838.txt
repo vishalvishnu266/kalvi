@@ -1,0 +1,2 @@
+fn(ExtractServices, axum::Json<NewPurchaseOrder>) -> impl std::future::Future<Output = Result<axum::Json<PurchaseOrder>, ServiceHttpError>> {create_po}
+fn(ExtractServices, axum::Json<NewPurchaseOrder>) -> impl std::future::Future<Output = Result<axum::Json<PurchaseOrder>, ServiceHttpError>> {create_po}: Handler<_, _>

@@ -1,0 +1,2 @@
+fn(ExtractServices, axum::extract::Path<i64>, axum::Json<NewStop>) -> impl std::future::Future<Output = Result<axum::Json<RouteStop>, ServiceHttpError>> {add_stop}
+fn(ExtractServices, axum::extract::Path<i64>, axum::Json<NewStop>) -> impl std::future::Future<Output = Result<axum::Json<RouteStop>, ServiceHttpError>> {add_stop}: Handler<_, _>

@@ -1,0 +1,2 @@
+fn(ExtractServices, axum::Json<NewEnrollment>) -> impl std::future::Future<Output = Result<axum::Json<Enrollment>, ServiceHttpError>> {enroll}
+fn(ExtractServices, axum::Json<NewEnrollment>) -> impl std::future::Future<Output = Result<axum::Json<Enrollment>, ServiceHttpError>> {enroll}: Handler<_, _>

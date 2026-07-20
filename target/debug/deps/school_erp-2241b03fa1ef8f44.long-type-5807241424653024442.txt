@@ -1,0 +1,2 @@
+fn(ExtractServices, axum::Json<NewSlot>) -> impl std::future::Future<Output = Result<axum::Json<TimetableSlot>, ServiceHttpError>> {set_slot}
+fn(ExtractServices, axum::Json<NewSlot>) -> impl std::future::Future<Output = Result<axum::Json<TimetableSlot>, ServiceHttpError>> {set_slot}: Handler<_, _>
