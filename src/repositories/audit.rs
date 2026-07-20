@@ -19,7 +19,7 @@ pub struct AuditEntry {
     pub created_at: NaiveDateTime,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewAudit {
     pub user_id: Option<i64>,
     pub entity: String,

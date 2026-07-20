@@ -71,7 +71,7 @@ pub struct RouteStop {
     pub fare_cents: i64,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewStop {
     pub name: String,
     pub stop_order: i64,

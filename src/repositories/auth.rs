@@ -23,7 +23,7 @@ pub struct User {
     pub created_at: NaiveDateTime,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewUser {
     pub username: String,
     pub email: Option<String>,

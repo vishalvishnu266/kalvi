@@ -20,7 +20,7 @@ pub struct StudentAttendance {
     pub marked_at: NaiveDateTime,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MarkStudent {
     pub student_id: i64,
     pub class_section_id: i64,
@@ -130,7 +130,7 @@ pub struct StaffAttendance {
     pub check_out: Option<NaiveTime>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MarkStaff {
     pub staff_id: i64,
     pub date: NaiveDate,

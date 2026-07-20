@@ -26,7 +26,7 @@ pub struct Document {
     pub uploaded_at: NaiveDateTime,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewDocument {
     pub owner_type: String,
     pub owner_id: i64,

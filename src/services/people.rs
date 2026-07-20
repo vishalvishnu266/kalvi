@@ -4,6 +4,7 @@
 use std::sync::Arc;
 
 use chrono::NaiveDate;
+use serde::{Deserialize, Serialize};
 
 use crate::repositories::Repositories;
 use crate::repositories::class_enrollment::NewEnrollment;
@@ -13,7 +14,7 @@ use crate::repositories::students::{NewStudent, Student};
 use crate::services::{ServiceError, ServiceResult};
 
 /// One-shot student admission input.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Admission {
     pub student: NewStudent,
     pub guardian: Option<(NewGuardian, String /* relationship */, bool /* primary */)>,
@@ -24,7 +25,7 @@ pub struct Admission {
     pub enrolled_on: Option<NaiveDate>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AdmissionResult {
     pub student: Student,
     pub guardian_id: Option<i64>,

@@ -99,7 +99,7 @@ pub struct Room {
     pub kind: Option<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewRoom {
     pub name: String,
     pub capacity: Option<i64>,
@@ -150,7 +150,7 @@ pub struct Subject {
     pub is_elective: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewSubject {
     pub code: String,
     pub name: String,

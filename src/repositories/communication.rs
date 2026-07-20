@@ -20,7 +20,7 @@ pub struct Announcement {
     pub created_by_user_id: Option<i64>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewAnnouncement {
     pub title: String,
     pub body: String,
@@ -145,7 +145,7 @@ pub struct Notification {
     pub read_at: Option<NaiveDateTime>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewNotification {
     pub user_id: i64,
     pub title: String,

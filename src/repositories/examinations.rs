@@ -76,7 +76,7 @@ pub struct Exam {
     pub grading_scale_id: Option<i64>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewExam {
     pub term_id: i64,
     pub name: String,
@@ -129,7 +129,7 @@ pub struct ExamSchedule {
     pub room_id: Option<i64>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewSchedule {
     pub exam_id: i64,
     pub class_section_id: i64,
@@ -200,7 +200,7 @@ pub struct ExamResult {
     pub entered_at: NaiveDateTime,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EnterResult {
     pub exam_schedule_id: i64,
     pub student_id: i64,

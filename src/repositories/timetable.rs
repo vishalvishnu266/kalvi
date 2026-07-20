@@ -17,7 +17,7 @@ pub struct Period {
     pub is_break: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewPeriod {
     pub name: String,
     pub start_time: NaiveTime,
@@ -68,7 +68,7 @@ pub struct TimetableSlot {
     pub period_id: i64,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewSlot {
     pub class_section_id: i64,
     pub subject_id: Option<i64>,

@@ -18,7 +18,7 @@ pub struct DisciplineIncident {
     pub created_at: NaiveDateTime,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewIncident {
     pub student_id: i64,
     pub date: NaiveDate,

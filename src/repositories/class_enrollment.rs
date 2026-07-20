@@ -19,7 +19,7 @@ pub struct ClassSection {
     pub capacity: Option<i64>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewClassSection {
     pub academic_year_id: i64,
     pub grade_id: i64,
@@ -149,7 +149,7 @@ pub struct Enrollment {
     pub result: Option<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewEnrollment {
     pub student_id: i64,
     pub class_section_id: i64,

@@ -59,7 +59,7 @@ pub struct FeeStructureItem {
     pub due_day: Option<i64>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewStructureItem {
     pub fee_category_id: i64,
     pub amount_cents: i64,
@@ -282,7 +282,7 @@ pub struct FeePayment {
     pub created_at: NaiveDateTime,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewPayment {
     pub receipt_no: String,
     pub invoice_id: i64,

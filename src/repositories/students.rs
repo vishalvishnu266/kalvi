@@ -32,7 +32,7 @@ pub struct Student {
     pub updated_at: NaiveDateTime,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewStudent {
     pub admission_no: String,
     pub user_id: Option<i64>,
@@ -54,7 +54,7 @@ pub struct NewStudent {
     pub country: Option<String>,
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct UpdateStudent {
     pub first_name: Option<String>,
     pub middle_name: Option<String>,

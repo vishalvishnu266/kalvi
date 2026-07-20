@@ -19,7 +19,7 @@ pub struct Guardian {
     pub created_at: NaiveDateTime,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewGuardian {
     pub user_id: Option<i64>,
     pub first_name: String,

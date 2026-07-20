@@ -118,7 +118,7 @@ pub struct AcademicYear {
     pub is_current: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewAcademicYear {
     pub name: String,
     pub start_date: NaiveDate,
@@ -226,7 +226,7 @@ pub struct Term {
     pub end_date: NaiveDate,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewTerm {
     pub academic_year_id: i64,
     pub name: String,

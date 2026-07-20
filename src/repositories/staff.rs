@@ -28,7 +28,7 @@ pub struct Staff {
     pub updated_at: NaiveDateTime,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewStaff {
     pub employee_no: String,
     pub user_id: Option<i64>,
@@ -45,7 +45,7 @@ pub struct NewStaff {
     pub photo_path: Option<String>,
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct UpdateStaff {
     pub department_id: Option<Option<i64>>,
     pub first_name: Option<String>,

@@ -20,7 +20,7 @@ pub struct Book {
     pub available: i64,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewBook {
     pub isbn: Option<String>,
     pub title: String,
@@ -97,7 +97,7 @@ pub struct BookIssue {
     pub fine_cents: i64,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IssueBook {
     pub book_id: i64,
     pub student_id: Option<i64>,

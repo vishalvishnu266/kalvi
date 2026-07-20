@@ -56,7 +56,7 @@ pub struct SalaryStructureItem {
     pub amount_cents: i64,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewStructureItem {
     pub component_id: i64,
     pub amount_cents: i64,

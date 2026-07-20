@@ -109,7 +109,7 @@ pub struct StockMovement {
     pub moved_on: NaiveDateTime,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewMovement {
     pub item_id: i64,
     pub movement: String,
@@ -187,7 +187,7 @@ pub struct PurchaseOrder {
     pub notes: Option<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewPurchaseOrder {
     pub po_no: String,
     pub vendor_id: i64,
@@ -197,7 +197,7 @@ pub struct NewPurchaseOrder {
     pub lines: Vec<POLine>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct POLine {
     pub item_id: i64,
     pub quantity: i64,

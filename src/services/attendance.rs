@@ -4,12 +4,13 @@
 use std::sync::Arc;
 
 use chrono::NaiveDate;
+use serde::{Deserialize, Serialize};
 
 use crate::repositories::Repositories;
 use crate::repositories::attendance::{MarkStudent, StudentAttendance};
 use crate::services::{ServiceError, ServiceResult};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BulkMark {
     pub student_id: i64,
     pub status: String,
