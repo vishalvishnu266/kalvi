@@ -1,2 +1,0 @@
-fn(ExtractServices, axum::Json<NewBook>) -> impl std::future::Future<Output = Result<axum::Json<Book>, ServiceHttpError>> {create_book}
-fn(ExtractServices, axum::Json<NewBook>) -> impl std::future::Future<Output = Result<axum::Json<Book>, ServiceHttpError>> {create_book}: Handler<_, _>

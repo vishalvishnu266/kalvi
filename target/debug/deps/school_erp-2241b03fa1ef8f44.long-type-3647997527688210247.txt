@@ -1,2 +1,0 @@
-fn(ExtractServices, axum::Json<NewExam>) -> impl std::future::Future<Output = Result<axum::Json<Exam>, ServiceHttpError>> {create_exam}
-fn(ExtractServices, axum::Json<NewExam>) -> impl std::future::Future<Output = Result<axum::Json<Exam>, ServiceHttpError>> {create_exam}: Handler<_, _>

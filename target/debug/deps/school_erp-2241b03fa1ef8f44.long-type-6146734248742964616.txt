@@ -1,2 +1,0 @@
-fn(ExtractServices, axum::extract::Path<i64>, axum::Json<NewSchedule>) -> impl std::future::Future<Output = Result<axum::Json<ExamSchedule>, ServiceHttpError>> {schedule}
-fn(ExtractServices, axum::extract::Path<i64>, axum::Json<NewSchedule>) -> impl std::future::Future<Output = Result<axum::Json<ExamSchedule>, ServiceHttpError>> {schedule}: Handler<_, _>

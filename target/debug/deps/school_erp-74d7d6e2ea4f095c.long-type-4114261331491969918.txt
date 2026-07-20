@@ -1,2 +1,0 @@
-fn(ExtractServices, axum::Json<NewPayment>) -> impl std::future::Future<Output = Result<axum::Json<FeePayment>, ServiceHttpError>> {record_payment}
-fn(ExtractServices, axum::Json<NewPayment>) -> impl std::future::Future<Output = Result<axum::Json<FeePayment>, ServiceHttpError>> {record_payment}: Handler<_, _>

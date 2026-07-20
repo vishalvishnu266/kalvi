@@ -1,2 +1,0 @@
-fn(ExtractServices, axum::Json<NewGuardian>) -> impl std::future::Future<Output = Result<axum::Json<Guardian>, ServiceHttpError>> {api::guardians::create}
-fn(ExtractServices, axum::Json<NewGuardian>) -> impl std::future::Future<Output = Result<axum::Json<Guardian>, ServiceHttpError>> {api::guardians::create}: Handler<_, _>

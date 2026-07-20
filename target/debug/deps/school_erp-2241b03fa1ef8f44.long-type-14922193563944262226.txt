@@ -1,2 +1,0 @@
-fn(ExtractServices, axum::Json<NewAcademicYear>) -> impl std::future::Future<Output = Result<axum::Json<AcademicYear>, ServiceHttpError>> {create_year}
-fn(ExtractServices, axum::Json<NewAcademicYear>) -> impl std::future::Future<Output = Result<axum::Json<AcademicYear>, ServiceHttpError>> {create_year}: Handler<_, _>

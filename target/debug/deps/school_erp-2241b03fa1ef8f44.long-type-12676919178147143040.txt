@@ -1,2 +1,0 @@
-fn(ExtractServices, axum::Json<NewClassSection>) -> impl std::future::Future<Output = Result<axum::Json<ClassSection>, ServiceHttpError>> {create_class_section}
-fn(ExtractServices, axum::Json<NewClassSection>) -> impl std::future::Future<Output = Result<axum::Json<ClassSection>, ServiceHttpError>> {create_class_section}: Handler<_, _>

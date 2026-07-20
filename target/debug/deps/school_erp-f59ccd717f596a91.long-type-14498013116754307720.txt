@@ -1,2 +1,0 @@
-api::attendance::_::<impl Deserialize<'de> for MarkClassBody>::deserialize::__Field
-api::attendance::_::<impl Deserialize<'de> for api::attendance::Range>::deserialize::__Field

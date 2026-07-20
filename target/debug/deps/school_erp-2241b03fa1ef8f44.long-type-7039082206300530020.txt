@@ -1,2 +1,0 @@
-fn(ExtractServices, axum::Json<NewPeriod>) -> impl std::future::Future<Output = Result<axum::Json<Period>, ServiceHttpError>> {create_period}
-fn(ExtractServices, axum::Json<NewPeriod>) -> impl std::future::Future<Output = Result<axum::Json<Period>, ServiceHttpError>> {create_period}: Handler<_, _>

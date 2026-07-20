@@ -1,2 +1,0 @@
-fn(ExtractServices, axum::extract::Path<i64>, axum::Json<UpdateStudent>) -> impl std::future::Future<Output = Result<axum::Json<Student>, ServiceHttpError>> {update_student}
-fn(ExtractServices, axum::extract::Path<i64>, axum::Json<UpdateStudent>) -> impl std::future::Future<Output = Result<axum::Json<Student>, ServiceHttpError>> {update_student}: Handler<_, _>
