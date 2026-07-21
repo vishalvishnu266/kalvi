@@ -10,7 +10,7 @@ use serde::Deserialize;
 use crate::http::{ExtractServices, ServiceHttpError};
 use crate::http::middleware::TenantScopeState;
 use crate::repositories::staff::{NewStaff, Staff, UpdateStaff};
-use crate::repositories::students::{NewStudent, Student, UpdateStudent};
+use crate::repositories::students::{Student, UpdateStudent};
 use crate::services::people::{Admission, AdmissionResult};
 
 pub fn routes() -> Router<TenantScopeState> {

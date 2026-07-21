@@ -5,7 +5,7 @@ use std::sync::Arc;
 use crate::repositories::Repositories;
 use crate::repositories::audit::NewAudit;
 use crate::repositories::documents::{Document, NewDocument};
-use crate::services::{ServiceError, ServiceResult};
+use crate::services::ServiceResult;
 
 #[derive(Clone)]
 pub struct DocumentService {

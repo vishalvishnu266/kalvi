@@ -19,7 +19,7 @@ use rust_embed::RustEmbed;
 struct Static;
 
 pub fn routes() -> Router {
-    Router::new().route("/assets/{*path}", get(serve))
+    Router::new().route("/assets/*path", get(serve))
 }
 
 async fn serve(Path(path): Path<String>) -> Response {

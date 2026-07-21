@@ -9,7 +9,6 @@ use serde::Deserialize;
 use crate::http::{ExtractServices, ExtractTenant, ServiceHttpError};
 use crate::http::middleware::TenantScopeState;
 use crate::repositories::auth::User;
-use crate::tenancy::TenantId;
 
 pub fn routes() -> Router<TenantScopeState> {
     Router::new()

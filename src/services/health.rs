@@ -8,7 +8,7 @@ use chrono::NaiveDate;
 
 use crate::repositories::Repositories;
 use crate::repositories::health::HealthRecord;
-use crate::services::{ServiceError, ServiceResult};
+use crate::services::ServiceResult;
 
 #[derive(Debug, Clone)]
 pub struct BmiSnapshot {
