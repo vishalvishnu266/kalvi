@@ -8,6 +8,20 @@
 //!
 //! Repositories are still exposed via [`AppServices::repos`] so callers can
 //! do simple reads directly.
+//!
+//! ## Request context
+//!
+//! [`AppServices`] is **tenant-scoped and cached** by the tenant registry;
+//! per-request state (current user, roles, request id, trace id, actor kind)
+//! lives in a separate [`RequestCtx`] value that is built per request by
+//! HTTP middleware (or manually by background jobs / CLI / tests) and passed
+//! as a parameter to any service method that needs to know *who* is doing
+//! *what* and *from where*.
+//!
+//! This keeps `AppServices` immutable and shareable across concurrent
+//! requests while still giving service methods a first-class way to see the
+//! caller. Adoption is incremental — start by threading `&RequestCtx` into
+//! new methods and into ones that need auditing, authorization or tracing.
 
 use std::sync::Arc;
 
@@ -16,6 +30,10 @@ use thiserror::Error;
 
 use crate::error::RepoError;
 use crate::repositories::Repositories;
+
+pub use context::{Actor, RequestCtx};
+
+pub mod context;
 
 pub mod academic;
 pub mod attendance;

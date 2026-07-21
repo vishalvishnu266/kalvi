@@ -16,8 +16,19 @@ use axum::{
     response::Response,
 };
 
-use crate::services::AppServices;
+use crate::services::{Actor, AppServices, RequestCtx};
 use crate::tenancy::{TenantError, TenantId, TenantRegistry};
+
+/// Header consulted for a correlation id. If absent, a fresh id is generated.
+const REQUEST_ID_HEADER: &str = "x-request-id";
+/// Header consulted for a W3C-style trace id, if any.
+const TRACEPARENT_HEADER: &str = "traceparent";
+/// Header consulted for the authenticated user id. In a real deployment the
+/// user id would be derived from a verified JWT / session cookie by a
+/// dedicated auth layer that runs *before* `tenant_scope`; keeping this as a
+/// header keeps the middleware focused on wiring and avoids coupling it to
+/// any particular auth scheme.
+const USER_ID_HEADER: &str = "x-user-id";
 
 /// Where in the request to read the tenant id from.
 #[derive(Debug, Clone)]
@@ -108,9 +119,55 @@ pub async fn tenant_scope(
         .await
         .map_err(tenant_error_to_http)?;
 
+    // Build the per-request context. Extracted first because we consume
+    // header values before moving `tenant` into the extensions.
+    let ctx = build_request_ctx(&req, tenant.clone());
+
     req.extensions_mut().insert::<TenantId>(tenant);
     req.extensions_mut().insert::<AppServices>(services);
+    req.extensions_mut().insert::<RequestCtx>(ctx);
     Ok(next.run(req).await)
+}
+
+/// Build a [`RequestCtx`] from the incoming request headers.
+///
+/// * `x-request-id` is honored if present; otherwise a fresh id is minted so
+///   every request is correlatable in logs.
+/// * `traceparent` is captured verbatim when present.
+/// * `x-user-id` (numeric) marks the caller as [`Actor::User`]; anything
+///   else — missing, malformed, or empty — falls back to [`Actor::Anonymous`],
+///   which lets unauthenticated endpoints (e.g. login, health) still get a
+///   valid ctx.
+///
+/// Real authentication should replace the `x-user-id` shortcut with a
+/// dedicated auth middleware that verifies a token and populates the ctx
+/// (including `permissions`) before `tenant_scope`, or right after it.
+fn build_request_ctx(req: &Request<Body>, tenant: TenantId) -> RequestCtx {
+    let headers = req.headers();
+
+    let request_id = headers.get(REQUEST_ID_HEADER)
+        .and_then(|v| v.to_str().ok())
+        .map(str::to_string)
+        .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+
+    let trace_id = headers.get(TRACEPARENT_HEADER)
+        .and_then(|v| v.to_str().ok())
+        .map(str::to_string);
+
+    let actor = headers.get(USER_ID_HEADER)
+        .and_then(|v| v.to_str().ok())
+        .and_then(|s| s.parse::<i64>().ok())
+        .map(|user_id| Actor::User { user_id })
+        .unwrap_or(Actor::Anonymous);
+
+    RequestCtx {
+        tenant,
+        actor,
+        request_id,
+        trace_id,
+        permissions: std::sync::Arc::new(Vec::new()),
+        remote_ip: None,
+    }
 }
 
 fn tenant_error_to_http(e: TenantError) -> (StatusCode, String) {

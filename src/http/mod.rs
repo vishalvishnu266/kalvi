@@ -16,6 +16,6 @@ pub mod extractors;
 pub mod middleware;
 pub mod error;
 
-pub use extractors::{ExtractServices, ExtractTenant};
+pub use extractors::{ExtractCtx, ExtractServices, ExtractTenant};
 pub use middleware::tenant_scope;
 pub use error::ServiceHttpError;

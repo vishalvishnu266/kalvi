@@ -29,6 +29,6 @@ pub mod tracing_layer;
 
 pub use api::{build_router, AppState};
 pub use error::RepoError;
-pub use services::{AppServices, ServiceError, ServiceResult};
+pub use services::{Actor, AppServices, RequestCtx, ServiceError, ServiceResult};
 pub use system::{connect_system, migrate_system, DbTenantGuard, SystemRegistry};
 pub use tenancy::{TenantId, TenantRegistry, TenantRegistryConfig};

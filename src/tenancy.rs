@@ -11,10 +11,30 @@
 //! * A [`TenantRegistry`] lazily builds a [`sqlx::SqlitePool`] the first time
 //!   a tenant is seen, runs migrations if configured to, and caches it for
 //!   the lifetime of the process.
+//! * Alongside the pool, the registry also caches a fully-wired
+//!   [`AppServices`] per tenant. The `AppServices` bundle (all repositories +
+//!   17 domain services) is therefore built **exactly once per tenant**, not
+//!   once per request. Cache hits on either [`TenantRegistry::pool_for`] or
+//!   [`TenantRegistry::services_for`] cost a `HashMap` lookup plus a handful
+//!   of `Arc::clone`s.
+//!
+//! ## Concurrency
+//!
+//! The cache is guarded by a [`tokio::sync::RwLock`]:
+//!
+//! * Steady-state (tenant already provisioned) requests take only the **read
+//!   lock**, so many concurrent requests for the same tenant can resolve
+//!   their `AppServices` in parallel without contention.
+//! * The write lock is taken only on the first cache miss for a tenant,
+//!   with a double-checked insert to keep concurrent misses safe.
+//! * Multiple concurrent requests for the same tenant share the same
+//!   `SqlitePool` (bounded by `max_connections`) and the same
+//!   `AppServices` instance.
 //!
 //! Repos and services remain **completely unaware** of tenancy — the tenant
-//! is resolved once per request by middleware and an [`AppServices`] is
-//! constructed against the tenant's pool.
+//! is resolved once per request by middleware, which pulls the cached
+//! [`AppServices`] out of the registry and stores it in the request
+//! extensions for extractors to read.
 //!
 //! [`AppServices`]: crate::services::AppServices
 
@@ -171,7 +191,17 @@ impl TenantRegistryConfig {
     }
 }
 
-/// Thread-safe cache of one `SqlitePool` per tenant.
+/// A cached entry per tenant: the connection pool **and** the fully-wired
+/// [`AppServices`] built on top of it. Both are cheap to clone (each holds
+/// its state behind `Arc`), so cache hits are effectively a handful of
+/// `Arc::clone`s.
+#[derive(Clone)]
+struct TenantEntry {
+    pool: SqlitePool,
+    services: AppServices,
+}
+
+/// Thread-safe cache of one `SqlitePool` + [`AppServices`] per tenant.
 ///
 /// `Clone` is cheap — everything is behind `Arc`s.
 #[derive(Clone)]
@@ -179,7 +209,7 @@ pub struct TenantRegistry {
     resolver: Arc<dyn TenantResolver>,
     guard: Arc<dyn TenantGuard>,
     auto_migrate: bool,
-    pools: Arc<RwLock<HashMap<TenantId, SqlitePool>>>,
+    entries: Arc<RwLock<HashMap<TenantId, TenantEntry>>>,
 }
 
 impl TenantRegistry {
@@ -188,7 +218,7 @@ impl TenantRegistry {
             resolver: cfg.resolver,
             guard: cfg.guard,
             auto_migrate: cfg.auto_migrate,
-            pools: Arc::new(RwLock::new(HashMap::new())),
+            entries: Arc::new(RwLock::new(HashMap::new())),
         }
     }
 
@@ -196,67 +226,88 @@ impl TenantRegistry {
     /// The guard is consulted **before** the cache miss so unauthorized
     /// tenants never allocate resources.
     pub async fn pool_for(&self, tenant: &TenantId) -> Result<SqlitePool, TenantError> {
+        Ok(self.entry_for(tenant).await?.pool)
+    }
+
+    /// Convenience: return a fully-wired [`AppServices`] for the tenant.
+    ///
+    /// The `AppServices` is built **once per tenant** and cached alongside
+    /// the pool; subsequent calls just clone the cached bundle
+    /// (a few `Arc::clone`s), avoiding the per-request cost of
+    /// reconstructing every service.
+    pub async fn services_for(&self, tenant: &TenantId) -> Result<AppServices, TenantError> {
+        Ok(self.entry_for(tenant).await?.services)
+    }
+
+    /// Get (or lazily create) the cached `(pool, services)` entry for a tenant.
+    /// Applies the guard first, then a read-locked fast path, then a
+    /// write-locked slow path with double-checked insert.
+    async fn entry_for(&self, tenant: &TenantId) -> Result<TenantEntry, TenantError> {
         // Guard first (cheap: usually an in-memory check).
         self.guard.admit(tenant).await?;
 
         // Fast path — read lock.
-        if let Some(p) = self.pools.read().await.get(tenant).cloned() {
-            return Ok(p);
+        if let Some(e) = self.entries.read().await.get(tenant).cloned() {
+            return Ok(e);
         }
 
         // Slow path — write lock, double-check, then create.
-        let mut guard = self.pools.write().await;
-        if let Some(p) = guard.get(tenant).cloned() {
-            return Ok(p);
+        let mut guard = self.entries.write().await;
+        if let Some(e) = guard.get(tenant).cloned() {
+            return Ok(e);
         }
         let url = self.resolver.db_url(tenant);
         let pool = db::connect(&url).await.map_err(TenantError::from)?;
         if self.auto_migrate {
             db::migrate(&pool).await.map_err(TenantError::from)?;
         }
-        guard.insert(tenant.clone(), pool.clone());
-        Ok(pool)
-    }
-
-    /// Convenience: return a fully-wired [`AppServices`] for the tenant.
-    pub async fn services_for(&self, tenant: &TenantId) -> Result<AppServices, TenantError> {
-        let pool = self.pool_for(tenant).await?;
-        Ok(AppServices::new(pool))
+        let entry = TenantEntry {
+            services: AppServices::new(pool.clone()),
+            pool,
+        };
+        guard.insert(tenant.clone(), entry.clone());
+        Ok(entry)
     }
 
     /// Provision a brand-new tenant (open + migrate once).
     /// Call this from your control-plane endpoint / CLI.
     pub async fn provision(&self, tenant: TenantId) -> RepoResult<()> {
         // Note: bypass the guard here — provisioning is what *adds* the tenant.
-        if let Some(p) = self.pools.read().await.get(&tenant).cloned() {
-            drop(p);
+        if self.entries.read().await.contains_key(&tenant) {
             return Ok(());
         }
         let url = self.resolver.db_url(&tenant);
         let pool = db::connect(&url).await?;
         db::migrate(&pool).await?;
-        self.pools.write().await.insert(tenant, pool);
+        let entry = TenantEntry {
+            services: AppServices::new(pool.clone()),
+            pool,
+        };
+        // Double-check under the write lock in case another task raced us.
+        let mut guard = self.entries.write().await;
+        guard.entry(tenant).or_insert(entry);
         Ok(())
     }
 
-    /// Evict a tenant pool (e.g. on deactivation). Closes the pool.
+    /// Evict a tenant's cached pool + services (e.g. on deactivation).
+    /// Closes the underlying pool.
     pub async fn evict(&self, tenant: &TenantId) {
-        if let Some(pool) = self.pools.write().await.remove(tenant) {
-            pool.close().await;
+        if let Some(entry) = self.entries.write().await.remove(tenant) {
+            entry.pool.close().await;
         }
     }
 
     /// Close every cached pool. Call on graceful shutdown.
     pub async fn shutdown(&self) {
-        let mut guard = self.pools.write().await;
-        for (_, pool) in guard.drain() {
-            pool.close().await;
+        let mut guard = self.entries.write().await;
+        for (_, entry) in guard.drain() {
+            entry.pool.close().await;
         }
     }
 
     /// Ids of tenants currently cached.
     pub async fn active_tenants(&self) -> Vec<TenantId> {
-        self.pools.read().await.keys().cloned().collect()
+        self.entries.read().await.keys().cloned().collect()
     }
 }
 
