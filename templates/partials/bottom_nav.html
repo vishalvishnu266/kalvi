@@ -6,7 +6,7 @@
     {% for item in nav_items %}
       {% if item.mobile %}
       <li>
-        <a href="/{{ nav.tenant_id }}/{{ item.href }}" data-turbo-frame="page"
+        <a href="/web/{{ nav.tenant_id }}/{{ item.href }}" data-turbo-frame="page"
            class="flex flex-col items-center justify-center gap-1 h-16
                   {% if nav.active == item.key %}
                     text-brand-600 dark:text-brand-400

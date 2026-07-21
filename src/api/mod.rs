@@ -1,12 +1,16 @@
 //! REST API layer.
 //!
-//! All routes are mounted under `/api/`:
+//! Route layout:
 //!
-//! * `/api/admin/tenants/*`      — control-plane, uses the **system DB** only.
-//! * `/api/tenant/{tenant}/*`    — per-tenant business API. The tenant id
-//!   travels as a path parameter (e.g. `/api/tenant/acme/people/students`),
-//!   which is bookmarkable, log-friendly, and unambiguous. A per-tenant
+//! * `/admin/api/tenants/*`     — control-plane, uses the **system DB** only.
+//! * `/api/{tenant}/*`          — per-tenant business API. The tenant id
+//!   travels as a path parameter (e.g. `/api/acme/people/students`), which
+//!   is bookmarkable, log-friendly, and unambiguous. A per-tenant
 //!   [`AppServices`] is built lazily against that tenant's DB.
+//! * `/api/health`, `/api/live`, `/api/ready` — process health probes.
+//!
+//! The web UI is mounted separately by [`crate::web::build_web_router`]
+//! under `/`, `/web/login`, `/web/{tenant}/…`.
 
 use axum::{Router, routing::get};
 use tower::ServiceBuilder;
@@ -48,21 +52,24 @@ pub struct AppState {
     pub tenants: TenantRegistry,
 }
 
-/// Build the full application router (all routes live under `/api/`).
-/// The `readiness` handle is exposed via `/api/live` and `/api/ready`; flip
-/// it to `false` when shutdown starts.
+/// Build the full application router.
 ///
-/// The `source` parameter is retained for backwards compatibility with
-/// legacy header/subdomain-based deployments but the built-in API subtree
-/// mounts the tenant as a path parameter under `/api/tenant/{tenant}/*` and
-/// always uses [`TenantSource::path_param("tenant")`] internally.
+/// Mounts:
+/// * `/admin/api/*`      — tenant control-plane (system DB only)
+/// * `/api/{tenant}/*`   — per-tenant business API (path-based tenant routing)
+/// * `/api/health`, `/api/live`, `/api/ready` — health probes
+/// * `/` and `/web/*`    — server-rendered web UI (login, dashboard, …)
+///
+/// The `_source` parameter is retained for backwards compatibility. The
+/// built-in tenant subtree always uses [`TenantSource::path_param("tenant")`]
+/// internally, i.e. tenant DB routing is entirely path-based.
 pub fn build_router(
     state: AppState,
     _source: TenantSource,
     readiness: crate::health_probes::Readiness,
 ) -> Router {
     // Tenant-scoped subtree. Tenant id comes from the `{tenant}` path
-    // parameter captured by the `.nest("/api/tenant/{tenant}", ...)` below.
+    // parameter captured by the `.nest("/api/{tenant}", ...)` below.
     let tenant_state = TenantScopeState::new(state.tenants.clone())
         .with_source(TenantSource::path_param("tenant"));
     let tenant_routes = Router::new()
@@ -104,11 +111,17 @@ pub fn build_router(
     Router::new()
         .route("/api/health", get(|| async { "ok" }))
         .merge(crate::health_probes::router(readiness))
-        .nest("/api/admin",   admin::routes(state.clone()))
-        .nest("/api/tenant/{tenant}",  tenant_routes)
-        // .merge(openapi::swagger_router())
-        // Server-rendered web UI (Hotwire + Askama) mounted at "/".
-        // Kept last so all `/api/*`, `/live`, `/ready` routes take priority.
+        // Control-plane (system DB only) lives under /admin/api/*.
+        .nest("/admin/api",   admin::routes(state.clone()))
+        // Per-tenant business API lives under /api/{tenant}/*.
+        .nest("/api/{tenant}",  tenant_routes)
+        // Server-rendered web UI (Hotwire + Askama). Mounts:
+        //   GET  /               → SaaS landing page (or redirect if signed in)
+        //   GET  /web/login      → global login
+        //   GET  /web/{tenant}/login → tenant-scoped login
+        //   POST /web/login      → submit login
+        //   POST /web/logout     → sign out
+        //   /web/{tenant}/…      → authenticated app shell
         .merge(crate::web::build_web_router(state.tenants.clone()))
         .layer(observability)
 }

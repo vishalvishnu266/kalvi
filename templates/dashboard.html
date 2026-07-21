@@ -3,129 +3,131 @@
 {% block content %}
 
 <!-- Greeting -->
-<div class="mb-6 flex items-end justify-between gap-4">
-  <div>
-    <h2 class="text-2xl font-semibold tracking-tight">Good afternoon, {{ nav.user_display }}</h2>
-    <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-      Here's what's happening at your school today.
-    </p>
-  </div>
-  <div class="hidden sm:flex items-center gap-2">
-    <button class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm
-                   bg-white border border-zinc-200 hover:bg-zinc-50 shadow-sm
-                   dark:bg-zinc-900 dark:border-zinc-800 dark:hover:bg-zinc-800">
-      <i data-lucide="download" class="w-4 h-4 text-zinc-500"></i> Export
-    </button>
-    <button class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm text-white
-                   bg-brand-600 hover:bg-brand-700 shadow-sm shadow-brand-600/20">
-      <i data-lucide="plus" class="w-4 h-4"></i> New admission
-    </button>
+<div class="mb-8 text-center sm:text-left">
+  <h2 class="text-2xl sm:text-3xl font-semibold tracking-tight">
+    Welcome, <span class="bg-gradient-to-r from-brand-600 to-indigo-500 bg-clip-text text-transparent">{{ nav.user_display }}</span>
+  </h2>
+  <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+    Pick a module to get started · Tenant · <span class="font-medium text-zinc-700 dark:text-zinc-300">{{ nav.tenant_id }}</span>
+  </p>
+</div>
+
+<!-- Spotlight-style search bar -->
+<div class="max-w-xl mx-auto mb-8">
+  <div class="relative">
+    <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-3.5 text-zinc-400 pointer-events-none"></i>
+    <input id="menu-search"
+           type="search"
+           autocomplete="off"
+           spellcheck="false"
+           placeholder="Search apps… (⌘K)"
+           class="w-full pl-10 pr-10 py-3 rounded-2xl text-sm
+                  bg-white/70 backdrop-blur border border-zinc-200 shadow-sm
+                  focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-none
+                  dark:bg-zinc-900/70 dark:border-zinc-800 dark:focus:border-brand-500" />
+    <kbd id="menu-search-hint"
+         class="absolute right-3 top-2.5 text-[10px] px-1.5 py-0.5 rounded-md
+                bg-zinc-100 text-zinc-500 border border-zinc-200
+                dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700">⌘K</kbd>
   </div>
 </div>
 
-<!-- KPI cards -->
-<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-  {% for k in kpis %}
-  <div class="p-4 rounded-2xl bg-white border border-zinc-200 shadow-hairline
-              dark:bg-zinc-900 dark:border-zinc-800">
-    <div class="flex items-start justify-between">
-      <div>
-        <div class="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">{{ k.label }}</div>
-        <div class="mt-1 text-2xl font-semibold tracking-tight">{{ k.value }}</div>
-      </div>
-      <div class="w-10 h-10 rounded-xl flex items-center justify-center {{ k.chip_class }}">
-        <i data-lucide="{{ k.icon }}" class="w-5 h-5"></i>
-      </div>
+<!-- OS-style launcher grid -->
+<div id="menu-grid"
+     class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-4 sm:gap-6">
+  {% for t in tiles %}
+  <a href="/web/{{ nav.tenant_id }}/{{ t.href }}"
+     data-turbo-frame="page"
+     data-menu-tile
+     data-label="{{ t.label|lower }}"
+     data-description="{{ t.description|lower }}"
+     data-href="{{ t.href|lower }}"
+     class="menu-tile group flex flex-col items-center gap-2 select-none">
+
+    <!-- Icon tile: rounded-square with vivid gradient, subtle shadow, hover pop -->
+    <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl sm:rounded-3xl
+                bg-gradient-to-br {{ t.gradient }}
+                shadow-lg shadow-black/10 dark:shadow-black/40
+                flex items-center justify-center text-white
+                transition-transform duration-150 ease-out
+                group-hover:-translate-y-1 group-hover:shadow-xl
+                group-active:scale-95
+                ring-1 ring-black/5 dark:ring-white/5">
+      <i data-lucide="{{ t.icon }}" class="w-7 h-7 sm:w-9 sm:h-9 drop-shadow"></i>
     </div>
-    <div class="mt-3 text-xs {{ k.delta_class }}">
-      {{ k.delta }}
+
+    <!-- Label -->
+    <div class="text-xs sm:text-sm font-medium text-zinc-800 dark:text-zinc-200 text-center leading-tight">
+      {{ t.label }}
     </div>
-  </div>
+
+    <!-- Description: hidden by default, shown on hover on desktop -->
+    <div class="hidden sm:block text-[10px] text-zinc-500 dark:text-zinc-400 text-center leading-tight
+                opacity-0 group-hover:opacity-100 transition-opacity duration-150 -mt-1">
+      {{ t.description }}
+    </div>
+  </a>
   {% endfor %}
 </div>
 
-<!-- Two column: activity + quick actions -->
-<div class="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
-  <div class="lg:col-span-2 p-4 rounded-2xl bg-white border border-zinc-200 shadow-hairline
-              dark:bg-zinc-900 dark:border-zinc-800">
-    <div class="flex items-center justify-between mb-4">
-      <h3 class="text-sm font-semibold">Recent activity</h3>
-      <a href="#" class="text-xs text-brand-600 dark:text-brand-400 hover:underline">View all</a>
-    </div>
-    <ul class="divide-y divide-zinc-100 dark:divide-zinc-800 -mx-2">
-      <li class="flex items-center gap-3 px-2 py-3">
-        <div class="w-9 h-9 rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 flex items-center justify-center">
-          <i data-lucide="user-plus" class="w-4 h-4"></i>
-        </div>
-        <div class="flex-1 min-w-0">
-          <div class="text-sm"><b>Aarav Sharma</b> admitted to Grade 8-A</div>
-          <div class="text-xs text-zinc-500 dark:text-zinc-400">2 minutes ago · by Admin</div>
-        </div>
-        <span class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">Admission</span>
-      </li>
-      <li class="flex items-center gap-3 px-2 py-3">
-        <div class="w-9 h-9 rounded-full bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-400 flex items-center justify-center">
-          <i data-lucide="banknote" class="w-4 h-4"></i>
-        </div>
-        <div class="flex-1 min-w-0">
-          <div class="text-sm">Fee payment received · <b>$1,200</b> from Diya Patel</div>
-          <div class="text-xs text-zinc-500 dark:text-zinc-400">18 minutes ago · Q3 Tuition</div>
-        </div>
-        <span class="text-[11px] px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">Payment</span>
-      </li>
-      <li class="flex items-center gap-3 px-2 py-3">
-        <div class="w-9 h-9 rounded-full bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400 flex items-center justify-center">
-          <i data-lucide="calendar-x" class="w-4 h-4"></i>
-        </div>
-        <div class="flex-1 min-w-0">
-          <div class="text-sm">3 students marked absent in Grade 10-B</div>
-          <div class="text-xs text-zinc-500 dark:text-zinc-400">1 hour ago · Attendance</div>
-        </div>
-        <span class="text-[11px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">Attendance</span>
-      </li>
-      <li class="flex items-center gap-3 px-2 py-3">
-        <div class="w-9 h-9 rounded-full bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 flex items-center justify-center">
-          <i data-lucide="alert-triangle" class="w-4 h-4"></i>
-        </div>
-        <div class="flex-1 min-w-0">
-          <div class="text-sm">4 invoices overdue in Grade 12</div>
-          <div class="text-xs text-zinc-500 dark:text-zinc-400">3 hours ago · Fees</div>
-        </div>
-        <span class="text-[11px] px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">Overdue</span>
-      </li>
-    </ul>
-  </div>
-
-  <div class="p-4 rounded-2xl bg-white border border-zinc-200 shadow-hairline
-              dark:bg-zinc-900 dark:border-zinc-800">
-    <h3 class="text-sm font-semibold mb-4">Quick actions</h3>
-    <div class="grid grid-cols-2 gap-2">
-      <a href="/{{ nav.tenant_id }}/students" class="group flex flex-col items-start gap-2 p-3 rounded-xl border border-zinc-200 hover:border-brand-300 hover:bg-brand-50/50 dark:border-zinc-800 dark:hover:bg-brand-500/5 dark:hover:border-brand-500/40">
-        <div class="w-8 h-8 rounded-lg bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400 flex items-center justify-center">
-          <i data-lucide="user-plus" class="w-4 h-4"></i>
-        </div>
-        <div class="text-sm font-medium">Admit student</div>
-      </a>
-      <a href="#" class="group flex flex-col items-start gap-2 p-3 rounded-xl border border-zinc-200 hover:border-emerald-300 hover:bg-emerald-50/50 dark:border-zinc-800 dark:hover:bg-emerald-500/5 dark:hover:border-emerald-500/40">
-        <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 flex items-center justify-center">
-          <i data-lucide="calendar-check" class="w-4 h-4"></i>
-        </div>
-        <div class="text-sm font-medium">Mark attendance</div>
-      </a>
-      <a href="#" class="group flex flex-col items-start gap-2 p-3 rounded-xl border border-zinc-200 hover:border-sky-300 hover:bg-sky-50/50 dark:border-zinc-800 dark:hover:bg-sky-500/5 dark:hover:border-sky-500/40">
-        <div class="w-8 h-8 rounded-lg bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-400 flex items-center justify-center">
-          <i data-lucide="receipt" class="w-4 h-4"></i>
-        </div>
-        <div class="text-sm font-medium">Collect fee</div>
-      </a>
-      <a href="#" class="group flex flex-col items-start gap-2 p-3 rounded-xl border border-zinc-200 hover:border-amber-300 hover:bg-amber-50/50 dark:border-zinc-800 dark:hover:bg-amber-500/5 dark:hover:border-amber-500/40">
-        <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400 flex items-center justify-center">
-          <i data-lucide="megaphone" class="w-4 h-4"></i>
-        </div>
-        <div class="text-sm font-medium">Announce</div>
-      </a>
-    </div>
-  </div>
+<!-- Empty state (shown by the search JS when nothing matches) -->
+<div id="menu-empty" class="hidden mt-10 text-center text-sm text-zinc-500 dark:text-zinc-400">
+  <i data-lucide="search-x" class="w-5 h-5 mx-auto mb-2 text-zinc-400"></i>
+  No apps match your search.
 </div>
+
+<!-- Bottom hint -->
+<div class="mt-10 flex items-center justify-center gap-2 text-xs text-zinc-400 dark:text-zinc-500">
+  <i data-lucide="keyboard" class="w-3.5 h-3.5"></i>
+  <span>Tip · Press <kbd class="px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700">⌘K</kbd> to focus search · <kbd class="px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700">Enter</kbd> to open first result · <kbd class="px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700">Esc</kbd> to clear</span>
+</div>
+
+<!-- Menu search behaviour -->
+<script>
+(function() {
+  var input = document.getElementById('menu-search');
+  var grid  = document.getElementById('menu-grid');
+  var empty = document.getElementById('menu-empty');
+  if (!input || !grid || !empty) return;
+
+  var tiles = Array.prototype.slice.call(grid.querySelectorAll('[data-menu-tile]'));
+
+  function apply() {
+    var q = (input.value || '').trim().toLowerCase();
+    var visible = 0;
+    tiles.forEach(function(tile) {
+      var hit = q === ''
+        || (tile.dataset.label       || '').indexOf(q) !== -1
+        || (tile.dataset.description || '').indexOf(q) !== -1
+        || (tile.dataset.href        || '').indexOf(q) !== -1;
+      tile.classList.toggle('hidden', !hit);
+      if (hit) visible++;
+    });
+    empty.classList.toggle('hidden', visible !== 0);
+  }
+
+  input.addEventListener('input', apply);
+
+  // Enter → open first visible tile.
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      var first = tiles.find(function(t) { return !t.classList.contains('hidden'); });
+      if (first) { e.preventDefault(); first.click(); }
+    } else if (e.key === 'Escape') {
+      input.value = ''; apply();
+    }
+  });
+
+  // Global ⌘K / Ctrl+K shortcut.
+  document.addEventListener('keydown', function(e) {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault(); input.focus(); input.select();
+    }
+  });
+
+  // Focus on load for a snappy feel.
+  setTimeout(function() { input.focus(); }, 50);
+})();
+</script>
 
 {% endblock %}

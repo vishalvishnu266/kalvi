@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <title>School ERP · Modern School Management</title>
+
+  <script>
+    (function() {
+      try {
+        var t = localStorage.getItem('theme');
+        if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark');
+        }
+      } catch (e) {}
+    })();
+  </script>
+
+  <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+  <script>
+    tailwind.config = { darkMode: 'class', theme: { extend: {
+      fontFamily: { sans: ['-apple-system','BlinkMacSystemFont','"SF Pro Text"','"SF Pro Display"','"Segoe UI"','Roboto','sans-serif'] },
+      colors: { brand: {50:'#eef2ff',100:'#e0e7ff',400:'#818cf8',500:'#6366f1',600:'#4f46e5',700:'#4338ca',800:'#3730a3'} }
+    }}};
+  </script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="/assets/app.css" />
+</head>
+<body class="min-h-full font-sans antialiased
+             bg-gradient-to-br from-white via-brand-50 to-white
+             dark:from-zinc-950 dark:via-zinc-950 dark:to-zinc-900
+             text-zinc-900 dark:text-zinc-100">
+
+  <header class="max-w-6xl mx-auto flex items-center justify-between p-5 sm:p-8">
+    <div class="flex items-center gap-2">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700
+                  flex items-center justify-center text-white shadow-md shadow-brand-500/20">
+        <i data-lucide="school" class="w-5 h-5"></i>
+      </div>
+      <div class="font-semibold tracking-tight">School ERP</div>
+    </div>
+    <nav class="flex items-center gap-3 text-sm">
+      <a href="#features" class="hidden sm:inline text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100">Features</a>
+      <a href="#pricing" class="hidden sm:inline text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100">Pricing</a>
+      <a href="/web/login"
+         class="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg text-sm font-medium
+                bg-brand-600 text-white hover:bg-brand-700 shadow-sm shadow-brand-600/20">
+        Sign in <i data-lucide="arrow-right" class="w-4 h-4"></i>
+      </a>
+    </nav>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-5 sm:px-8">
+    <section class="pt-10 sm:pt-20 pb-16 text-center">
+      <span class="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full
+                   bg-brand-50 text-brand-700 border border-brand-100
+                   dark:bg-brand-500/10 dark:text-brand-300 dark:border-brand-500/20">
+        <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Modern multi-tenant SaaS
+      </span>
+      <h1 class="mt-5 text-4xl sm:text-6xl font-semibold tracking-tight">
+        Run your school<br />
+        <span class="bg-gradient-to-r from-brand-600 to-indigo-500 bg-clip-text text-transparent">
+          the modern way
+        </span>
+      </h1>
+      <p class="mt-5 max-w-2xl mx-auto text-zinc-600 dark:text-zinc-400">
+        Admissions, attendance, fees, examinations, timetables, library, hostel, transport
+        and payroll — all in one place. Fast, secure, and delightful to use.
+      </p>
+      <div class="mt-8 flex items-center justify-center gap-3">
+        <a href="/web/login"
+           class="inline-flex items-center gap-2 h-11 px-5 rounded-xl text-sm font-medium
+                  bg-brand-600 text-white hover:bg-brand-700 shadow-md shadow-brand-600/20">
+          Get started <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </a>
+        <a href="#features"
+           class="inline-flex items-center gap-2 h-11 px-5 rounded-xl text-sm font-medium
+                  bg-white text-zinc-900 border border-zinc-200 hover:bg-zinc-50
+                  dark:bg-zinc-900 dark:text-zinc-100 dark:border-zinc-800 dark:hover:bg-zinc-800">
+          Learn more
+        </a>
+      </div>
+    </section>
+
+    <section id="features" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-20">
+      {% for i in 0..6 %}
+      <div class="p-5 rounded-2xl bg-white border border-zinc-200
+                  dark:bg-zinc-900 dark:border-zinc-800 shadow-sm">
+        <div class="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400
+                    flex items-center justify-center">
+          {% if i == 0 %}<i data-lucide="graduation-cap" class="w-5 h-5"></i>
+          {% else if i == 1 %}<i data-lucide="calendar-check" class="w-5 h-5"></i>
+          {% else if i == 2 %}<i data-lucide="wallet" class="w-5 h-5"></i>
+          {% else if i == 3 %}<i data-lucide="book-open" class="w-5 h-5"></i>
+          {% else if i == 4 %}<i data-lucide="bus" class="w-5 h-5"></i>
+          {% else %}<i data-lucide="shield-check" class="w-5 h-5"></i>{% endif %}
+        </div>
+        <h3 class="mt-3 font-semibold">
+          {% if i == 0 %}Admissions & Students
+          {% else if i == 1 %}Attendance & Timetable
+          {% else if i == 2 %}Fees & Finance
+          {% else if i == 3 %}Academics & Exams
+          {% else if i == 4 %}Transport & Hostel
+          {% else %}Secure by design{% endif %}
+        </h3>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+          {% if i == 0 %}Digital admissions with guardians, documents, and workflows.
+          {% else if i == 1 %}Daily attendance and drag-and-drop timetables.
+          {% else if i == 2 %}Invoices, payments, dues and ledgers with reports.
+          {% else if i == 3 %}Curriculum, exams, grade books and report cards.
+          {% else if i == 4 %}Routes, stops, and hostel room allocations.
+          {% else %}Multi-tenant isolation, audit trails and RBAC.{% endif %}
+        </p>
+      </div>
+      {% endfor %}
+    </section>
+  </main>
+
+  <footer class="max-w-6xl mx-auto px-5 sm:px-8 py-8 text-center text-xs text-zinc-500 dark:text-zinc-400">
+    &copy; 2026 School ERP · Secure multi-tenant portal
+  </footer>
+
+  <script>lucide.createIcons();</script>
+</body>
+</html>

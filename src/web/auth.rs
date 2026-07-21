@@ -8,15 +8,21 @@
 //! (e.g. `tower-sessions` + Argon2-backed logins) — the request/response
 //! shape here is designed to make that swap non-breaking.
 //!
-//! Tenancy is **path-based**: the app shell lives under `/{tenant}/…` so
+//! Tenancy is **path-based**: the app shell lives under `/web/{tenant}/…` so
 //! the tenant id travels in the URL. The session cookie is retained purely
 //! as an auth gate — [`require_session`] verifies the caller is signed in
 //! for the tenant that appears in the URL, blocking cross-tenant snooping.
+//!
+//! URL map:
+//! * `GET  /web/login`           — global login form (user types the tenant).
+//! * `POST /web/login`           — submit login.
+//! * `GET  /web/{tenant}/login`  — tenant-specific login form (pre-filled).
+//! * `POST /web/logout`          — clear the session cookies.
 
 use askama::Template;
 use axum::{
     body::Body,
-    extract::{Form, State},
+    extract::{Form, Path, State},
     http::{header, HeaderMap, Request, StatusCode},
     middleware::Next,
     response::{IntoResponse, Redirect, Response},
@@ -42,25 +48,41 @@ struct LoginPage<'a> {
     error: Option<&'a str>,
     tenant: &'a str,
     identifier: &'a str,
+    /// When true the tenant field is rendered read-only (tenant-scoped login).
+    tenant_locked: bool,
 }
 
 // ---------------------------------------------------------------------------
-// Public routes: /login (GET/POST), /logout (POST).
-//
-// Login handlers need the tenant registry (to resolve tenant → services), so
-// they share the same `TenantScopeState` that the tenant-scoped middleware
-// uses. The router is stateful.
+// Routes
 // ---------------------------------------------------------------------------
 
+/// Public (unauthenticated) routes mounted under `/web`:
+/// `GET /login`, `POST /login`, `POST /logout`, `GET /{tenant}/login`.
 pub fn public_routes(state: TenantScopeState) -> Router {
     Router::new()
-        .route("/login",  get(get_login).post(post_login))
-        .route("/logout", post(post_logout))
+        .route("/login",           get(get_login).post(post_login))
+        .route("/logout",          post(post_logout))
+        .route("/{tenant}/login",  get(get_tenant_login).post(post_login))
         .with_state(state)
 }
 
 async fn get_login() -> Result<Response, WebError> {
-    render(&LoginPage { error: None, tenant: "default", identifier: "" })
+    render(&LoginPage {
+        error: None,
+        tenant: "",
+        identifier: "",
+        tenant_locked: false,
+    })
+}
+
+/// Renders the login page with the tenant pre-filled and locked.
+async fn get_tenant_login(Path(tenant): Path<String>) -> Result<Response, WebError> {
+    render(&LoginPage {
+        error: None,
+        tenant: &tenant,
+        identifier: "",
+        tenant_locked: true,
+    })
 }
 
 #[derive(Deserialize)]
@@ -75,10 +97,28 @@ async fn post_login(
     Form(f): Form<LoginForm>,
 ) -> Result<Response, WebError> {
     // Resolve the tenant and get an AppServices for it.
-    let tenant = TenantId::new(f.tenant.clone())
-        .map_err(|e| WebError::bad(e.to_string()))?;
-    let services = state.registry.services_for(&tenant).await
-        .map_err(|e| WebError::bad(e.to_string()))?;
+    let tenant = match TenantId::new(f.tenant.clone()) {
+        Ok(t) => t,
+        Err(e) => {
+            return render(&LoginPage {
+                error: Some(&e.to_string()),
+                tenant: &f.tenant,
+                identifier: &f.identifier,
+                tenant_locked: false,
+            });
+        }
+    };
+    let services = match state.registry.services_for(&tenant).await {
+        Ok(s) => s,
+        Err(e) => {
+            return render(&LoginPage {
+                error: Some(&format!("Tenant lookup failed: {e}")),
+                tenant: &f.tenant,
+                identifier: &f.identifier,
+                tenant_locked: false,
+            });
+        }
+    };
 
     match services.auth.login(&f.identifier, &f.password).await {
         Ok(user) => {
@@ -94,8 +134,8 @@ async fn post_login(
                 "{COOKIE_USER}={}; Path=/; SameSite=Lax",
                 urlencoding::encode(&display)
             );
-            // Redirect into the tenant-scoped app shell.
-            let location = format!("/{}/", tenant.as_str());
+            // Redirect into the tenant-scoped app shell under /web/.
+            let location = format!("/web/{}/", tenant.as_str());
             Ok((
                 StatusCode::SEE_OTHER,
                 [
@@ -110,6 +150,7 @@ async fn post_login(
             error: Some("Invalid credentials"),
             tenant: &f.tenant,
             identifier: &f.identifier,
+            tenant_locked: !f.tenant.is_empty(),
         }),
     }
 }
@@ -122,7 +163,7 @@ async fn post_logout() -> Response {
         [
             (header::SET_COOKIE, clear_tenant),
             (header::SET_COOKIE, clear_user),
-            (header::LOCATION, "/login".to_string()),
+            (header::LOCATION, "/web/login".to_string()),
         ],
         Body::empty(),
     ).into_response()
@@ -132,30 +173,28 @@ async fn post_logout() -> Response {
 // Middleware
 // ---------------------------------------------------------------------------
 
-/// Auth gate for the tenant-scoped app shell.
+/// Auth gate for the tenant-scoped app shell (`/web/{tenant}/…`).
 ///
-/// * If no session cookie is present, redirects to `/login`.
+/// * If no session cookie is present, redirects to `/web/login`.
 /// * If a session cookie is present but its tenant doesn't match the tenant
-///   in the URL (`/{tenant}/…`), also redirects to `/login`. This stops a
-///   user logged in as `acme` from opening `/globex/students` and getting a
-///   500 from the tenant middleware — the response is a clean re-auth.
+///   in the URL, also redirects to `/web/login`. This stops a user logged
+///   in as `acme` from opening `/web/globex/students` and getting a 500 —
+///   the response is a clean re-auth.
 pub async fn require_session(
     req: Request<Body>,
     next: Next,
 ) -> Response {
     let cookie_tenant = match read_cookie_from_headers(req.headers(), COOKIE_TENANT) {
         Some(t) => t,
-        None => return Redirect::to("/login").into_response(),
+        None => return Redirect::to("/web/login").into_response(),
     };
 
-    // The URL tenant is the first path segment (this middleware only runs
-    // inside `.nest("/{tenant}", ...)`), so `req.uri().path()` here is the
-    // already-stripped inner path — e.g. `/students`. We instead pull the
-    // tenant from the extensions inserted by the outer `tenant_scope`
-    // middleware, which runs before us and stores a validated `TenantId`.
     if let Some(url_tenant) = req.extensions().get::<TenantId>() {
         if url_tenant.as_str() != cookie_tenant {
-            return Redirect::to("/login").into_response();
+            // Redirect to the tenant-specific login for the URL tenant, so
+            // the user lands in the right place after re-auth.
+            let location = format!("/web/{}/login", url_tenant.as_str());
+            return Redirect::to(&location).into_response();
         }
     }
     next.run(req).await

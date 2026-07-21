@@ -56,17 +56,24 @@
         </div>
         {% endif %}
 
-        <form method="post" action="/login" data-turbo="false" class="space-y-4">
+        <form method="post" action="/web/login" data-turbo="false" class="space-y-4">
           <div>
             <label class="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1.5">
               Tenant / School ID
             </label>
             <div class="relative">
               <i data-lucide="building-2" class="w-4 h-4 absolute left-3 top-3 text-zinc-400"></i>
-              <input name="tenant" required value="{{ tenant }}"
+              {% if tenant_locked %}
+              <input name="tenant" required readonly value="{{ tenant }}"
+                     class="w-full pl-9 pr-3 py-2.5 rounded-lg text-sm cursor-not-allowed
+                            bg-zinc-100 border border-zinc-200 text-zinc-600
+                            dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-300" />
+              {% else %}
+              <input name="tenant" required value="{{ tenant }}" placeholder="e.g. acme"
                      class="w-full pl-9 pr-3 py-2.5 rounded-lg text-sm
                             bg-zinc-50 border border-zinc-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
                             dark:bg-zinc-800 dark:border-zinc-700 dark:focus:border-brand-500" />
+              {% endif %}
             </div>
           </div>
 

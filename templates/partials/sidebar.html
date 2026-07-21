@@ -12,7 +12,7 @@
     <ul class="px-2 space-y-0.5">
       {% for item in nav_items %}
       <li>
-        <a href="/{{ nav.tenant_id }}/{{ item.href }}"
+        <a href="/web/{{ nav.tenant_id }}/{{ item.href }}"
            data-turbo-frame="page"
            class="group flex items-center gap-3 px-3 py-2 rounded-lg text-sm
                   {% if nav.active == item.key %}
@@ -41,7 +41,7 @@
         <div class="text-sm font-medium truncate">{{ nav.user_display }}</div>
         <div class="text-[11px] text-zinc-500 truncate">Tenant · {{ nav.tenant_id }}</div>
       </div>
-      <form action="/logout" method="post" data-turbo="false">
+      <form action="/web/logout" method="post" data-turbo="false">
         <button class="p-1.5 rounded-md text-zinc-500 hover:text-rose-600 hover:bg-rose-50
                        dark:hover:bg-rose-500/10" title="Sign out">
           <i data-lucide="log-out" class="w-4 h-4"></i>

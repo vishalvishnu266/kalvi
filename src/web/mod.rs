@@ -6,9 +6,16 @@
 //! framework.
 //!
 //! ## URL layout
-//! * Public: `/login`, `/logout`, `/assets/*`.
-//! * Per-tenant app shell: `/{tenant}/…` (e.g. `/acme/`, `/acme/students`).
-//!   Tenant id is a path parameter — no cookie or header plumbing.
+//! * `GET  /`                        — SaaS landing page (or redirect if
+//!   the visitor already has a session cookie).
+//! * `GET  /assets/*`                — embedded static assets.
+//! * `GET  /web/login`               — global login form.
+//! * `POST /web/login`               — submit login.
+//! * `POST /web/logout`              — sign out.
+//! * `GET  /web/{tenant}/login`      — tenant-specific login form.
+//! * `/web/{tenant}/…`               — authenticated app shell (dashboard,
+//!   students, …). Tenant id is a path parameter — no cookie or header
+//!   plumbing for DB routing.
 //!
 //! ## Design goals
 //! * **Server-rendered** — no build step, no frontend framework, no JSON hydration.
@@ -31,26 +38,39 @@ pub mod auth;
 pub mod dashboard;
 pub mod error;
 pub mod filters;
+pub mod landing;
 pub mod layout;
+pub mod modules;
 pub mod students;
 
-/// Build the web router mounted at `/`.
+/// Build the web router.
 ///
-/// * Public routes: `/login`, `/logout`, `/assets/*`.
-/// * Tenant-scoped app shell: nested under `/{tenant}/…`. The tenant id is
-///   pulled from the path parameter, so the middleware needs no cookie or
-///   header. A lightweight session cookie (set at login) is still consulted
-///   by [`auth::require_session`] to keep the URL from being spoofed.
+/// URL layout:
+/// * `GET  /`                       — SaaS landing page (or redirect to the
+///   user's tenant shell if a session cookie is present).
+/// * `GET  /assets/*`               — embedded static assets.
+/// * `GET  /web/login`              — global login form (user picks tenant).
+/// * `POST /web/login`              — submit login form.
+/// * `POST /web/logout`             — clear session.
+/// * `GET  /web/{tenant}/login`     — tenant-specific login (tenant pre-filled).
+/// * `/web/{tenant}/…`              — authenticated app shell (dashboard,
+///   students, …). Requires a matching session cookie.
+///
+/// Tenant DB routing is entirely path-based — [`TenantSource::path_param`]
+/// pulls the id from the `{tenant}` URL segment.
 pub fn build_web_router(tenants: TenantRegistry) -> Router {
-    // Tenant id comes from the `{tenant}` path parameter captured by the
-    // `.nest("/{tenant}", ...)` mount point below.
     let tenant_state = TenantScopeState::new(tenants)
         .with_source(TenantSource::path_param("tenant"));
 
-    // App-shell (tenant-scoped) routes.
+    // Tenant-scoped app shell (authenticated).
+    //
+    // `students::routes()` is a real, wired-up module. Every other module
+    // is served by `modules::routes()` as a "Coming soon" placeholder so
+    // every tile on the launcher leads somewhere.
     let app_routes = Router::new()
         .merge(dashboard::routes())
         .merge(students::routes())
+        .merge(modules::routes())
         .layer(axum::middleware::from_fn(auth::require_session))
         .layer(axum::middleware::from_fn_with_state(
             tenant_state.clone(),
@@ -58,8 +78,13 @@ pub fn build_web_router(tenants: TenantRegistry) -> Router {
         ))
         .with_state(tenant_state.clone());
 
+    // /web/* subtree: public login routes + tenant-scoped app shell.
+    let web_routes = Router::new()
+        .merge(auth::public_routes(tenant_state.clone()))
+        .nest("/{tenant}", app_routes);
+
     Router::new()
+        .merge(landing::routes())
         .merge(assets::routes())
-        .merge(auth::public_routes(tenant_state))
-        .nest("/{tenant}", app_routes)
+        .nest("/web", web_routes)
 }
