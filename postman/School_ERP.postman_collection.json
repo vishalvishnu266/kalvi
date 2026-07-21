@@ -1,0 +1,895 @@
+{
+  "info": {
+    "name": "School ERP API",
+    "_postman_id": "a1b2c3d4-0000-4000-8000-000000000001",
+    "description": "Full Postman collection for the multi-tenant K-12 School ERP.\n\n- Set `baseUrl` (default: http://localhost:3000) and `tenantId` in the collection variables.\n- All `/api/tenant/*` requests automatically send the `x-tenant-id` header (pre-request script).\n- Every write request has a sensible example body; edit values before sending.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl",  "value": "http://localhost:3000" },
+    { "key": "tenantId", "value": "acme" },
+    { "key": "yearId",   "value": "1" },
+    { "key": "termId",   "value": "1" },
+    { "key": "classSectionId", "value": "1" },
+    { "key": "studentId", "value": "1" },
+    { "key": "staffId",   "value": "1" },
+    { "key": "guardianId", "value": "1" },
+    { "key": "userId",    "value": "1" },
+    { "key": "examId",    "value": "1" },
+    { "key": "scaleId",   "value": "1" },
+    { "key": "invoiceId", "value": "1" },
+    { "key": "payslipId", "value": "1" },
+    { "key": "bookId",    "value": "1" },
+    { "key": "issueId",   "value": "1" },
+    { "key": "routeId",   "value": "1" },
+    { "key": "assignmentId", "value": "1" },
+    { "key": "hostelId",  "value": "1" },
+    { "key": "itemId",    "value": "1" },
+    { "key": "poId",      "value": "1" },
+    { "key": "messageId", "value": "1" },
+    { "key": "notifId",   "value": "1" },
+    { "key": "annId",     "value": "1" },
+    { "key": "docId",     "value": "1" },
+    { "key": "structureId", "value": "1" },
+    { "key": "slotId",    "value": "1" }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Auto-add x-tenant-id for all /api/tenant/* requests",
+          "try {",
+          "  var url = pm.request.url.toString();",
+          "  if (url.indexOf('/api/tenant/') !== -1) {",
+          "    var tid = pm.collectionVariables.get('tenantId') || pm.variables.get('tenantId');",
+          "    if (tid && !pm.request.headers.has('x-tenant-id')) {",
+          "      pm.request.headers.add({ key: 'x-tenant-id', value: tid });",
+          "    }",
+          "  }",
+          "} catch (e) { console.log(e); }"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Health & Meta",
+      "item": [
+        { "name": "GET /api/health",       "request": { "method": "GET", "url": "{{baseUrl}}/api/health" } },
+        { "name": "GET /api/live",         "request": { "method": "GET", "url": "{{baseUrl}}/api/live" } },
+        { "name": "GET /api/ready",        "request": { "method": "GET", "url": "{{baseUrl}}/api/ready" } },
+        { "name": "GET /api/openapi.json", "request": { "method": "GET", "url": "{{baseUrl}}/api/openapi.json" } },
+        { "name": "GET /api/docs (Swagger UI)", "request": { "method": "GET", "url": "{{baseUrl}}/api/docs" } }
+      ]
+    },
+    {
+      "name": "Admin — Tenants (control plane)",
+      "item": [
+        { "name": "GET  /api/admin/tenants", "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/tenants" } },
+        {
+          "name": "POST /api/admin/tenants",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/admin/tenants",
+            "body": { "mode": "raw", "raw": "{\n  \"tenant_id\": \"acme\",\n  \"display_name\": \"Acme School\",\n  \"status\": \"active\"\n}" }
+          }
+        },
+        { "name": "GET  /api/admin/tenants/{tenant_id}",         "request": { "method": "GET",  "url": "{{baseUrl}}/api/admin/tenants/{{tenantId}}" } },
+        {
+          "name": "PUT  /api/admin/tenants/{tenant_id}",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/admin/tenants/{{tenantId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"display_name\": \"Acme School (Updated)\",\n  \"status\": \"active\"\n}" }
+          }
+        },
+        { "name": "DELETE /api/admin/tenants/{tenant_id}",       "request": { "method": "DELETE", "url": "{{baseUrl}}/api/admin/tenants/{{tenantId}}" } },
+        { "name": "POST /api/admin/tenants/{tenant_id}/enable",  "request": { "method": "POST", "url": "{{baseUrl}}/api/admin/tenants/{{tenantId}}/enable" } },
+        { "name": "POST /api/admin/tenants/{tenant_id}/disable", "request": { "method": "POST", "url": "{{baseUrl}}/api/admin/tenants/{{tenantId}}/disable" } }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "POST /auth/register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/auth/register",
+            "body": { "mode": "raw", "raw": "{\n  \"username\": \"admin\",\n  \"email\": \"admin@acme.edu\",\n  \"password\": \"ChangeMe!123\",\n  \"roles\": [\"admin\"]\n}" }
+          }
+        },
+        {
+          "name": "POST /auth/login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/auth/login",
+            "body": { "mode": "raw", "raw": "{\n  \"identifier\": \"admin\",\n  \"password\": \"ChangeMe!123\"\n}" }
+          }
+        },
+        {
+          "name": "POST /auth/change-password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/auth/change-password",
+            "body": { "mode": "raw", "raw": "{\n  \"user_id\": {{userId}},\n  \"old_password\": \"ChangeMe!123\",\n  \"new_password\": \"NewPass!456\"\n}" }
+          }
+        },
+        { "name": "GET  /auth/whoami", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/auth/whoami" } }
+      ]
+    }
+    ,{
+      "name": "Academic",
+      "item": [
+        { "name": "GET  /academic/years", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/academic/years" } },
+        {
+          "name": "POST /academic/years",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/academic/years",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"2026-2027\",\n  \"start_date\": \"2026-06-01\",\n  \"end_date\": \"2027-04-30\",\n  \"is_current\": true\n}" }
+          }
+        },
+        { "name": "GET  /academic/years/current", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/academic/years/current" } },
+        { "name": "POST /academic/years/{id}/activate", "request": { "method": "POST", "url": "{{baseUrl}}/api/tenant/academic/years/{{yearId}}/activate" } },
+        { "name": "GET  /academic/years/{id}/terms", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/academic/years/{{yearId}}/terms" } },
+        {
+          "name": "POST /academic/years/{id}/terms",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/academic/years/{{yearId}}/terms",
+            "body": { "mode": "raw", "raw": "{\n  \"academic_year_id\": {{yearId}},\n  \"name\": \"Term 1\",\n  \"start_date\": \"2026-06-01\",\n  \"end_date\": \"2026-09-30\"\n}" }
+          }
+        },
+        { "name": "GET  /academic/grades",   "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/academic/grades" } },
+        { "name": "GET  /academic/sections", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/academic/sections" } },
+        { "name": "GET  /academic/rooms",    "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/academic/rooms" } },
+        {
+          "name": "POST /academic/rooms",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/academic/rooms",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Room 101\",\n  \"building\": \"Main Block\",\n  \"capacity\": 40\n}" }
+          }
+        },
+        { "name": "GET  /academic/subjects", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/academic/subjects" } },
+        {
+          "name": "POST /academic/subjects",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/academic/subjects",
+            "body": { "mode": "raw", "raw": "{\n  \"code\": \"MATH\",\n  \"name\": \"Mathematics\",\n  \"is_core\": true\n}" }
+          }
+        },
+        {
+          "name": "POST /academic/class-sections",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/academic/class-sections",
+            "body": { "mode": "raw", "raw": "{\n  \"academic_year_id\": {{yearId}},\n  \"grade_id\": 1,\n  \"section_id\": 1,\n  \"room_id\": null,\n  \"class_teacher_id\": null\n}" }
+          }
+        },
+        { "name": "GET  /academic/class-sections/{year_id}", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/academic/class-sections/{{yearId}}" } },
+        { "name": "GET  /academic/class-sections/{id}/subjects", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/academic/class-sections/{{classSectionId}}/subjects" } },
+        {
+          "name": "POST /academic/class-sections/{id}/subjects",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/academic/class-sections/{{classSectionId}}/subjects",
+            "body": { "mode": "raw", "raw": "{\n  \"subject_id\": 1,\n  \"teacher_id\": {{staffId}}\n}" }
+          }
+        }
+      ]
+    }
+    ,{
+      "name": "People",
+      "item": [
+        { "name": "GET  /people/students",         "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/tenant/people/students?limit=50&offset=0", "host": ["{{baseUrl}}"], "path": ["api","tenant","people","students"], "query": [{ "key": "limit", "value": "50" }, { "key": "offset", "value": "0" }] } } },
+        { "name": "GET  /people/students/search",  "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/tenant/people/students/search?q=john&limit=50", "host": ["{{baseUrl}}"], "path": ["api","tenant","people","students","search"], "query": [{ "key": "q", "value": "john" }, { "key": "limit", "value": "50" }] } } },
+        { "name": "GET  /people/students/{id}",    "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/people/students/{{studentId}}" } },
+        {
+          "name": "PUT  /people/students/{id}",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/people/students/{{studentId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"first_name\": \"John\",\n  \"last_name\": \"Doe\",\n  \"phone\": \"9999999999\"\n}" }
+          }
+        },
+        { "name": "DELETE /people/students/{id}",  "request": { "method": "DELETE", "url": "{{baseUrl}}/api/tenant/people/students/{{studentId}}" } },
+        {
+          "name": "POST /people/students/admit",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/people/students/admit",
+            "body": { "mode": "raw", "raw": "{\n  \"student\": {\n    \"admission_no\": \"A2026-0001\",\n    \"first_name\": \"John\",\n    \"last_name\": \"Doe\",\n    \"gender\": \"M\",\n    \"date_of_birth\": \"2012-05-14\"\n  },\n  \"class_section_id\": {{classSectionId}},\n  \"enrolled_on\": \"2026-06-01\"\n}" }
+          }
+        },
+        { "name": "POST /people/students/{id}/withdraw", "request": { "method": "POST", "url": "{{baseUrl}}/api/tenant/people/students/{{studentId}}/withdraw" } },
+        { "name": "POST /people/students/{id}/graduate", "request": { "method": "POST", "url": "{{baseUrl}}/api/tenant/people/students/{{studentId}}/graduate" } },
+        { "name": "GET  /people/staff",     "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/tenant/people/staff?limit=50&offset=0", "host": ["{{baseUrl}}"], "path": ["api","tenant","people","staff"], "query": [{ "key": "limit", "value": "50" }, { "key": "offset", "value": "0" }] } } },
+        {
+          "name": "POST /people/staff (hire)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/people/staff",
+            "body": { "mode": "raw", "raw": "{\n  \"employee_no\": \"E2026-0001\",\n  \"first_name\": \"Jane\",\n  \"last_name\": \"Smith\",\n  \"designation\": \"Teacher\",\n  \"hired_on\": \"2026-04-15\"\n}" }
+          }
+        },
+        { "name": "GET  /people/staff/{id}", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/people/staff/{{staffId}}" } },
+        {
+          "name": "PUT  /people/staff/{id}",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/people/staff/{{staffId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"designation\": \"Senior Teacher\",\n  \"phone\": \"9888888888\"\n}" }
+          }
+        },
+        {
+          "name": "POST /people/staff/{id}/terminate",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/people/staff/{{staffId}}/terminate",
+            "body": { "mode": "raw", "raw": "{\n  \"on\": \"2026-07-31\"\n}" }
+          }
+        }
+      ]
+    }
+    ,{
+      "name": "Guardians",
+      "item": [
+        { "name": "GET  /guardians",     "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/guardians/" } },
+        {
+          "name": "POST /guardians",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/guardians/",
+            "body": { "mode": "raw", "raw": "{\n  \"first_name\": \"Robert\",\n  \"last_name\": \"Doe\",\n  \"phone\": \"9777777777\",\n  \"email\": \"robert@example.com\",\n  \"relation\": \"father\"\n}" }
+          }
+        },
+        { "name": "GET  /guardians/{id}",  "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/guardians/{{guardianId}}" } },
+        { "name": "DELETE /guardians/{id}", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/tenant/guardians/{{guardianId}}" } },
+        {
+          "name": "POST /guardians/link",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/guardians/link",
+            "body": { "mode": "raw", "raw": "{\n  \"student_id\": {{studentId}},\n  \"guardian_id\": {{guardianId}},\n  \"is_primary\": true\n}" }
+          }
+        },
+        { "name": "DELETE /guardians/link/{sid}/{gid}", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/tenant/guardians/link/{{studentId}}/{{guardianId}}" } },
+        { "name": "GET  /guardians/of-student/{sid}",   "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/guardians/of-student/{{studentId}}" } }
+      ]
+    }
+    ,{
+      "name": "Enrollment",
+      "item": [
+        {
+          "name": "POST /enrollment/ (enroll)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/enrollment/",
+            "body": { "mode": "raw", "raw": "{\n  \"student_id\": {{studentId}},\n  \"class_section_id\": {{classSectionId}},\n  \"enrolled_on\": \"2026-06-01\"\n}" }
+          }
+        },
+        {
+          "name": "POST /enrollment/transfer",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/enrollment/transfer",
+            "body": { "mode": "raw", "raw": "{\n  \"student_id\": {{studentId}},\n  \"to_class_section_id\": 2,\n  \"effective\": \"2026-09-01\"\n}" }
+          }
+        },
+        {
+          "name": "POST /enrollment/close-current",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/enrollment/close-current",
+            "body": { "mode": "raw", "raw": "{\n  \"student_id\": {{studentId}},\n  \"on\": \"2027-04-30\",\n  \"result\": \"pass\"\n}" }
+          }
+        },
+        { "name": "GET  /enrollment/roster/{class_section_id}", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/enrollment/roster/{{classSectionId}}" } },
+        { "name": "GET  /enrollment/history/{student_id}",     "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/enrollment/history/{{studentId}}" } },
+        {
+          "name": "POST /enrollment/promote",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/enrollment/promote",
+            "body": { "mode": "raw", "raw": "{\n  \"from_class_id\": 1,\n  \"to_class_id\": 2,\n  \"to_year_id\": {{yearId}},\n  \"enrolled_on\": \"2026-06-01\"\n}" }
+          }
+        }
+      ]
+    }
+    ,{
+      "name": "Attendance",
+      "item": [
+        {
+          "name": "POST /attendance/students/mark",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/attendance/students/mark",
+            "body": { "mode": "raw", "raw": "{\n  \"student_id\": {{studentId}},\n  \"class_section_id\": {{classSectionId}},\n  \"date\": \"2026-07-21\",\n  \"status\": \"present\",\n  \"marked_by_staff_id\": {{staffId}}\n}" }
+          }
+        },
+        {
+          "name": "POST /attendance/students/mark-class",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/attendance/students/mark-class",
+            "body": { "mode": "raw", "raw": "{\n  \"class_section_id\": {{classSectionId}},\n  \"date\": \"2026-07-21\",\n  \"marked_by_staff_id\": {{staffId}},\n  \"marks\": [\n    { \"student_id\": 1, \"status\": \"present\" },\n    { \"student_id\": 2, \"status\": \"absent\" }\n  ]\n}" }
+          }
+        },
+        { "name": "GET  /attendance/students/for/{sid}",      "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/tenant/attendance/students/for/{{studentId}}?from=2026-06-01&to=2026-07-31", "host": ["{{baseUrl}}"], "path": ["api","tenant","attendance","students","for","{{studentId}}"], "query": [{ "key": "from", "value": "2026-06-01" }, { "key": "to", "value": "2026-07-31" }] } } },
+        { "name": "GET  /attendance/students/percentage",     "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/tenant/attendance/students/percentage?student_id={{studentId}}&from=2026-06-01&to=2026-07-31", "host": ["{{baseUrl}}"], "path": ["api","tenant","attendance","students","percentage"], "query": [{ "key": "student_id", "value": "{{studentId}}" }, { "key": "from", "value": "2026-06-01" }, { "key": "to", "value": "2026-07-31" }] } } },
+        { "name": "GET  /attendance/students/class/{id}",     "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/tenant/attendance/students/class/{{classSectionId}}?date=2026-07-21", "host": ["{{baseUrl}}"], "path": ["api","tenant","attendance","students","class","{{classSectionId}}"], "query": [{ "key": "date", "value": "2026-07-21" }] } } },
+        {
+          "name": "POST /attendance/staff/mark",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/attendance/staff/mark",
+            "body": { "mode": "raw", "raw": "{\n  \"staff_id\": {{staffId}},\n  \"date\": \"2026-07-21\",\n  \"status\": \"present\"\n}" }
+          }
+        },
+        { "name": "GET  /attendance/staff/for/{sid}", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/tenant/attendance/staff/for/{{staffId}}?from=2026-06-01&to=2026-07-31", "host": ["{{baseUrl}}"], "path": ["api","tenant","attendance","staff","for","{{staffId}}"], "query": [{ "key": "from", "value": "2026-06-01" }, { "key": "to", "value": "2026-07-31" }] } } }
+      ]
+    }
+    ,{
+      "name": "Timetable",
+      "item": [
+        { "name": "GET  /timetable/periods", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/timetable/periods" } },
+        {
+          "name": "POST /timetable/periods",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/timetable/periods",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Period 1\",\n  \"start_time\": \"08:00\",\n  \"end_time\": \"08:45\",\n  \"sort_order\": 1\n}" }
+          }
+        },
+        {
+          "name": "POST /timetable/slots",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/timetable/slots",
+            "body": { "mode": "raw", "raw": "{\n  \"class_section_id\": {{classSectionId}},\n  \"weekday\": 1,\n  \"period_id\": 1,\n  \"subject_id\": 1,\n  \"teacher_id\": {{staffId}},\n  \"room_id\": null\n}" }
+          }
+        },
+        { "name": "DELETE /timetable/slots/{id}",   "request": { "method": "DELETE", "url": "{{baseUrl}}/api/tenant/timetable/slots/{{slotId}}" } },
+        { "name": "GET  /timetable/class/{id}",     "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/timetable/class/{{classSectionId}}" } },
+        { "name": "GET  /timetable/teacher/{id}",   "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/timetable/teacher/{{staffId}}" } },
+        { "name": "GET  /timetable/room/{id}",      "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/timetable/room/1" } }
+      ]
+    }
+    ,{
+      "name": "Examinations",
+      "item": [
+        {
+          "name": "POST /examinations/grading-scales",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/examinations/grading-scales",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Standard 10-point\"\n}" }
+          }
+        },
+        {
+          "name": "POST /examinations/grading-scales/{id}/bands",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/examinations/grading-scales/{{scaleId}}/bands",
+            "body": { "mode": "raw", "raw": "{\n  \"grading_scale_id\": {{scaleId}},\n  \"letter\": \"A\",\n  \"min_percent\": 90.0,\n  \"max_percent\": 100.0\n}" }
+          }
+        },
+        { "name": "GET  /examinations/grading-scales/{id}/bands", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/examinations/grading-scales/{{scaleId}}/bands" } },
+        {
+          "name": "POST /examinations/exams",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/examinations/exams",
+            "body": { "mode": "raw", "raw": "{\n  \"term_id\": {{termId}},\n  \"name\": \"Mid-Term\",\n  \"grading_scale_id\": {{scaleId}}\n}" }
+          }
+        },
+        { "name": "GET  /examinations/exams/term/{tid}", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/examinations/exams/term/{{termId}}" } },
+        {
+          "name": "POST /examinations/exams/{id}/schedules",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/examinations/exams/{{examId}}/schedules",
+            "body": { "mode": "raw", "raw": "{\n  \"exam_id\": {{examId}},\n  \"subject_id\": 1,\n  \"class_section_id\": {{classSectionId}},\n  \"exam_date\": \"2026-09-15\",\n  \"start_time\": \"09:00\",\n  \"end_time\": \"12:00\",\n  \"max_marks\": 100.0\n}" }
+          }
+        },
+        { "name": "GET  /examinations/exams/{id}/schedules", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/examinations/exams/{{examId}}/schedules" } },
+        {
+          "name": "POST /examinations/results",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/examinations/results",
+            "body": { "mode": "raw", "raw": "{\n  \"exam_schedule_id\": 1,\n  \"student_id\": {{studentId}},\n  \"marks_obtained\": 85.0,\n  \"remarks\": \"Well done\"\n}" }
+          }
+        },
+        { "name": "GET  /examinations/results/student/{sid}", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/examinations/results/student/{{studentId}}" } },
+        { "name": "GET  /examinations/report-cards/{sid}/{eid}", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/examinations/report-cards/{{studentId}}/{{examId}}" } }
+      ]
+    }
+    ,{
+      "name": "Fees",
+      "item": [
+        { "name": "GET  /fees/categories", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/fees/categories" } },
+        {
+          "name": "POST /fees/categories",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/fees/categories",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Tuition\"\n}" }
+          }
+        },
+        {
+          "name": "POST /fees/structures",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/fees/structures",
+            "body": { "mode": "raw", "raw": "{\n  \"academic_year_id\": {{yearId}},\n  \"grade_id\": 1,\n  \"name\": \"Grade 1 Fees 2026-27\"\n}" }
+          }
+        },
+        { "name": "GET  /fees/structures/year/{yid}", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/fees/structures/year/{{yearId}}" } },
+        {
+          "name": "POST /fees/structures/{id}/items",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/fees/structures/{{structureId}}/items",
+            "body": { "mode": "raw", "raw": "{\n  \"fee_category_id\": 1,\n  \"amount_cents\": 500000,\n  \"frequency\": \"annual\"\n}" }
+          }
+        },
+        { "name": "GET  /fees/structures/{id}/items", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/fees/structures/{{structureId}}/items" } },
+        {
+          "name": "POST /fees/invoices/generate",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/fees/invoices/generate",
+            "body": { "mode": "raw", "raw": "{\n  \"student_id\": {{studentId}},\n  \"fee_structure_id\": {{structureId}},\n  \"invoice_no\": \"INV-2026-0001\",\n  \"issue_date\": \"2026-06-01\",\n  \"due_date\": \"2026-06-30\",\n  \"tax_cents\": 0\n}" }
+          }
+        },
+        { "name": "GET  /fees/invoices/student/{sid}", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/fees/invoices/student/{{studentId}}" } },
+        { "name": "GET  /fees/invoices/{id}",          "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/fees/invoices/{{invoiceId}}" } },
+        { "name": "GET  /fees/invoices/{id}/lines",    "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/fees/invoices/{{invoiceId}}/lines" } },
+        { "name": "POST /fees/invoices/{id}/cancel",   "request": { "method": "POST", "url": "{{baseUrl}}/api/tenant/fees/invoices/{{invoiceId}}/cancel" } },
+        { "name": "GET  /fees/outstanding/{sid}",      "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/fees/outstanding/{{studentId}}" } },
+        { "name": "GET  /fees/overdue",                "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/tenant/fees/overdue?today=2026-07-21", "host": ["{{baseUrl}}"], "path": ["api","tenant","fees","overdue"], "query": [{ "key": "today", "value": "2026-07-21" }] } } },
+        { "name": "GET  /fees/aging",                  "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/tenant/fees/aging?today=2026-07-21", "host": ["{{baseUrl}}"], "path": ["api","tenant","fees","aging"], "query": [{ "key": "today", "value": "2026-07-21" }] } } },
+        {
+          "name": "POST /fees/payments",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/fees/payments",
+            "body": { "mode": "raw", "raw": "{\n  \"invoice_id\": {{invoiceId}},\n  \"amount_cents\": 500000,\n  \"paid_on\": \"2026-06-15\",\n  \"method\": \"cash\",\n  \"reference\": \"RCPT-0001\"\n}" }
+          }
+        },
+        { "name": "GET  /fees/payments/invoice/{id}", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/fees/payments/invoice/{{invoiceId}}" } },
+        {
+          "name": "POST /fees/discounts",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/fees/discounts",
+            "body": { "mode": "raw", "raw": "{\n  \"student_id\": {{studentId}},\n  \"fee_category_id\": 1,\n  \"amount_cents\": 50000,\n  \"reason\": \"Sibling discount\",\n  \"academic_year_id\": {{yearId}}\n}" }
+          }
+        },
+        { "name": "GET  /fees/discounts/student/{sid}", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/fees/discounts/student/{{studentId}}" } },
+        { "name": "GET  /fees/ledger/trial-balance",    "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/tenant/fees/ledger/trial-balance?as_of=2026-07-21", "host": ["{{baseUrl}}"], "path": ["api","tenant","fees","ledger","trial-balance"], "query": [{ "key": "as_of", "value": "2026-07-21" }] } } }
+      ]
+    }
+    ,{
+      "name": "Payroll",
+      "item": [
+        { "name": "GET  /payroll/components", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/payroll/components" } },
+        {
+          "name": "POST /payroll/structures/set",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/payroll/structures/set",
+            "body": { "mode": "raw", "raw": "{\n  \"staff_id\": {{staffId}},\n  \"effective_from\": \"2026-04-01\",\n  \"items\": [\n    { \"salary_component_id\": 1, \"amount_cents\": 5000000 },\n    { \"salary_component_id\": 2, \"amount_cents\": 1500000 }\n  ]\n}" }
+          }
+        },
+        {
+          "name": "POST /payroll/payslips/generate",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/payroll/payslips/generate",
+            "body": { "mode": "raw", "raw": "{\n  \"staff_id\": {{staffId}},\n  \"month\": 7,\n  \"year\": 2026\n}" }
+          }
+        },
+        {
+          "name": "POST /payroll/payslips/month",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/payroll/payslips/month",
+            "body": { "mode": "raw", "raw": "{\n  \"month\": 7,\n  \"year\": 2026\n}" }
+          }
+        },
+        { "name": "POST /payroll/payslips/{id}/approve", "request": { "method": "POST", "url": "{{baseUrl}}/api/tenant/payroll/payslips/{{payslipId}}/approve" } },
+        {
+          "name": "POST /payroll/payslips/{id}/pay",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/payroll/payslips/{{payslipId}}/pay",
+            "body": { "mode": "raw", "raw": "{\n  \"paid_on\": \"2026-07-31\",\n  \"from_bank\": true\n}" }
+          }
+        },
+        { "name": "GET  /payroll/payslips/staff/{sid}/{year}", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/payroll/payslips/staff/{{staffId}}/2026" } }
+      ]
+    }
+    ,{
+      "name": "Library",
+      "item": [
+        { "name": "GET  /library/books", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/tenant/library/books?limit=50&offset=0", "host": ["{{baseUrl}}"], "path": ["api","tenant","library","books"], "query": [{ "key": "limit", "value": "50" }, { "key": "offset", "value": "0" }] } } },
+        {
+          "name": "POST /library/books",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/library/books",
+            "body": { "mode": "raw", "raw": "{\n  \"isbn\": \"978-0-13-468599-1\",\n  \"title\": \"Effective Java\",\n  \"author\": \"Joshua Bloch\",\n  \"publisher\": \"Addison-Wesley\",\n  \"copies_total\": 5\n}" }
+          }
+        },
+        { "name": "GET  /library/books/search", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/tenant/library/books/search?q=java&limit=50", "host": ["{{baseUrl}}"], "path": ["api","tenant","library","books","search"], "query": [{ "key": "q", "value": "java" }, { "key": "limit", "value": "50" }] } } },
+        { "name": "GET  /library/books/{id}", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/library/books/{{bookId}}" } },
+        {
+          "name": "POST /library/books/{id}/adjust",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/library/books/{{bookId}}/adjust",
+            "body": { "mode": "raw", "raw": "{\n  \"delta\": 2\n}" }
+          }
+        },
+        {
+          "name": "POST /library/issues/student",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/library/issues/student",
+            "body": { "mode": "raw", "raw": "{\n  \"book_id\": {{bookId}},\n  \"student_id\": {{studentId}},\n  \"on\": \"2026-07-21\"\n}" }
+          }
+        },
+        {
+          "name": "POST /library/issues/staff",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/library/issues/staff",
+            "body": { "mode": "raw", "raw": "{\n  \"book_id\": {{bookId}},\n  \"staff_id\": {{staffId}},\n  \"on\": \"2026-07-21\"\n}" }
+          }
+        },
+        {
+          "name": "POST /library/issues/{id}/return",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/library/issues/{{issueId}}/return",
+            "body": { "mode": "raw", "raw": "{\n  \"returned_on\": \"2026-07-28\"\n}" }
+          }
+        },
+        { "name": "GET  /library/issues/overdue", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/tenant/library/issues/overdue?today=2026-07-21", "host": ["{{baseUrl}}"], "path": ["api","tenant","library","issues","overdue"], "query": [{ "key": "today", "value": "2026-07-21" }] } } }
+      ]
+    }
+    ,{
+      "name": "Transport",
+      "item": [
+        { "name": "GET  /transport/vehicles", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/transport/vehicles" } },
+        {
+          "name": "POST /transport/vehicles",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/transport/vehicles",
+            "body": { "mode": "raw", "raw": "{\n  \"registration_no\": \"KA-01-AB-1234\",\n  \"model\": \"Tata Starbus\",\n  \"capacity\": 40,\n  \"driver_staff_id\": {{staffId}}\n}" }
+          }
+        },
+        { "name": "GET  /transport/routes", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/transport/routes" } },
+        {
+          "name": "POST /transport/routes",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/transport/routes",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Route A - North\",\n  \"vehicle_id\": 1\n}" }
+          }
+        },
+        { "name": "GET  /transport/routes/{id}/stops", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/transport/routes/{{routeId}}/stops" } },
+        {
+          "name": "POST /transport/routes/{id}/stops",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/transport/routes/{{routeId}}/stops",
+            "body": { "mode": "raw", "raw": "{\n  \"stop_name\": \"Main Gate\",\n  \"sequence\": 1,\n  \"pickup_time\": \"07:30\",\n  \"drop_time\": \"15:30\"\n}" }
+          }
+        },
+        {
+          "name": "POST /transport/assignments",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/transport/assignments",
+            "body": { "mode": "raw", "raw": "{\n  \"student_id\": {{studentId}},\n  \"route_stop_id\": 1,\n  \"valid_from\": \"2026-06-01\"\n}" }
+          }
+        },
+        {
+          "name": "POST /transport/assignments/{id}/end",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/transport/assignments/{{assignmentId}}/end",
+            "body": { "mode": "raw", "raw": "{\n  \"on\": \"2027-03-31\"\n}" }
+          }
+        },
+        { "name": "GET  /transport/routes/{id}/students", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/transport/routes/{{routeId}}/students" } }
+      ]
+    }
+    ,{
+      "name": "Hostel",
+      "item": [
+        { "name": "GET  /hostel/hostels", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/hostel/hostels" } },
+        {
+          "name": "POST /hostel/hostels",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/hostel/hostels",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Boys Hostel A\",\n  \"kind\": \"boys\"\n}" }
+          }
+        },
+        { "name": "GET  /hostel/hostels/{id}/rooms", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/hostel/hostels/{{hostelId}}/rooms" } },
+        {
+          "name": "POST /hostel/hostels/{id}/rooms",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/hostel/hostels/{{hostelId}}/rooms",
+            "body": { "mode": "raw", "raw": "{\n  \"room_no\": \"101\",\n  \"capacity\": 4\n}" }
+          }
+        },
+        {
+          "name": "POST /hostel/allocations",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/hostel/allocations",
+            "body": { "mode": "raw", "raw": "{\n  \"student_id\": {{studentId}},\n  \"hostel_room_id\": 1,\n  \"from_date\": \"2026-06-01\"\n}" }
+          }
+        },
+        {
+          "name": "POST /hostel/allocations/transfer",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/hostel/allocations/transfer",
+            "body": { "mode": "raw", "raw": "{\n  \"student_id\": {{studentId}},\n  \"to_room_id\": 2,\n  \"from_date\": \"2026-09-01\"\n}" }
+          }
+        },
+        {
+          "name": "POST /hostel/allocations/{sid}/vacate",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/hostel/allocations/{{studentId}}/vacate",
+            "body": { "mode": "raw", "raw": "{\n  \"to_date\": \"2027-03-31\"\n}" }
+          }
+        },
+        { "name": "GET  /hostel/allocations/active/{sid}", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/hostel/allocations/active/{{studentId}}" } }
+      ]
+    }
+    ,{
+      "name": "Inventory",
+      "item": [
+        { "name": "GET  /inventory/vendors", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/inventory/vendors" } },
+        {
+          "name": "POST /inventory/vendors",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/inventory/vendors",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"ABC Suppliers\",\n  \"phone\": \"9111111111\",\n  \"email\": \"sales@abc.com\",\n  \"address\": \"123 Market St\"\n}" }
+          }
+        },
+        { "name": "GET  /inventory/items", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/tenant/inventory/items?limit=50&offset=0", "host": ["{{baseUrl}}"], "path": ["api","tenant","inventory","items"], "query": [{ "key": "limit", "value": "50" }, { "key": "offset", "value": "0" }] } } },
+        {
+          "name": "POST /inventory/items",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/inventory/items",
+            "body": { "mode": "raw", "raw": "{\n  \"sku\": \"CHK-001\",\n  \"name\": \"Chalk (box)\",\n  \"unit\": \"box\",\n  \"reorder_level\": 20,\n  \"quantity_on_hand\": 100\n}" }
+          }
+        },
+        { "name": "GET  /inventory/items/low-stock", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/inventory/items/low-stock" } },
+        { "name": "GET  /inventory/items/{id}",      "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/inventory/items/{{itemId}}" } },
+        { "name": "GET  /inventory/items/{id}/history", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/inventory/items/{{itemId}}/history" } },
+        {
+          "name": "POST /inventory/movements",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/inventory/movements",
+            "body": { "mode": "raw", "raw": "{\n  \"item_id\": {{itemId}},\n  \"delta\": -5,\n  \"reason\": \"issued to classroom\",\n  \"movement_date\": \"2026-07-21\"\n}" }
+          }
+        },
+        {
+          "name": "POST /inventory/purchase-orders",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/inventory/purchase-orders",
+            "body": { "mode": "raw", "raw": "{\n  \"vendor_id\": 1,\n  \"order_no\": \"PO-2026-0001\",\n  \"order_date\": \"2026-07-21\",\n  \"status\": \"draft\",\n  \"lines\": [\n    { \"item_id\": {{itemId}}, \"quantity\": 50, \"unit_cost_cents\": 5000 }\n  ]\n}" }
+          }
+        },
+        { "name": "GET  /inventory/purchase-orders/{id}", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/inventory/purchase-orders/{{poId}}" } },
+        {
+          "name": "POST /inventory/purchase-orders/{id}/status",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/inventory/purchase-orders/{{poId}}/status",
+            "body": { "mode": "raw", "raw": "{\n  \"target\": \"approved\"\n}" }
+          }
+        }
+      ]
+    }
+    ,{
+      "name": "Communication",
+      "item": [
+        { "name": "GET  /communication/announcements", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/tenant/communication/announcements?limit=50", "host": ["{{baseUrl}}"], "path": ["api","tenant","communication","announcements"], "query": [{ "key": "limit", "value": "50" }] } } },
+        {
+          "name": "POST /communication/announcements (broadcast)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/communication/announcements",
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"School closed tomorrow\",\n  \"body\": \"Due to heavy rain, school will be closed on 2026-07-22.\",\n  \"audience\": \"all\",\n  \"class_section_id\": null,\n  \"expires_at\": \"2026-07-22T23:59:59Z\"\n}" }
+          }
+        },
+        { "name": "GET  /communication/announcements/class/{cid}", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/communication/announcements/class/{{classSectionId}}" } },
+        { "name": "DELETE /communication/announcements/{id}", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/tenant/communication/announcements/{{annId}}" } },
+        {
+          "name": "POST /communication/messages",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/communication/messages",
+            "body": { "mode": "raw", "raw": "{\n  \"from_user_id\": {{userId}},\n  \"to_user_id\": 2,\n  \"subject\": \"Meeting\",\n  \"body\": \"Please attend the PTA meeting on Friday.\"\n}" }
+          }
+        },
+        { "name": "GET  /communication/messages/inbox/{uid}", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/tenant/communication/messages/inbox/{{userId}}?limit=50", "host": ["{{baseUrl}}"], "path": ["api","tenant","communication","messages","inbox","{{userId}}"], "query": [{ "key": "limit", "value": "50" }] } } },
+        { "name": "GET  /communication/messages/unread/{uid}", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/communication/messages/unread/{{userId}}" } },
+        { "name": "POST /communication/messages/{id}/read",   "request": { "method": "POST", "url": "{{baseUrl}}/api/tenant/communication/messages/{{messageId}}/read" } },
+        {
+          "name": "POST /communication/notifications",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/communication/notifications",
+            "body": { "mode": "raw", "raw": "{\n  \"user_id\": {{userId}},\n  \"kind\": \"fee\",\n  \"title\": \"Fee reminder\",\n  \"body\": \"Please pay your outstanding fees by 30 July.\",\n  \"payload\": {}\n}" }
+          }
+        },
+        { "name": "GET  /communication/notifications/user/{uid}", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/tenant/communication/notifications/user/{{userId}}?unread_only=false&limit=50", "host": ["{{baseUrl}}"], "path": ["api","tenant","communication","notifications","user","{{userId}}"], "query": [{ "key": "unread_only", "value": "false" }, { "key": "limit", "value": "50" }] } } },
+        { "name": "POST /communication/notifications/{id}/read", "request": { "method": "POST", "url": "{{baseUrl}}/api/tenant/communication/notifications/{{notifId}}/read" } },
+        { "name": "POST /communication/notifications/user/{uid}/read-all", "request": { "method": "POST", "url": "{{baseUrl}}/api/tenant/communication/notifications/user/{{userId}}/read-all" } }
+      ]
+    }
+    ,{
+      "name": "Health",
+      "item": [
+        { "name": "GET  /health/records/{sid}", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/health/records/{{studentId}}" } },
+        {
+          "name": "POST /health/records/{sid} (upsert vitals)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/health/records/{{studentId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"height_cm\": 152.4,\n  \"weight_kg\": 45.5,\n  \"allergies\": \"peanuts\",\n  \"conditions\": \"asthma\"\n}" }
+          }
+        },
+        { "name": "GET  /health/records/{sid}/bmi", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/health/records/{{studentId}}/bmi" } },
+        { "name": "GET  /health/vaccinations/{sid}", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/health/vaccinations/{{studentId}}" } },
+        {
+          "name": "POST /health/vaccinations/{sid}",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/health/vaccinations/{{studentId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"vaccine_name\": \"MMR\",\n  \"dose\": \"1st\",\n  \"given_on\": \"2026-05-20\"\n}" }
+          }
+        },
+        { "name": "GET  /health/visits/{sid}", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/health/visits/{{studentId}}" } },
+        {
+          "name": "POST /health/visits/{sid}",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/health/visits/{{studentId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"complaint\": \"headache\",\n  \"treatment\": \"paracetamol 500mg\",\n  \"attended_by_staff_id\": {{staffId}}\n}" }
+          }
+        }
+      ]
+    }
+    ,{
+      "name": "Discipline",
+      "item": [
+        {
+          "name": "POST /discipline/ (report incident)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/discipline/",
+            "body": { "mode": "raw", "raw": "{\n  \"student_id\": {{studentId}},\n  \"incident_date\": \"2026-07-21\",\n  \"category\": \"misconduct\",\n  \"description\": \"Disrupted class\",\n  \"action_taken\": \"Warning issued\",\n  \"reported_by_staff_id\": {{staffId}},\n  \"notify_guardians\": true\n}" }
+          }
+        },
+        { "name": "GET  /discipline/student/{sid}", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/discipline/student/{{studentId}}" } },
+        { "name": "GET  /discipline/between", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/tenant/discipline/between?from=2026-06-01&to=2026-07-31", "host": ["{{baseUrl}}"], "path": ["api","tenant","discipline","between"], "query": [{ "key": "from", "value": "2026-06-01" }, { "key": "to", "value": "2026-07-31" }] } } }
+      ]
+    }
+    ,{
+      "name": "Documents",
+      "item": [
+        {
+          "name": "POST /documents/ (attach)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/tenant/documents/",
+            "body": { "mode": "raw", "raw": "{\n  \"owner_type\": \"student\",\n  \"owner_id\": {{studentId}},\n  \"file_name\": \"birth_certificate.pdf\",\n  \"mime_type\": \"application/pdf\",\n  \"storage_key\": \"s3://bucket/tenant/acme/students/1/bc.pdf\",\n  \"size_bytes\": 34567,\n  \"actor_user_id\": {{userId}}\n}" }
+          }
+        },
+        { "name": "DELETE /documents/{id}", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/tenant/documents/{{docId}}?actor_user_id={{userId}}", "host": ["{{baseUrl}}"], "path": ["api","tenant","documents","{{docId}}"], "query": [{ "key": "actor_user_id", "value": "{{userId}}" }] } } },
+        { "name": "GET  /documents/owner/{owner_type}/{owner_id}", "request": { "method": "GET", "url": "{{baseUrl}}/api/tenant/documents/owner/student/{{studentId}}" } }
+      ]
+    }
+    ,{
+      "name": "Audit",
+      "item": [
+        { "name": "GET  /audit/entity/{entity}/{id}", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/tenant/audit/entity/student/{{studentId}}?limit=100", "host": ["{{baseUrl}}"], "path": ["api","tenant","audit","entity","student","{{studentId}}"], "query": [{ "key": "limit", "value": "100" }] } } },
+        { "name": "GET  /audit/user/{uid}",           "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/tenant/audit/user/{{userId}}?limit=100", "host": ["{{baseUrl}}"], "path": ["api","tenant","audit","user","{{userId}}"], "query": [{ "key": "limit", "value": "100" }] } } }
+      ]
+    }
+  ]
+}
