@@ -4,7 +4,6 @@
 //! just pull them out. If middleware wasn't wired, extractors return 500.
 
 use axum::{
-    async_trait,
     extract::FromRequestParts,
     http::{request::Parts, StatusCode},
 };
@@ -14,7 +13,6 @@ use crate::tenancy::TenantId;
 
 pub struct ExtractTenant(pub TenantId);
 
-#[async_trait]
 impl<S: Send + Sync> FromRequestParts<S> for ExtractTenant {
     type Rejection = (StatusCode, &'static str);
 
@@ -28,7 +26,6 @@ impl<S: Send + Sync> FromRequestParts<S> for ExtractTenant {
 
 pub struct ExtractServices(pub AppServices);
 
-#[async_trait]
 impl<S: Send + Sync> FromRequestParts<S> for ExtractServices {
     type Rejection = (StatusCode, &'static str);
 
@@ -47,7 +44,6 @@ impl<S: Send + Sync> FromRequestParts<S> for ExtractServices {
 /// so a missing ctx here indicates the middleware wasn't wired.
 pub struct ExtractCtx(pub RequestCtx);
 
-#[async_trait]
 impl<S: Send + Sync> FromRequestParts<S> for ExtractCtx {
     type Rejection = (StatusCode, &'static str);
 

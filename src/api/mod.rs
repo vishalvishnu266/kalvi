@@ -22,7 +22,6 @@ use crate::tracing_layer::{make_span_with_ids, UuidRequestId, X_REQUEST_ID};
 
 pub mod admin;
 pub mod academic;
-pub mod openapi;
 pub mod attendance;
 pub mod audit;
 pub mod auth;
@@ -107,7 +106,7 @@ pub fn build_router(
         .merge(crate::health_probes::router(readiness))
         .nest("/api/admin",   admin::routes(state.clone()))
         .nest("/api/tenant/{tenant}",  tenant_routes)
-        .merge(openapi::swagger_router())
+        // .merge(openapi::swagger_router())
         // Server-rendered web UI (Hotwire + Askama) mounted at "/".
         // Kept last so all `/api/*`, `/live`, `/ready` routes take priority.
         .merge(crate::web::build_web_router(state.tenants.clone()))
