@@ -26,6 +26,7 @@ pub mod shutdown;
 pub mod system;
 pub mod tenancy;
 pub mod tracing_layer;
+pub mod web;
 
 pub use api::{build_router, AppState};
 pub use error::RepoError;

@@ -30,6 +30,12 @@ utoipa-swagger-ui = { version = "7", features = ["axum"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 uuid = { version = "1", features = ["v4"] }
 
+# Web (server-rendered) UI
+askama = "0.12"
+mime_guess = "2"
+rust-embed = { version = "8", features = ["debug-embed"] }
+urlencoding = "2"
+
 [dev-dependencies]
 tokio = { version = "1", features = ["full", "test-util"] }
 axum-test = "15"

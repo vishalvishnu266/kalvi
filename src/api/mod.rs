@@ -100,5 +100,8 @@ pub fn build_router(
         .nest("/api/admin",   admin::routes(state.clone()))
         .nest("/api/tenant",  tenant_routes)
         .merge(openapi::swagger_router())
+        // Server-rendered web UI (Hotwire + Askama) mounted at "/".
+        // Kept last so all `/api/*`, `/live`, `/ready` routes take priority.
+        .merge(crate::web::build_web_router(state.tenants.clone()))
         .layer(observability)
 }
