@@ -81,9 +81,7 @@ async fn in_flight_request_still_finishes_after_readiness_flip() {
     // Fire the "in-flight" request in a background task.
     let s_bg = s.clone();
     let handle = tokio::spawn(async move {
-        let r = s_bg.get("/api/tenant/auth/whoami")
-            .add_header("x-tenant-id".parse().unwrap(), "acme".parse().unwrap())
-            .await;
+        let r = s_bg.get("/api/tenant/acme/auth/whoami").await;
         (r.status_code(), r.json::<serde_json::Value>())
     });
 

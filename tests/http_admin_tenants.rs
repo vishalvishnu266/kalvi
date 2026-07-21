@@ -77,33 +77,27 @@ async fn disabled_tenant_cannot_use_business_api() {
     })).await.assert_status_ok();
 
     // Works while active
-    s.get("/api/tenant/auth/whoami")
-        .add_header("x-tenant-id".parse().unwrap(), "acme".parse().unwrap())
-        .await
-        .assert_status_ok();
+    s.get("/api/tenant/acme/auth/whoami").await.assert_status_ok();
 
     // Disable it
     s.post("/api/admin/tenants/acme/disable").await.assert_status_ok();
 
     // Now the tenant guard should reject
-    let rejected = s.get("/api/tenant/auth/whoami")
-        .add_header("x-tenant-id".parse().unwrap(), "acme".parse().unwrap())
-        .await;
+    let rejected = s.get("/api/tenant/acme/auth/whoami").await;
     rejected.assert_status(http::StatusCode::FORBIDDEN);
 }
 
 #[tokio::test]
 async fn unknown_tenant_is_404() {
     let s = spawn().await;
-    let rej = s.get("/api/tenant/auth/whoami")
-        .add_header("x-tenant-id".parse().unwrap(), "ghost".parse().unwrap())
-        .await;
+    let rej = s.get("/api/tenant/ghost/auth/whoami").await;
     rej.assert_status(http::StatusCode::NOT_FOUND);
 }
 
 #[tokio::test]
-async fn missing_tenant_header_is_400() {
+async fn missing_tenant_segment_is_404() {
+    // Without a tenant path segment the URL simply doesn't match any route.
     let s = spawn().await;
     let rej = s.get("/api/tenant/auth/whoami").await;
-    rej.assert_status(http::StatusCode::BAD_REQUEST);
+    rej.assert_status(http::StatusCode::NOT_FOUND);
 }

@@ -12,7 +12,7 @@
     <ul class="px-2 space-y-0.5">
       {% for item in nav_items %}
       <li>
-        <a href="{{ item.href }}"
+        <a href="/{{ nav.tenant_id }}/{{ item.href }}"
            data-turbo-frame="page"
            class="group flex items-center gap-3 px-3 py-2 rounded-lg text-sm
                   {% if nav.active == item.key %}

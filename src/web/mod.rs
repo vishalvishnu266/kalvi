@@ -1,9 +1,14 @@
 //! Server-rendered web UI (Hotwire + Askama).
 //!
 //! This module is intentionally **decoupled** from the JSON API in
-//! [`crate::api`]. It mounts at `/` (root) and serves an HTML SPA-like
-//! experience powered by Turbo (from Hotwire), so navigation feels instant
-//! without shipping a JS framework.
+//! [`crate::api`]. It serves an HTML SPA-like experience powered by Turbo
+//! (from Hotwire), so navigation feels instant without shipping a JS
+//! framework.
+//!
+//! ## URL layout
+//! * Public: `/login`, `/logout`, `/assets/*`.
+//! * Per-tenant app shell: `/{tenant}/…` (e.g. `/acme/`, `/acme/students`).
+//!   Tenant id is a path parameter — no cookie or header plumbing.
 //!
 //! ## Design goals
 //! * **Server-rendered** — no build step, no frontend framework, no JSON hydration.
@@ -31,17 +36,16 @@ pub mod students;
 
 /// Build the web router mounted at `/`.
 ///
-/// Public (non-tenant-scoped) routes: `/login`, `/logout`, `/assets/*`.
-///
-/// Tenant-scoped routes: everything else. They read the tenant from a
-/// cookie (`tenant_id`) that's set at login. If no cookie is present we
-/// bounce the user to `/login`.
+/// * Public routes: `/login`, `/logout`, `/assets/*`.
+/// * Tenant-scoped app shell: nested under `/{tenant}/…`. The tenant id is
+///   pulled from the path parameter, so the middleware needs no cookie or
+///   header. A lightweight session cookie (set at login) is still consulted
+///   by [`auth::require_session`] to keep the URL from being spoofed.
 pub fn build_web_router(tenants: TenantRegistry) -> Router {
-    // The web layer reads the tenant from a cookie set at login rather than
-    // from a header (the API's default). We still reuse the same
-    // `tenant_scope` middleware, just with a different `TenantSource`.
+    // Tenant id comes from the `{tenant}` path parameter captured by the
+    // `.nest("/{tenant}", ...)` mount point below.
     let tenant_state = TenantScopeState::new(tenants)
-        .with_source(TenantSource::Header("x-tenant-id".into()));
+        .with_source(TenantSource::path_param("tenant"));
 
     // App-shell (tenant-scoped) routes.
     let app_routes = Router::new()
@@ -52,11 +56,10 @@ pub fn build_web_router(tenants: TenantRegistry) -> Router {
             tenant_state.clone(),
             tenant_scope,
         ))
-        .layer(axum::middleware::from_fn(auth::cookie_to_tenant_header))
         .with_state(tenant_state.clone());
 
     Router::new()
         .merge(assets::routes())
         .merge(auth::public_routes(tenant_state))
-        .merge(app_routes)
+        .nest("/{tenant}", app_routes)
 }

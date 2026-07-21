@@ -51,8 +51,7 @@ async fn request_id_flows_through_tenant_scope() {
         .await.assert_status_ok();
 
     let custom = "trace-tenant-42";
-    let res = s.get("/api/tenant/auth/whoami")
-        .add_header("x-tenant-id".parse().unwrap(), "acme".parse().unwrap())
+    let res = s.get("/api/tenant/acme/auth/whoami")
         .add_header("x-request-id".parse().unwrap(), custom.parse().unwrap())
         .await;
     res.assert_status_ok();

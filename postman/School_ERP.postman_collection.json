@@ -2,7 +2,7 @@
   "info": {
     "name": "School ERP API",
     "_postman_id": "a1b2c3d4-0000-4000-8000-000000000001",
-    "description": "Full Postman collection for the multi-tenant K-12 School ERP.\n\n- Set `baseUrl` (default: http://localhost:3000) and `tenantId` in the collection variables.\n- All `/api/tenant/*` requests automatically send the `x-tenant-id` header (pre-request script).\n- Every write request has a sensible example body; edit values before sending.",
+    "description": "Full Postman collection for the multi-tenant K-12 School ERP.\n\n- Set `baseUrl` (default: http://localhost:3000) and `tenantId` in the collection variables.\n- Tenancy is **path-based**: the pre-request script automatically injects the tenant into every `/api/tenant/*` URL as `/api/tenant/{tenantId}/…`.\n- Every write request has a sensible example body; edit values before sending.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -39,15 +39,22 @@
       "script": {
         "type": "text/javascript",
         "exec": [
-          "// Auto-add x-tenant-id for all /api/tenant/* requests",
+          "// Auto-inject the tenant id into /api/tenant/* URLs so requests hit",
+          "// /api/tenant/{tenantId}/… without every URL having to hard-code it.",
           "try {",
+          "  var tid = pm.collectionVariables.get('tenantId') || pm.variables.get('tenantId');",
+          "  if (!tid) return;",
           "  var url = pm.request.url.toString();",
-          "  if (url.indexOf('/api/tenant/') !== -1) {",
-          "    var tid = pm.collectionVariables.get('tenantId') || pm.variables.get('tenantId');",
-          "    if (tid && !pm.request.headers.has('x-tenant-id')) {",
-          "      pm.request.headers.add({ key: 'x-tenant-id', value: tid });",
-          "    }",
-          "  }",
+          "  var marker = '/api/tenant/';",
+          "  var idx = url.indexOf(marker);",
+          "  if (idx === -1) return;",
+          "  var rest = url.substring(idx + marker.length);",
+          "  // Skip if the tenant is already the next segment.",
+          "  var firstSeg = rest.split('/')[0].split('?')[0];",
+          "  if (firstSeg === tid) return;",
+          "  var head = url.substring(0, idx + marker.length);",
+          "  var newUrl = head + tid + '/' + rest;",
+          "  pm.request.url = new (require('postman-collection').Url)(newUrl);",
           "} catch (e) { console.log(e); }"
         ]
       }

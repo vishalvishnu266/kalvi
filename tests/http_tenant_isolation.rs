@@ -1,13 +1,11 @@
 //! Tenant isolation proved via the real HTTP surface.
+//!
+//! Uses the path-based tenant scheme: `/api/tenant/{tenant}/…`.
 
 mod http_common;
 
 use http_common::spawn;
 use serde_json::{json, Value};
-
-fn tenant_hdr(id: &str) -> (http::HeaderName, http::HeaderValue) {
-    ("x-tenant-id".parse().unwrap(), id.parse().unwrap())
-}
 
 #[tokio::test]
 async fn two_tenants_have_independent_data() {
@@ -20,9 +18,6 @@ async fn two_tenants_have_independent_data() {
             .await
             .assert_status_ok();
     }
-
-    let (h_a, v_a) = tenant_hdr("acme");
-    let (h_g, v_g) = tenant_hdr("globex");
 
     // Admit the same admission_no in each tenant — should both succeed
     // because the DBs are separate.
@@ -43,23 +38,17 @@ async fn two_tenants_have_independent_data() {
         "enrolled_on": null
     });
 
-    s.post("/api/tenant/people/students/admit")
-        .add_header(h_a.clone(), v_a.clone())
+    s.post("/api/tenant/acme/people/students/admit")
         .json(&admit_body("Alice", "Acme"))
         .await.assert_status_ok();
 
-    s.post("/api/tenant/people/students/admit")
-        .add_header(h_g.clone(), v_g.clone())
+    s.post("/api/tenant/globex/people/students/admit")
         .json(&admit_body("Alice", "Globex"))
         .await.assert_status_ok();
 
     // List students separately.
-    let acme_list: Value = s.get("/api/tenant/people/students")
-        .add_header(h_a.clone(), v_a.clone())
-        .await.json();
-    let globex_list: Value = s.get("/api/tenant/people/students")
-        .add_header(h_g, v_g)
-        .await.json();
+    let acme_list: Value = s.get("/api/tenant/acme/people/students").await.json();
+    let globex_list: Value = s.get("/api/tenant/globex/people/students").await.json();
 
     let acme_students   = acme_list.as_array().unwrap();
     let globex_students = globex_list.as_array().unwrap();

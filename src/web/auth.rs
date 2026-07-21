@@ -7,6 +7,11 @@
 //! A production deployment should replace this with a signed session token
 //! (e.g. `tower-sessions` + Argon2-backed logins) — the request/response
 //! shape here is designed to make that swap non-breaking.
+//!
+//! Tenancy is **path-based**: the app shell lives under `/{tenant}/…` so
+//! the tenant id travels in the URL. The session cookie is retained purely
+//! as an auth gate — [`require_session`] verifies the caller is signed in
+//! for the tenant that appears in the URL, blocking cross-tenant snooping.
 
 use askama::Template;
 use axum::{
@@ -89,12 +94,14 @@ async fn post_login(
                 "{COOKIE_USER}={}; Path=/; SameSite=Lax",
                 urlencoding::encode(&display)
             );
+            // Redirect into the tenant-scoped app shell.
+            let location = format!("/{}/", tenant.as_str());
             Ok((
                 StatusCode::SEE_OTHER,
                 [
                     (header::SET_COOKIE, set_tenant),
                     (header::SET_COOKIE, set_user),
-                    (header::LOCATION, "/".to_string()),
+                    (header::LOCATION, location),
                 ],
                 Body::empty(),
             ).into_response())
@@ -125,28 +132,31 @@ async fn post_logout() -> Response {
 // Middleware
 // ---------------------------------------------------------------------------
 
-/// Reads the `erp_tenant` cookie and copies it into the `x-tenant-id`
-/// header so the existing [`crate::http::middleware::tenant_scope`]
-/// middleware can pick it up unchanged.
-pub async fn cookie_to_tenant_header(
-    mut req: Request<Body>,
-    next: Next,
-) -> Response {
-    if let Some(tenant) = read_cookie_from_headers(req.headers(), COOKIE_TENANT) {
-        if let Ok(v) = axum::http::HeaderValue::from_str(&tenant) {
-            req.headers_mut().insert("x-tenant-id", v);
-        }
-    }
-    next.run(req).await
-}
-
-/// Redirects to `/login` if no session cookie is present.
+/// Auth gate for the tenant-scoped app shell.
+///
+/// * If no session cookie is present, redirects to `/login`.
+/// * If a session cookie is present but its tenant doesn't match the tenant
+///   in the URL (`/{tenant}/…`), also redirects to `/login`. This stops a
+///   user logged in as `acme` from opening `/globex/students` and getting a
+///   500 from the tenant middleware — the response is a clean re-auth.
 pub async fn require_session(
     req: Request<Body>,
     next: Next,
 ) -> Response {
-    if read_cookie_from_headers(req.headers(), COOKIE_TENANT).is_none() {
-        return Redirect::to("/login").into_response();
+    let cookie_tenant = match read_cookie_from_headers(req.headers(), COOKIE_TENANT) {
+        Some(t) => t,
+        None => return Redirect::to("/login").into_response(),
+    };
+
+    // The URL tenant is the first path segment (this middleware only runs
+    // inside `.nest("/{tenant}", ...)`), so `req.uri().path()` here is the
+    // already-stripped inner path — e.g. `/students`. We instead pull the
+    // tenant from the extensions inserted by the outer `tenant_scope`
+    // middleware, which runs before us and stores a validated `TenantId`.
+    if let Some(url_tenant) = req.extensions().get::<TenantId>() {
+        if url_tenant.as_str() != cookie_tenant {
+            return Redirect::to("/login").into_response();
+        }
     }
     next.run(req).await
 }

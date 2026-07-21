@@ -35,9 +35,15 @@ impl NavContext {
 }
 
 /// A single sidebar / bottom-bar entry.
+///
+/// `href` is a **tenant-relative path** — templates prefix it with the
+/// current tenant id (e.g. `href = ""` → `/acme/`, `href = "students"` →
+/// `/acme/students`). Keeping `NavItem` tenant-agnostic means we don't have
+/// to rebuild the nav list per request.
 pub struct NavItem {
     pub key: &'static str,
     pub label: &'static str,
+    /// Tenant-relative path, without a leading slash. `""` == tenant root.
     pub href: &'static str,
     /// Lucide icon name — templates render as `<i data-lucide="{icon}"></i>`.
     pub icon: &'static str,
@@ -47,16 +53,17 @@ pub struct NavItem {
 }
 
 /// The canonical navigation list. Kept in one place so sidebar + bottom-bar
-/// stay in sync.
+/// stay in sync. Every `href` is **tenant-relative** — templates render it
+/// as `/{{ nav.tenant_id }}/{{ item.href }}`.
 pub fn nav_items() -> &'static [NavItem] {
     &[
-        NavItem { key: "dashboard", label: "Dashboard", href: "/",          icon: "layout-dashboard", mobile: true  },
-        NavItem { key: "students",  label: "Students",  href: "/students",  icon: "graduation-cap",   mobile: true  },
-        NavItem { key: "staff",     label: "Staff",     href: "/staff",     icon: "briefcase",        mobile: false },
-        NavItem { key: "academic",  label: "Academic",  href: "/academic",  icon: "book-open",        mobile: false },
-        NavItem { key: "attendance",label: "Attendance",href: "/attendance",icon: "calendar-check",   mobile: true  },
-        NavItem { key: "fees",      label: "Fees",      href: "/fees",      icon: "wallet",           mobile: true  },
-        NavItem { key: "library",   label: "Library",   href: "/library",   icon: "library",          mobile: false },
-        NavItem { key: "more",      label: "More",      href: "/more",      icon: "menu",             mobile: true  },
+        NavItem { key: "dashboard", label: "Dashboard", href: "",           icon: "layout-dashboard", mobile: true  },
+        NavItem { key: "students",  label: "Students",  href: "students",   icon: "graduation-cap",   mobile: true  },
+        NavItem { key: "staff",     label: "Staff",     href: "staff",      icon: "briefcase",        mobile: false },
+        NavItem { key: "academic",  label: "Academic",  href: "academic",   icon: "book-open",        mobile: false },
+        NavItem { key: "attendance",label: "Attendance",href: "attendance", icon: "calendar-check",   mobile: true  },
+        NavItem { key: "fees",      label: "Fees",      href: "fees",       icon: "wallet",           mobile: true  },
+        NavItem { key: "library",   label: "Library",   href: "library",    icon: "library",          mobile: false },
+        NavItem { key: "more",      label: "More",      href: "more",       icon: "menu",             mobile: true  },
     ]
 }

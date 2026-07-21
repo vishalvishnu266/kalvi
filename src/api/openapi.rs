@@ -19,8 +19,9 @@ use utoipa_swagger_ui::SwaggerUi;
         version = "0.1.0",
         description = "Multi-tenant K-12 School ERP.\n\n\
                        * `/api/admin/*` — control-plane tenant management.\n\
-                       * `/api/tenant/*` — per-tenant business API. Requires the \
-                         `x-tenant-id` header (or your configured tenant source).",
+                       * `/api/tenant/{tenant}/*` — per-tenant business API. The tenant \
+                         id travels as a path parameter (e.g. \
+                         `/api/tenant/acme/people/students`).",
     ),
     tags(
         (name = "admin.tenants", description = "Control-plane tenant management"),

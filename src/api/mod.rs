@@ -2,10 +2,11 @@
 //!
 //! All routes are mounted under `/api/`:
 //!
-//! * `/api/admin/tenants/*` — control-plane, uses the **system DB** only.
-//! * `/api/tenant/*`        — everything else. Requires the `x-tenant-id`
-//!   header (or your preferred [`TenantSource`]). Constructs an
-//!   [`AppServices`] against the tenant's DB.
+//! * `/api/admin/tenants/*`      — control-plane, uses the **system DB** only.
+//! * `/api/tenant/{tenant}/*`    — per-tenant business API. The tenant id
+//!   travels as a path parameter (e.g. `/api/tenant/acme/people/students`),
+//!   which is bookmarkable, log-friendly, and unambiguous. A per-tenant
+//!   [`AppServices`] is built lazily against that tenant's DB.
 
 use axum::{Router, routing::get};
 use tower::ServiceBuilder;
@@ -51,13 +52,20 @@ pub struct AppState {
 /// Build the full application router (all routes live under `/api/`).
 /// The `readiness` handle is exposed via `/api/live` and `/api/ready`; flip
 /// it to `false` when shutdown starts.
+///
+/// The `source` parameter is retained for backwards compatibility with
+/// legacy header/subdomain-based deployments but the built-in API subtree
+/// mounts the tenant as a path parameter under `/api/tenant/{tenant}/*` and
+/// always uses [`TenantSource::path_param("tenant")`] internally.
 pub fn build_router(
     state: AppState,
-    source: TenantSource,
+    _source: TenantSource,
     readiness: crate::health_probes::Readiness,
 ) -> Router {
-    // Tenant-scoped subtree.
-    let tenant_state = TenantScopeState::new(state.tenants.clone()).with_source(source);
+    // Tenant-scoped subtree. Tenant id comes from the `{tenant}` path
+    // parameter captured by the `.nest("/api/tenant/{tenant}", ...)` below.
+    let tenant_state = TenantScopeState::new(state.tenants.clone())
+        .with_source(TenantSource::path_param("tenant"));
     let tenant_routes = Router::new()
         .nest("/auth",           auth::routes())
         .nest("/academic",       academic::routes())
@@ -98,7 +106,7 @@ pub fn build_router(
         .route("/api/health", get(|| async { "ok" }))
         .merge(crate::health_probes::router(readiness))
         .nest("/api/admin",   admin::routes(state.clone()))
-        .nest("/api/tenant",  tenant_routes)
+        .nest("/api/tenant/{tenant}",  tenant_routes)
         .merge(openapi::swagger_router())
         // Server-rendered web UI (Hotwire + Askama) mounted at "/".
         // Kept last so all `/api/*`, `/live`, `/ready` routes take priority.

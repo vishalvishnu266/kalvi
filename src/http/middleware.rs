@@ -5,15 +5,21 @@
 //! [`crate::services::AppServices`], and inserts both into the request
 //! extensions so downstream extractors can pull them out.
 //!
-//! Tenant id source is configurable via [`TenantSource`]. Default: header
-//! `x-tenant-id`.
+//! Tenant id source is configurable via [`TenantSource`]. The application
+//! router wires `TenantSource::PathParam { name: "tenant" }` and mounts the
+//! per-tenant subtree under `/api/tenant/{tenant}/…` (API) and
+//! `/{tenant}/…` (web UI), so the tenant id always travels in the URL —
+//! no header or cookie plumbing is needed.
+
+use std::collections::HashMap;
 
 use axum::{
     body::Body,
-    extract::State,
+    extract::{Path, State},
     http::{header::HOST, HeaderMap, Request, StatusCode},
     middleware::Next,
     response::Response,
+    RequestPartsExt,
 };
 
 use crate::services::{Actor, AppServices, RequestCtx};
@@ -40,12 +46,19 @@ pub enum TenantSource {
     /// Read the first path segment after an optional prefix, e.g. `/t/acme/foo`.
     /// The `prefix` should be like `"/t/"`.
     PathPrefix { prefix: String },
+    /// Read from a named path parameter captured by a parent `.nest("…/{name}", …)`.
+    ///
+    /// This is the natural fit when the router mounts a subtree under
+    /// `/api/tenant/{tenant}` or `/{tenant}`. The middleware pulls the
+    /// value from the matched path params — no header, no cookie needed.
+    PathParam { name: String },
 }
 
 impl TenantSource {
     pub fn header_default() -> Self { Self::Header("x-tenant-id".into()) }
+    pub fn path_param(name: impl Into<String>) -> Self { Self::PathParam { name: name.into() } }
 
-    fn extract(&self, req: &Request<Body>) -> Result<TenantId, (StatusCode, String)> {
+    async fn extract(&self, req: &mut Request<Body>) -> Result<TenantId, (StatusCode, String)> {
         let raw = match self {
             TenantSource::Header(name) => {
                 let hs: &HeaderMap = req.headers();
@@ -70,6 +83,21 @@ impl TenantSource {
                 let rest = path.strip_prefix(prefix.as_str())
                     .ok_or((StatusCode::BAD_REQUEST, "missing tenant path prefix".into()))?;
                 rest.split('/').next().unwrap_or("").to_string()
+            }
+            TenantSource::PathParam { name } => {
+                // Use axum's `Path` extractor to pull captured route params.
+                // We split into parts, run the extractor, and reassemble so
+                // the request is left intact for downstream handlers.
+                let (mut parts, body) = std::mem::replace(
+                    req,
+                    Request::new(Body::empty()),
+                ).into_parts();
+                let params = parts.extract::<Path<HashMap<String, String>>>().await
+                    .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
+                let value = params.0.get(name).cloned()
+                    .ok_or((StatusCode::BAD_REQUEST, format!("missing path parameter {name}")))?;
+                *req = Request::from_parts(parts, body);
+                value
             }
         };
         TenantId::new(raw).map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))
@@ -108,7 +136,7 @@ pub async fn tenant_scope(
     mut req: Request<Body>,
     next: Next,
 ) -> Result<Response, (StatusCode, String)> {
-    let tenant = state.source.extract(&req)?;
+    let tenant = state.source.extract(&mut req).await?;
 
     // Record the tenant id into the current tracing span so every log line
     // downstream is correlated to it.
