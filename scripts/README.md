@@ -45,6 +45,7 @@ Optional overrides:
 ```bash
 BASE_URL=http://192.168.1.100:3000 \
 ACME=schoolA GLOBEX=schoolB \
+ADMIN_USER=admin ADMIN_PASS='s3cret!' \
 bash scripts/e2e_smoke.sh
 ```
 
@@ -59,6 +60,7 @@ otherwise it passes responses through unchanged.
 | 2 | `POST /api/admin/tenants` (`acme`) | Provisioning: creates `data/tenants/acme.db` and runs migrations against it |
 | 3 | `POST /api/admin/tenants` (`globex`) | Second tenant → separate DB file |
 | 4 | `GET  /api/admin/tenants` | Both tenants listed in the system DB |
+| 4b | `POST /api/tenant/auth/register` + `.../auth/login` for each tenant | Creates a default `admin`/`admin123` login user in each tenant and verifies they can sign in. Idempotent — re-runs of the smoke test treat a 409 as success. |
 | 5 | `POST /api/tenant/people/staff` with `x-tenant-id: acme` | Writes into `acme.db` only |
 | 6 | `POST /api/tenant/people/staff` with `x-tenant-id: globex` | Writes into `globex.db` only |
 | 7 | `GET  /api/tenant/people/staff` per tenant | Each tenant only sees *their* staff — this is the isolation check |
@@ -68,7 +70,21 @@ otherwise it passes responses through unchanged.
 | 11 | `POST /api/admin/tenants/globex/disable` then a globex call | Expected **403 Forbidden** — disabled tenant |
 | 12 | `POST /api/admin/tenants/globex/enable` | Re-enable so subsequent runs work |
 
-## 4. Verifying the tenant DBs directly (optional)
+## 4. Sign in to the web UI
+
+After a successful run, browse to <http://127.0.0.1:3000/login> and sign in
+with the default credentials created by step 4b:
+
+| Field    | Value                          |
+| -------- | ------------------------------ |
+| Tenant   | `acme` (or `globex`)           |
+| Username | `admin` (or `admin@acme.example`) |
+| Password | `admin123`                     |
+
+Override via `ADMIN_USER` / `ADMIN_PASS` env vars if you want stronger
+credentials — the same values will be accepted by the login form.
+
+## 5. Verifying the tenant DBs directly (optional)
 
 If you have `sqlite3` installed:
 
@@ -81,7 +97,7 @@ sqlite3 data/system.db         "SELECT tenant_id, status FROM tenant;"
 You should see the counts diverge — proof that the two tenants are backed
 by separate SQLite files.
 
-## 5. Cleanup
+## 6. Cleanup
 
 Because everything is in flat SQLite files under `data/`, the fastest reset is:
 

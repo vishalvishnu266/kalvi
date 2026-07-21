@@ -15,6 +15,11 @@ BASE_URL="${BASE_URL:-http://127.0.0.1:3000}"
 ACME="${ACME:-acme}"
 GLOBEX="${GLOBEX:-globex}"
 
+# Default login credentials created for both tenants. Overridable via env so
+# CI can inject stronger credentials without editing the script.
+ADMIN_USER="${ADMIN_USER:-admin}"
+ADMIN_PASS="${ADMIN_PASS:-admin123}"
+
 # ---------- pretty printing ----------
 bold()  { printf '\033[1m%s\033[0m\n' "$*"; }
 ok()    { printf '  \033[32m✔\033[0m %s\n' "$*"; }
@@ -89,6 +94,53 @@ call GET /api/admin/tenants || fail "could not list tenants"
 grep -q "$ACME"   <<<"$RESP_BODY" || fail "'$ACME' missing from tenant list"
 grep -q "$GLOBEX" <<<"$RESP_BODY" || fail "'$GLOBEX' missing from tenant list"
 ok "both tenants present in system DB"
+
+# 4b. Register a default admin **login user** in each tenant.
+#
+# The `people/staff` and `people/students` records created below are domain
+# records only — they carry `user_id: null` and can't sign in. To exercise
+# the web UI (or /api/tenant/auth/login) we need real auth users. We create
+# `admin/admin123` in both tenants. If the user already exists (re-run of
+# the smoke test), the server returns 409 — we treat that as success.
+register_user() {
+  local tenant="$1"; local email="$2"
+  call POST /api/tenant/auth/register \
+    -H 'content-type: application/json' \
+    -H "x-tenant-id: $tenant" \
+    --data "$(cat <<JSON
+{ "username": "$ADMIN_USER",
+  "email":    "$email",
+  "password": "$ADMIN_PASS",
+  "roles":    ["admin"] }
+JSON
+)" && return 0
+  # 409 = user already registered → idempotent success.
+  [[ "$RESP_STATUS" == "409" ]] && { ok "user already existed in $tenant"; return 0; }
+  return 1
+}
+
+verify_login() {
+  local tenant="$1"
+  call POST /api/tenant/auth/login \
+    -H 'content-type: application/json' \
+    -H "x-tenant-id: $tenant" \
+    --data "$(cat <<JSON
+{ "identifier": "$ADMIN_USER",
+  "password":   "$ADMIN_PASS" }
+JSON
+)" || fail "login as $ADMIN_USER failed in $tenant"
+}
+
+step "4b) Register default admin user in each tenant"
+register_user "$ACME"   "admin@acme.example"   || fail "register in $ACME failed"
+register_user "$GLOBEX" "admin@globex.example" || fail "register in $GLOBEX failed"
+verify_login  "$ACME"
+verify_login  "$GLOBEX"
+ok "admin login users ready in both tenants"
+ok "you can now sign in at $BASE_URL/login with:"
+printf '      tenant   = %s   or   %s\n' "$ACME" "$GLOBEX"
+printf '      username = %s\n' "$ADMIN_USER"
+printf '      password = %s\n' "$ADMIN_PASS"
 
 # 5. Hire staff in ACME
 step "5) Hire staff member 'Alice' in tenant '$ACME'"
