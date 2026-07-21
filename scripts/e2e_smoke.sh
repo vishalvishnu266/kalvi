@@ -104,9 +104,8 @@ ok "both tenants present in system DB"
 # the smoke test), the server returns 409 — we treat that as success.
 register_user() {
   local tenant="$1"; local email="$2"
-  call POST /api/tenant/auth/register \
+  call POST "/api/tenant/$tenant/auth/register" \
     -H 'content-type: application/json' \
-    -H "x-tenant-id: $tenant" \
     --data "$(cat <<JSON
 { "username": "$ADMIN_USER",
   "email":    "$email",
@@ -121,9 +120,8 @@ JSON
 
 verify_login() {
   local tenant="$1"
-  call POST /api/tenant/auth/login \
+  call POST "/api/tenant/$tenant/auth/login" \
     -H 'content-type: application/json' \
-    -H "x-tenant-id: $tenant" \
     --data "$(cat <<JSON
 { "identifier": "$ADMIN_USER",
   "password":   "$ADMIN_PASS" }
@@ -144,9 +142,8 @@ printf '      password = %s\n' "$ADMIN_PASS"
 
 # 5. Hire staff in ACME
 step "5) Hire staff member 'Alice' in tenant '$ACME'"
-call POST /api/tenant/people/staff \
+call POST "/api/tenant/$ACME/people/staff" \
   -H 'content-type: application/json' \
-  -H "x-tenant-id: $ACME" \
   --data '{
     "employee_no":     "EMP-ACME-001",
     "user_id":         null,
@@ -166,9 +163,8 @@ ok "Alice hired in $ACME"
 
 # 6. Hire staff in GLOBEX
 step "6) Hire staff member 'Grace' in tenant '$GLOBEX'"
-call POST /api/tenant/people/staff \
+call POST "/api/tenant/$GLOBEX/people/staff" \
   -H 'content-type: application/json' \
-  -H "x-tenant-id: $GLOBEX" \
   --data '{
     "employee_no":     "EMP-GLOBEX-001",
     "user_id":         null,
@@ -188,10 +184,10 @@ ok "Grace hired in $GLOBEX"
 
 # 7. Tenant isolation check
 step "7) Tenant isolation check — staff lists MUST be different"
-call GET "/api/tenant/people/staff?limit=50&offset=0" -H "x-tenant-id: $ACME" \
+call GET "/api/tenant/$ACME/people/staff?limit=50&offset=0" \
   || fail "staff list failed for $ACME"
 ACME_LIST="$RESP_BODY"
-call GET "/api/tenant/people/staff?limit=50&offset=0" -H "x-tenant-id: $GLOBEX" \
+call GET "/api/tenant/$GLOBEX/people/staff?limit=50&offset=0" \
   || fail "staff list failed for $GLOBEX"
 GLOBEX_LIST="$RESP_BODY"
 
@@ -212,9 +208,8 @@ step "8) Admit student 'Bob' in tenant '$ACME'"
 # class_section, but the plain admit endpoint accepts a student without
 # an enrollment target — we use that simpler shape here to keep the
 # smoke test independent of seed IDs.
-call POST /api/tenant/people/students/admit \
+call POST "/api/tenant/$ACME/people/students/admit" \
   -H 'content-type: application/json' \
-  -H "x-tenant-id: $ACME" \
   --data '{
     "student": {
       "admission_no":   "ADM-ACME-001",
@@ -249,9 +244,8 @@ ok "student admitted (id=$STUDENT_ID)"
 
 # 9. Exercise the RequestCtx-aware discipline endpoint
 step "9) Report a discipline incident as user #42 (RequestCtx demo)"
-call POST /api/tenant/discipline/ \
+call POST "/api/tenant/$ACME/discipline/" \
   -H 'content-type: application/json' \
-  -H "x-tenant-id: $ACME" \
   -H 'x-user-id: 42' \
   -H 'x-request-id: smoke-test-req-1' \
   --data "$(cat <<JSON
@@ -269,7 +263,7 @@ printf '    tracing: actor=User { user_id: 42 } request=smoke-test-req-1\n'
 
 # 10. Unknown tenant → 404
 step "10) Unknown tenant should be rejected (404 expected)"
-if call GET /api/tenant/people/staff -H 'x-tenant-id: nope-does-not-exist'; then
+if call GET "/api/tenant/nope-does-not-exist/people/staff"; then
   fail "unknown tenant was accepted (expected 404)"
 fi
 [[ "$RESP_STATUS" == "404" ]] || fail "expected 404, got $RESP_STATUS"
@@ -278,7 +272,7 @@ ok "unknown tenant correctly rejected with 404"
 # 11. Disabled tenant → 403
 step "11) Disable '$GLOBEX' then try to call it (403 expected)"
 call POST /api/admin/tenants/$GLOBEX/disable || fail "could not disable $GLOBEX"
-if call GET /api/tenant/people/staff -H "x-tenant-id: $GLOBEX"; then
+if call GET "/api/tenant/$GLOBEX/people/staff"; then
   fail "disabled tenant was accepted (expected 403)"
 fi
 [[ "$RESP_STATUS" == "403" ]] || fail "expected 403, got $RESP_STATUS"
