@@ -24,6 +24,70 @@
 //!   component name (e.g. `"cli:seed-data"`).
 //! * **Impersonation / on-behalf-of flows** — [`RequestCtx::impersonated`].
 //! * **Tests** — [`RequestCtx::test`] to get a fully populated ctx cheaply.
+//!
+//! ## Adoption guide (READ ME before adding `&RequestCtx` everywhere)
+//!
+//! `AppServices` is tenant-scoped and cached, and the request-context
+//! plumbing (middleware + [`crate::http::extractors::ExtractCtx`]) is
+//! already in place for **every** request. Individual service methods do
+//! **not** need `&RequestCtx` unless they actually use it. We deliberately
+//! adopt this parameter **incrementally**, not by a sweeping rewrite.
+//!
+//! ### When to add `&RequestCtx` to a service method
+//!
+//! Add it as the first parameter (before domain args) if the method:
+//!
+//! 1. **Writes an audit-worthy row** (`created_by`, `updated_by`, an
+//!    `audit_log` entry, an admin action record, a financial mutation).
+//! 2. **Performs authorization or row-level checks** that depend on
+//!    *who* the caller is (e.g. "a guardian may only see their own
+//!    child", "only the assigned counselor may resolve this incident").
+//! 3. **Sends a notification / email / SMS** that should attribute the
+//!    action to a specific person or system component.
+//! 4. **Is invoked by an impersonation flow** and must record both
+//!    `by_user_id` and `as_user_id`.
+//! 5. **Emits domain events / webhooks** where actor + request-id must
+//!    be part of the payload for downstream correlation.
+//!
+//! ### When *not* to bother
+//!
+//! Skip `&RequestCtx` for methods that are pure reads with no row-level
+//! auth, pure calculations, or internal helpers. Adding the parameter
+//! everywhere just for symmetry costs signature churn and buys nothing.
+//!
+//! ### Convention
+//!
+//! ```ignore
+//! // Before
+//! pub async fn charge_tuition(&self, student_id: i64, amount: Money)
+//!     -> ServiceResult<FeeId>;
+//!
+//! // After — ctx always first, domain args unchanged
+//! pub async fn charge_tuition(&self, ctx: &RequestCtx,
+//!     student_id: i64, amount: Money) -> ServiceResult<FeeId>;
+//! ```
+//!
+//! Inside the method, use:
+//! * `ctx.user_id()` for `created_by` / `updated_by` columns,
+//! * `ctx.actor` for structured audit rows (matches on `System` vs `User`
+//!   vs `Impersonated`),
+//! * `ctx.request_id` / `ctx.trace_id` in log fields for correlation,
+//! * `ctx.has_permission("...")` for cheap in-memory permission gates
+//!   (call [`crate::services::AuthService`] for the authoritative check).
+//!
+//! ### Recommended adoption order
+//!
+//! Retrofit audit-heavy domains first, then authorization-sensitive ones,
+//! then leave the rest alone until they change for another reason:
+//!
+//! 1. **First wave** — `fees`, `payroll`, `discipline`, `documents`, `admin`.
+//! 2. **Second wave** — `auth` (impersonation, grant/revoke),
+//!    `enrollment` (admission actions), `people` (student/staff mutations).
+//! 3. **Later / maybe never** — `library`, `inventory`, `transport`,
+//!    `hostel`, `communication`, `timetable`, `health`, `academic`
+//!    (mostly read paths or low-audit CRUD).
+//!
+//! See `DisciplineService::report` for a worked example.
 
 use std::sync::Arc;
 

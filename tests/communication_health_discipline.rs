@@ -5,6 +5,7 @@ use school_erp::repositories::auth::NewUser;
 use school_erp::repositories::communication::NewAnnouncement;
 use school_erp::repositories::discipline::NewIncident;
 use school_erp::repositories::guardians::{NewGuardian, StudentGuardianLink};
+use school_erp::{RequestCtx, TenantId};
 
 #[tokio::test]
 async fn broadcast_pushes_notifications_to_students_with_user() {
@@ -58,7 +59,13 @@ async fn discipline_report_notifies_linked_guardian() {
         is_primary: true, is_emergency: true, can_pickup: true,
     }).await.unwrap();
 
-    fx.app.discipline.report(NewIncident {
+    // Integration tests don't run middleware, so build the ctx by hand.
+    // `RequestCtx::system` is the canonical constructor for
+    // non-HTTP callers (background jobs, CLIs, tests).
+    let tenant = TenantId::new("test").expect("valid tenant id");
+    let ctx = RequestCtx::system(tenant, "test:discipline_report_notifies_linked_guardian");
+
+    fx.app.discipline.report(&ctx, NewIncident {
         student_id: fx.student_id,
         date: date(2025, 6, 15),
         description: "Late to class".into(),
@@ -71,6 +78,13 @@ async fn discipline_report_notifies_linked_guardian() {
         .for_user(guardian_user.id, true, 10).await.unwrap();
     assert_eq!(notes.len(), 1);
     assert_eq!(notes[0].kind.as_deref(), Some("discipline"));
+    // The new attribution text should mention that a system/test component
+    // filed the report — this is the visible effect of threading `&RequestCtx`.
+    assert!(
+        notes[0].title.contains("system:test:discipline_report_notifies_linked_guardian"),
+        "expected reporter attribution in notification title, got: {:?}",
+        notes[0].title,
+    );
 }
 
 #[tokio::test]

@@ -7,7 +7,7 @@ use axum::{
 };
 use serde::Deserialize;
 
-use crate::http::{ExtractServices, ServiceHttpError};
+use crate::http::{ExtractCtx, ExtractServices, ServiceHttpError};
 use crate::http::middleware::TenantScopeState;
 use crate::repositories::discipline::{DisciplineIncident, NewIncident};
 
@@ -20,9 +20,13 @@ pub fn routes() -> Router<TenantScopeState> {
 
 #[derive(Deserialize)] struct ReportBody { #[serde(flatten)] incident: NewIncident, #[serde(default)] notify_guardians: bool }
 
-async fn report(ExtractServices(a): ExtractServices, Json(b): Json<ReportBody>)
-    -> Result<Json<DisciplineIncident>, ServiceHttpError>
-{ Ok(Json(a.discipline.report(b.incident, b.notify_guardians).await?)) }
+async fn report(
+    ExtractServices(a): ExtractServices,
+    ExtractCtx(ctx):    ExtractCtx,
+    Json(b):            Json<ReportBody>,
+) -> Result<Json<DisciplineIncident>, ServiceHttpError> {
+    Ok(Json(a.discipline.report(&ctx, b.incident, b.notify_guardians).await?))
+}
 
 async fn history(ExtractServices(a): ExtractServices, Path(sid): Path<i64>)
     -> Result<Json<Vec<DisciplineIncident>>, ServiceHttpError>
