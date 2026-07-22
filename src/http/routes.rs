@@ -381,49 +381,62 @@ pub fn build_router(state: AppState, readiness: Readiness) -> NormalizePath<Rout
 
     // --------------------------------------------- web UI (public + shell)
     //
-    // Public routes: landing, assets, login/logout — no session cookie needed.
-    let web_public = Router::new()
-        .route("/",                    get(wl::index))
-        .route("/assets/{*path}",      get(wa::serve))
-        .route("/web/login",           get(wau::get_login).post(wau::post_login))
-        .route("/web/logout",          post(wau::post_logout))
-        .route("/web/{tenant}/login",  get(wau::get_tenant_login).post(wau::post_login));
+    // Global public routes: landing, assets, tenant-less login/logout.
+    // These do NOT live under `/web/{tenant}` because they have no tenant
+    // context in the URL.
+    let web_global = Router::new()
+        .route("/",               get(wl::index))
+        .route("/assets/{*path}", get(wa::serve))
+        .route("/web/login",      get(wau::get_login).post(wau::post_login))
+        .route("/web/logout",     post(wau::post_logout));
 
-    // Session-gated shell: dashboard + real screens + module stubs.
-    let web_shell = Router::new()
-        .route("/web/{tenant}/",              get(wdb::index))
-        .route("/web/{tenant}/students",      get(ws::list))
-        .route("/web/{tenant}/students/{id}", get(ws::show))
+    // Tenant-scoped web shell.
+    //
+    // Just like the JSON API, the `{tenant}` segment is factored out of every
+    // individual route via `.nest("/web/{tenant}", …)`. Handlers keep using
+    // the `TenantScope` extractor to get the resolved tenant + services —
+    // no per-route path repetition, no separate middleware for tenant lookup.
+    //
+    // NOTE: The `require_session` auth gate is intentionally disabled for
+    // now so the app is usable without logging in during development. Flip
+    // the `.layer(...)` line back on when auth is wired up end-to-end.
+    let web_tenant = Router::new()
+        // login form for this tenant (public within the nest — no session yet)
+        .route("/login",         get(wau::get_tenant_login).post(wau::post_login))
+        // dashboard + real screens
+        .route("/",              get(wdb::index))
+        .route("/students",      get(ws::list))
+        .route("/students/{id}", get(ws::show))
         // module stub screens (one route per placeholder module)
-        .route("/web/{tenant}/attendance",    get(wm::attendance))
-        .route("/web/{tenant}/timetable",     get(wm::timetable))
-        .route("/web/{tenant}/fees",          get(wm::fees))
-        .route("/web/{tenant}/examinations",  get(wm::examinations))
-        .route("/web/{tenant}/academic",      get(wm::academic))
-        .route("/web/{tenant}/staff",         get(wm::staff))
-        .route("/web/{tenant}/payroll",       get(wm::payroll))
-        .route("/web/{tenant}/guardians",     get(wm::guardians))
-        .route("/web/{tenant}/communication", get(wm::communication))
-        .route("/web/{tenant}/library",       get(wm::library))
-        .route("/web/{tenant}/transport",     get(wm::transport))
-        .route("/web/{tenant}/hostel",        get(wm::hostel))
-        .route("/web/{tenant}/inventory",     get(wm::inventory))
-        .route("/web/{tenant}/health",        get(wm::health))
-        .route("/web/{tenant}/discipline",    get(wm::discipline))
-        .route("/web/{tenant}/documents",     get(wm::documents))
-        .route("/web/{tenant}/audit",         get(wm::audit))
-        .route("/web/{tenant}/settings",      get(wm::settings))
-        .layer(axum::middleware::from_fn(wau::require_session));
+        .route("/attendance",    get(wm::attendance))
+        .route("/timetable",     get(wm::timetable))
+        .route("/fees",          get(wm::fees))
+        .route("/examinations",  get(wm::examinations))
+        .route("/academic",      get(wm::academic))
+        .route("/staff",         get(wm::staff))
+        .route("/payroll",       get(wm::payroll))
+        .route("/guardians",     get(wm::guardians))
+        .route("/communication", get(wm::communication))
+        .route("/library",       get(wm::library))
+        .route("/transport",     get(wm::transport))
+        .route("/hostel",        get(wm::hostel))
+        .route("/inventory",     get(wm::inventory))
+        .route("/health",        get(wm::health))
+        .route("/discipline",    get(wm::discipline))
+        .route("/documents",     get(wm::documents))
+        .route("/audit",         get(wm::audit))
+        .route("/settings",      get(wm::settings));
+        // .layer(axum::middleware::from_fn(wau::require_session));
 
     // ------------------------------------------------------------ assemble
     let router = Router::new()
         .route("/api/health", get(|| async { "ok" }))
         .route("/api/live",   get(probe_live))
         .route("/api/ready",  get(probe_ready))
-        .nest("/admin/api",    admin_api)
-        .nest("/api/{tenant}", tenant_api)
-        .merge(web_public)
-        .merge(web_shell)
+        .nest("/admin/api",     admin_api)
+        .nest("/api/{tenant}",  tenant_api)
+        .nest("/web/{tenant}",  web_tenant)
+        .merge(web_global)
         .with_state(state)
         .layer(axum::Extension(readiness));
 

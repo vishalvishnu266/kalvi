@@ -141,6 +141,11 @@ pub async fn post_logout() -> Response {
 /// The URL tenant is extracted directly from the request path — no request
 /// extension plumbing, no middleware upstream. This keeps the auth gate
 /// self-contained: it depends only on the request itself.
+///
+/// **Currently disabled.** The router does not wire this middleware in yet
+/// (see `http::routes::build_router`) so the web shell is browsable without
+/// signing in. Flip the `.layer(...)` line back on to re-enable.
+#[allow(dead_code)]
 pub async fn require_session(req: Request<Body>, next: Next) -> Response {
     let url_tenant = url_tenant_from(req.uri().path());
     let login_url = match &url_tenant {

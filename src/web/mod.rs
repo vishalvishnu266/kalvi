@@ -10,9 +10,12 @@
 //! * `GET  /web/login`              — global login form.
 //! * `POST /web/login`              — submit login.
 //! * `POST /web/logout`             — sign out.
-//! * `GET  /web/{tenant}/login`     — tenant-specific login form.
-//! * `/web/{tenant}/…`              — authenticated app shell. Tenant id is
-//!   a path parameter — no cookie/header plumbing for DB routing.
+//! * `/web/{tenant}/…`              — tenant-scoped app shell (dashboard,
+//!   students, module stubs, tenant-specific login). The `{tenant}` segment
+//!   is factored out via a single `.nest("/web/{tenant}", …)`, mirroring
+//!   how `/api/{tenant}` works — individual routes inside the nest are
+//!   written **without** repeating `{tenant}`, and handlers pick the tenant
+//!   up via the [`crate::http::TenantScope`] extractor.
 
 pub mod assets;
 pub mod auth;

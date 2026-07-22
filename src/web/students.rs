@@ -90,7 +90,7 @@ pub struct Tab {
 
 pub async fn show(
     scope: TenantScope,
-    Path((_t, id)): Path<(String, i64)>,
+    Path((_tenant, id)): Path<(String, i64)>,
     headers: HeaderMap,
 ) -> Result<Response, WebError> {
     let s = scope.services.repos.students.get(id).await.ok();
