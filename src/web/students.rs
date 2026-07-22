@@ -7,7 +7,7 @@ use axum::{
     Extension,
 };
 use serde::Deserialize;
-
+use tracing::log::{error, info};
 use crate::http::TenantScope;
 use crate::repositories::students::Student;
 use crate::middleware::auth::SessionUser;
@@ -44,7 +44,7 @@ pub async fn list(
 ) -> Result<Response, WebError> {
     let students: Vec<Student> = scope.services.repos.students.list(50, 0).await
         .unwrap_or_default();
-
+    info!("student list");
     let q = qp.q.unwrap_or_default();
     let ql = q.to_lowercase();
     let rows: Vec<StudentRow> = students.into_iter().filter_map(|s| {

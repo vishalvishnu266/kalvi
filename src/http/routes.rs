@@ -45,6 +45,7 @@ use crate::web::{
     modules as wm, students as ws,
 };
 use crate::middleware::auth as wam;
+use crate::middleware::tracing as wtr;
 
 // ============================================================================
 // AppState + ServiceHttpError
@@ -462,7 +463,8 @@ pub fn build_router(state: AppState, readiness: Readiness) -> Router {
         .nest("/web/{tenant}",  web_tenant)
         .merge(web_global)
         .with_state(state)
-        .layer(axum::Extension(readiness));
+        .layer(axum::Extension(readiness))
+        .layer(axum::middleware::from_fn(wtr::trace_request));
 
     // `NormalizePathLayer` is applied *outside* axum's routing so path
     // rewrite happens BEFORE the router matches (axum#3233).
