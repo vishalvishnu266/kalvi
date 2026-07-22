@@ -26,10 +26,11 @@ pub async fn trace_request(
     
     // Reconstruct request
     let req = Request::from_parts(parts, Body::from(bytes));
-    
-    let span = span!(Level::INFO, "http_request", %correlation_id);
-    
-    info!(parent: &span, %method, %uri, ?headers, body = %body_str, "request started");
-    
+
+    let span = span!(Level::INFO, "http", %correlation_id);
+    tracing::info!(parent: &span, "Request started");
+    tracing::info!(parent: &span, %method, %uri, "Route info");
+    tracing::info!(parent: &span, ?headers, "Headers");
+    tracing::info!(parent: &span, body = %body_str, "Body payload");
     next.run(req).instrument(span).await
 }
