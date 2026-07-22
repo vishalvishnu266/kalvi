@@ -26,8 +26,6 @@ use axum::{
     Json, Router,
 };
 use serde::Deserialize;
-use tower::Layer;
-use tower_http::normalize_path::{NormalizePath, NormalizePathLayer};
 
 use crate::health_probes::Readiness;
 use crate::services::{Actor, AppServices, RequestCtx, ServiceError};
@@ -189,7 +187,7 @@ fn tenant_error_to_http(e: TenantError) -> (StatusCode, String) {
 ///
 /// Returns `NormalizePath<Router>` so trailing slashes are trimmed *before*
 /// axum routes.
-pub fn build_router(state: AppState, readiness: Readiness) -> NormalizePath<Router> {
+pub fn build_router(state: AppState, readiness: Readiness) -> Router {
     // Probes: `/api/health` is state-free; `/api/live` and `/api/ready` want
     // a shared `Readiness` flag. We pass `Readiness` as a request Extension
     // so probe handlers don't need their own router-level state — this lets
@@ -429,7 +427,7 @@ pub fn build_router(state: AppState, readiness: Readiness) -> NormalizePath<Rout
 
     // `NormalizePathLayer` is applied *outside* axum's routing so path
     // rewrite happens BEFORE the router matches (axum#3233).
-    NormalizePathLayer::trim_trailing_slash().layer(router)
+    router
 }
 
 // ---------------- probe handlers (kept local to routes.rs) ----------------
