@@ -69,11 +69,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // `app` is `NormalizePath<Router>`. Convert via tower's ServiceExt so
     // `axum::serve` accepts it while preserving the outer NormalizePathLayer.
+    //
+    // Rust 2024 disallows bare trait paths, so we use fully-qualified
+    // trait-function syntax: `<Service as ServiceExt<Request>>::into_make_service(...)`.
     use tower::ServiceExt;
     use axum::extract::Request;
     axum::serve(
         listener,
-        ServiceExt::<Request>::into_make_service(app),
+        <_ as ServiceExt<Request>>::into_make_service(app),
     )
     .with_graceful_shutdown(shutdown_signal)
     .await?;
