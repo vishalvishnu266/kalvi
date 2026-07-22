@@ -3,10 +3,10 @@
 //! [`crate::http::routes`].
 
 use askama::Template;
-use axum::{http::HeaderMap, response::Response};
+use axum::{response::Response, Extension};
 
 use crate::http::TenantScope;
-use crate::web::auth::read_cookie_from_headers;
+use crate::web::auth::SessionUser;
 use crate::web::error::{render, WebError};
 use crate::web::layout::{nav_items, NavContext, NavItem};
 
@@ -86,23 +86,27 @@ fn stubs() -> &'static [ModuleStub] {
     ]
 }
 
-async fn render_stub(key: &'static str, scope: TenantScope, headers: HeaderMap)
+async fn render_stub(key: &'static str, scope: TenantScope, session: SessionUser)
     -> Result<Response, WebError>
 {
     let module = stubs().iter().find(|m| m.key == key)
         .ok_or_else(|| WebError::bad("unknown module"))?;
-    let user = read_cookie_from_headers(&headers, "erp_user")
-        .unwrap_or_else(|| "Admin".into());
-    let nav = NavContext::new(user, scope.tenant.as_str().to_string(), key, module.title);
+    let nav = NavContext::new(
+        session.display.clone(),
+        scope.tenant.as_str().to_string(),
+        key, module.title,
+    );
     render(&StubPage { nav: &nav, nav_items: nav_items(), module })
 }
 
 // One thin handler per stub module. Routes are wired in `http::routes`.
 macro_rules! stub_handler {
     ($name:ident, $key:literal) => {
-        pub async fn $name(scope: TenantScope, headers: HeaderMap)
-            -> Result<Response, WebError>
-        { render_stub($key, scope, headers).await }
+        pub async fn $name(
+            scope: TenantScope,
+            Extension(session): Extension<SessionUser>,
+        ) -> Result<Response, WebError>
+        { render_stub($key, scope, session).await }
     };
 }
 

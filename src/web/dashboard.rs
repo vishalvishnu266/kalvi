@@ -1,10 +1,10 @@
 //! Tenant home: OS-style menu launcher at `/web/{tenant}/`.
 
 use askama::Template;
-use axum::{http::HeaderMap, response::Response};
+use axum::{response::Response, Extension};
 
 use crate::http::TenantScope;
-use crate::web::auth::read_cookie_from_headers;
+use crate::web::auth::SessionUser;
 use crate::web::error::{render, WebError};
 use crate::web::layout::{nav_items, NavContext, NavItem};
 
@@ -49,9 +49,14 @@ fn tiles() -> &'static [Tile] {
     ]
 }
 
-pub async fn index(scope: TenantScope, headers: HeaderMap) -> Result<Response, WebError> {
-    let user = read_cookie_from_headers(&headers, "erp_user")
-        .unwrap_or_else(|| "Admin".into());
-    let nav = NavContext::new(user, scope.tenant.as_str().to_string(), "dashboard", "Home");
+pub async fn index(
+    scope: TenantScope,
+    Extension(session): Extension<SessionUser>,
+) -> Result<Response, WebError> {
+    let nav = NavContext::new(
+        session.display.clone(),
+        scope.tenant.as_str().to_string(),
+        "dashboard", "Home",
+    );
     render(&MenuPage { nav: &nav, nav_items: nav_items(), tiles: tiles() })
 }

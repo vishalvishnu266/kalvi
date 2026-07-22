@@ -54,6 +54,7 @@ pub struct Repositories {
     pub users: auth::UserRepo,
     pub roles: auth::RoleRepo,
     pub permissions: auth::PermissionRepo,
+    pub sessions: auth::SessionRepo,
 
     pub staff: staff::StaffRepo,
     pub students: students::StudentRepo,
@@ -132,6 +133,7 @@ impl Repositories {
             users: auth::UserRepo::new(pool.clone()),
             roles: auth::RoleRepo::new(pool.clone()),
             permissions: auth::PermissionRepo::new(pool.clone()),
+            sessions: auth::SessionRepo::new(pool.clone()),
 
             staff: staff::StaffRepo::new(pool.clone()),
             students: students::StudentRepo::new(pool.clone()),

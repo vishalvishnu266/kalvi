@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <title>New Tenant · Admin · School ERP</title>
+
+  <script>
+    (function() {
+      try {
+        var t = localStorage.getItem('theme');
+        if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark');
+        }
+      } catch (e) {}
+    })();
+  </script>
+
+  <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+  <script>
+    tailwind.config = { darkMode: 'class', theme: { extend: {
+      fontFamily: { sans: ['-apple-system','BlinkMacSystemFont','"SF Pro Text"','"Segoe UI"','Roboto','sans-serif'] },
+      colors: { brand: {50:'#eef2ff',400:'#818cf8',500:'#6366f1',600:'#4f46e5',700:'#4338ca'} }
+    }}};
+  </script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="/assets/app.css" />
+</head>
+<body class="min-h-full font-sans antialiased
+             bg-zinc-50 text-zinc-900
+             dark:bg-zinc-950 dark:text-zinc-100">
+
+  <header class="border-b border-zinc-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/70 backdrop-blur">
+    <div class="max-w-3xl mx-auto px-6 py-4 flex items-center gap-3">
+      <a href="/admin/tenants"
+         class="w-8 h-8 rounded-lg flex items-center justify-center
+                text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800">
+        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+      </a>
+      <div>
+        <div class="text-sm font-semibold tracking-tight">New tenant</div>
+        <div class="text-xs text-zinc-500">Create a tenant row and provision its database</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-6 py-8">
+    {% if let Some(msg) = error %}
+    <div class="mb-4 p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-800
+                dark:bg-rose-500/10 dark:border-rose-500/30 dark:text-rose-300 text-sm">
+      {{ msg }}
+    </div>
+    {% endif %}
+
+    <form method="post" action="/admin/tenants"
+          class="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800
+                 p-6 sm:p-8 space-y-5 shadow-sm">
+      <div>
+        <label class="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1.5">
+          Tenant ID
+        </label>
+        <input name="tenant_id" required pattern="[A-Za-z0-9_-]{1,64}"
+               value="{{ form.tenant_id }}"
+               placeholder="acme"
+               class="w-full px-3 py-2.5 rounded-lg text-sm font-mono
+                      bg-zinc-50 border border-zinc-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
+                      dark:bg-zinc-800 dark:border-zinc-700 dark:focus:border-brand-500" />
+        <p class="mt-1 text-xs text-zinc-500">Short slug used in URLs (<code>/web/&lt;id&gt;/</code>). Letters, digits, <code>-</code>, <code>_</code>.</p>
+      </div>
+
+      <div>
+        <label class="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1.5">
+          Display name
+        </label>
+        <input name="name" required value="{{ form.name }}"
+               placeholder="Acme Public School"
+               class="w-full px-3 py-2.5 rounded-lg text-sm
+                      bg-zinc-50 border border-zinc-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
+                      dark:bg-zinc-800 dark:border-zinc-700 dark:focus:border-brand-500" />
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1.5">
+            Plan (optional)
+          </label>
+          <input name="plan" value="{{ form.plan }}"
+                 placeholder="starter / pro / enterprise"
+                 class="w-full px-3 py-2.5 rounded-lg text-sm
+                        bg-zinc-50 border border-zinc-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
+                        dark:bg-zinc-800 dark:border-zinc-700 dark:focus:border-brand-500" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1.5">
+            Notes (optional)
+          </label>
+          <input name="notes" value="{{ form.notes }}"
+                 placeholder="Internal notes"
+                 class="w-full px-3 py-2.5 rounded-lg text-sm
+                        bg-zinc-50 border border-zinc-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
+                        dark:bg-zinc-800 dark:border-zinc-700 dark:focus:border-brand-500" />
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <a href="/admin/tenants"
+           class="px-4 py-2 rounded-lg text-sm text-zinc-700 hover:bg-zinc-100
+                  dark:text-zinc-300 dark:hover:bg-zinc-800">Cancel</a>
+        <button type="submit"
+                class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
+                       bg-brand-600 text-white hover:bg-brand-700 shadow-sm shadow-brand-600/20">
+          <i data-lucide="check" class="w-4 h-4"></i>
+          <span>Create tenant</span>
+        </button>
+      </div>
+    </form>
+  </main>
+
+  <script>lucide.createIcons();</script>
+</body>
+</html>

@@ -28,8 +28,17 @@ use crate::http::AppState;
 use crate::tenancy::TenantId;
 use crate::web::error::{render, WebError};
 
-const COOKIE_TENANT: &str = "erp_tenant";
-const COOKIE_USER: &str = "erp_user";
+/// Cookie names.
+///
+/// * `erp_tenant`  — remembers which tenant the user last signed into so
+///   the landing page can auto-redirect to `/web/{tenant}/`.
+/// * `erp_user`    — display-only cookie (used by the sidebar to render
+///   the user's name without a DB hit). NOT authoritative.
+/// * `erp_session` — opaque server-side session token; the ONLY cookie
+///   the auth gate trusts.
+pub const COOKIE_TENANT: &str = "erp_tenant";
+pub const COOKIE_USER: &str = "erp_user";
+pub const COOKIE_SESSION: &str = "erp_session";
 
 // ---------------------------------------------------------------- template
 
@@ -86,14 +95,32 @@ pub async fn post_login(
 
     match services.auth.login(&f.identifier, &f.password).await {
         Ok(user) => {
+            // Issue a server-side session stored in the tenant DB.
+            let session = match services.auth.issue_session(user.id, None, None).await {
+                Ok(s) => s,
+                Err(e) => {
+                    return render(&LoginPage {
+                        error: Some(&format!("Could not start session: {e}")),
+                        tenant: &f.tenant, identifier: &f.identifier,
+                        tenant_locked: !f.tenant.is_empty(),
+                    });
+                }
+            };
+
             let display = user.email.clone().unwrap_or(user.username.clone());
+            let max_age = (session.expires_at - chrono::Utc::now().naive_utc())
+                .num_seconds().max(0);
             let set_tenant = format!(
-                "{COOKIE_TENANT}={}; Path=/; SameSite=Lax; HttpOnly",
+                "{COOKIE_TENANT}={}; Path=/; Max-Age={max_age}; SameSite=Lax; HttpOnly",
                 tenant.as_str()
             );
             let set_user = format!(
-                "{COOKIE_USER}={}; Path=/; SameSite=Lax",
+                "{COOKIE_USER}={}; Path=/; Max-Age={max_age}; SameSite=Lax",
                 urlencoding::encode(&display)
+            );
+            let set_session = format!(
+                "{COOKIE_SESSION}={}; Path=/; Max-Age={max_age}; SameSite=Lax; HttpOnly",
+                session.token
             );
             let location = format!("/web/{}/", tenant.as_str());
             Ok((
@@ -101,6 +128,7 @@ pub async fn post_login(
                 [
                     (header::SET_COOKIE, set_tenant),
                     (header::SET_COOKIE, set_user),
+                    (header::SET_COOKIE, set_session),
                     (header::LOCATION, location),
                 ],
                 Body::empty(),
@@ -114,14 +142,34 @@ pub async fn post_login(
     }
 }
 
-pub async fn post_logout() -> Response {
-    let clear_tenant = format!("{COOKIE_TENANT}=; Path=/; Max-Age=0; SameSite=Lax; HttpOnly");
-    let clear_user   = format!("{COOKIE_USER}=; Path=/; Max-Age=0; SameSite=Lax");
+/// Sign out: revoke the current session (server-side) and clear cookies.
+///
+/// Best-effort — if we can't reach the tenant DB (e.g. tenant disabled),
+/// we still clear the cookies client-side and redirect to the login page.
+pub async fn post_logout(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+) -> Response {
+    // Try to revoke the session server-side.
+    let cookie_tenant  = read_cookie_from_headers(&headers, COOKIE_TENANT);
+    let cookie_session = read_cookie_from_headers(&headers, COOKIE_SESSION);
+    if let (Some(tid), Some(token)) = (cookie_tenant, cookie_session) {
+        if let Ok(t) = TenantId::new(tid) {
+            if let Ok(services) = state.tenants.services_for(&t).await {
+                let _ = services.auth.revoke_session(&token).await;
+            }
+        }
+    }
+
+    let clear_tenant  = format!("{COOKIE_TENANT}=; Path=/; Max-Age=0; SameSite=Lax; HttpOnly");
+    let clear_user    = format!("{COOKIE_USER}=; Path=/; Max-Age=0; SameSite=Lax");
+    let clear_session = format!("{COOKIE_SESSION}=; Path=/; Max-Age=0; SameSite=Lax; HttpOnly");
     (
         StatusCode::SEE_OTHER,
         [
             (header::SET_COOKIE, clear_tenant),
             (header::SET_COOKIE, clear_user),
+            (header::SET_COOKIE, clear_session),
             (header::LOCATION, "/web/login".to_string()),
         ],
         Body::empty(),
@@ -132,38 +180,67 @@ pub async fn post_logout() -> Response {
 
 /// Auth gate for the tenant-scoped app shell (`/web/{tenant}/…`).
 ///
-/// * If no session cookie is present, redirects to `/web/{tenant}/login`
-///   (or `/web/login` if the URL doesn't have a resolvable tenant).
-/// * If a session cookie is present but its tenant doesn't match the tenant
-///   in the URL, also redirects to the URL tenant's login. This stops a
-///   user logged in as `acme` from opening `/web/globex/students`.
-///
-/// The URL tenant is extracted directly from the request path — no request
-/// extension plumbing, no middleware upstream. This keeps the auth gate
-/// self-contained: it depends only on the request itself.
-///
-/// **Currently disabled.** The router does not wire this middleware in yet
-/// (see `http::routes::build_router`) so the web shell is browsable without
-/// signing in. Flip the `.layer(...)` line back on to re-enable.
-#[allow(dead_code)]
-pub async fn require_session(req: Request<Body>, next: Next) -> Response {
+/// Rules, evaluated top-down:
+/// 1. Pull the `{tenant}` segment from the URL. If absent, we can't scope
+///    the check — redirect to the global login.
+/// 2. Require an `erp_session` cookie. Missing → redirect to
+///    `/web/{tenant}/login`.
+/// 3. Resolve the session against the **tenant's own DB** (sessions live
+///    per-tenant). Unknown / revoked / expired → redirect to login.
+/// 4. Stash the resolved user into the request extensions so downstream
+///    handlers can read it via [`SessionUser`] without a second DB hit.
+pub async fn require_session(
+    State(state): State<AppState>,
+    mut req: Request<Body>,
+    next: Next,
+) -> Response {
     let url_tenant = url_tenant_from(req.uri().path());
     let login_url = match &url_tenant {
         Some(t) => format!("/web/{}/login", t),
         None    => "/web/login".to_string(),
     };
 
-    let cookie_tenant = match read_cookie_from_headers(req.headers(), COOKIE_TENANT) {
-        Some(t) => t,
-        None    => return Redirect::to(&login_url).into_response(),
+    // Need a tenant in the URL to know which DB to check the session against.
+    let Some(t_str) = url_tenant.as_deref() else {
+        return Redirect::to(&login_url).into_response();
+    };
+    let Ok(tenant) = TenantId::new(t_str.to_string()) else {
+        return Redirect::to(&login_url).into_response();
     };
 
-    if let Some(t) = url_tenant.as_deref() {
-        if t != cookie_tenant {
-            return Redirect::to(&login_url).into_response();
-        }
-    }
+    let Some(token) = read_cookie_from_headers(req.headers(), COOKIE_SESSION) else {
+        return Redirect::to(&login_url).into_response();
+    };
+
+    let Ok(services) = state.tenants.services_for(&tenant).await else {
+        return Redirect::to(&login_url).into_response();
+    };
+
+    let (session, user) = match services.auth.resolve_session(&token).await {
+        Ok(pair) => pair,
+        Err(_)   => return Redirect::to(&login_url).into_response(),
+    };
+
+    // Make the authenticated user available to handlers without re-reading
+    // cookies / re-hitting the DB.
+    req.extensions_mut().insert(SessionUser {
+        user_id: user.id,
+        username: user.username.clone(),
+        display: user.email.clone().unwrap_or(user.username.clone()),
+        session_id: session.id,
+    });
+
     next.run(req).await
+}
+
+/// Authenticated caller info, attached to the request by [`require_session`]
+/// and read by handlers via `Extension<SessionUser>`.
+#[derive(Clone, Debug)]
+pub struct SessionUser {
+    pub user_id: i64,
+    pub username: String,
+    pub display: String,
+    pub session_id: i64,
 }
 
 /// Parse the `{tenant}` segment out of a URL path like `/web/acme/students`.

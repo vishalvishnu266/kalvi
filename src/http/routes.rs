@@ -41,8 +41,8 @@ use crate::api::{
     transport as tr,
 };
 use crate::web::{
-    assets as wa, auth as wau, dashboard as wdb, landing as wl, modules as wm,
-    students as ws,
+    admin as wad, assets as wa, auth as wau, dashboard as wdb, landing as wl,
+    modules as wm, students as ws,
 };
 
 // ============================================================================
@@ -388,20 +388,16 @@ pub fn build_router(state: AppState, readiness: Readiness) -> Router {
         .route("/web/login",      get(wau::get_login).post(wau::post_login))
         .route("/web/logout",     post(wau::post_logout));
 
-    // Tenant-scoped web shell.
+    // Tenant-scoped web shell — session-GATED half.
     //
     // Just like the JSON API, the `{tenant}` segment is factored out of every
     // individual route via `.nest("/web/{tenant}", …)`. Handlers keep using
     // the `TenantScope` extractor to get the resolved tenant + services —
     // no per-route path repetition, no separate middleware for tenant lookup.
     //
-    // NOTE: The `require_session` auth gate is intentionally disabled for
-    // now so the app is usable without logging in during development. Flip
-    // the `.layer(...)` line back on when auth is wired up end-to-end.
-    let web_tenant = Router::new()
-        // login form for this tenant (public within the nest — no session yet)
-        .route("/login",         get(wau::get_tenant_login).post(wau::post_login))
-        // dashboard + real screens
+    // Every route here is behind `require_session`, which validates the
+    // opaque `erp_session` cookie against the tenant's own DB.
+    let web_tenant_shell = Router::new()
         .route("/",              get(wdb::index))
         .route("/students",      get(ws::list))
         .route("/students/{id}", get(ws::show))
@@ -423,15 +419,44 @@ pub fn build_router(state: AppState, readiness: Readiness) -> Router {
         .route("/discipline",    get(wm::discipline))
         .route("/documents",     get(wm::documents))
         .route("/audit",         get(wm::audit))
-        .route("/settings",      get(wm::settings));
-        // .layer(axum::middleware::from_fn(wau::require_session));
+        .route("/settings",      get(wm::settings))
+        .layer(axum::middleware::from_fn_with_state(
+            state.clone(), wau::require_session,
+        ));
+
+    // Tenant-scoped web PUBLIC — the login form/POST for a tenant. Kept
+    // as a separate router so `require_session` doesn't gate it (that would
+    // cause an infinite redirect loop).
+    let web_tenant_public = Router::new()
+        .route("/login", get(wau::get_tenant_login).post(wau::post_login));
+
+    // Combine both halves under a single `/web/{tenant}` nest.
+    let web_tenant = Router::new()
+        .merge(web_tenant_public)
+        .merge(web_tenant_shell);
+
+    // ------------------------------------------- admin (control-plane) UI
+    //
+    // Intentionally unauthenticated for now (operator sign-in comes later).
+    // Merged with the JSON API under a single `/admin` nest so we don't have
+    // overlapping `.nest("/admin", …)` + `.nest("/admin/api", …)` claims
+    // (which axum refuses because both would own `/admin/api/*`).
+    let admin_web = Router::new()
+        .route("/",                              get(wad::index))
+        .route("/tenants",                       get(wad::list_tenants).post(wad::create_tenant))
+        .route("/tenants/new",                   get(wad::new_tenant_form))
+        .route("/tenants/{tid}/enable",          post(wad::enable_tenant))
+        .route("/tenants/{tid}/disable",         post(wad::disable_tenant))
+        .route("/tenants/{tid}/delete",          post(wad::delete_tenant))
+        .route("/tenants/{tid}/rename",          post(wad::rename_tenant))
+        .nest("/api", admin_api);
 
     // ------------------------------------------------------------ assemble
     let router = Router::new()
         .route("/api/health", get(|| async { "ok" }))
         .route("/api/live",   get(probe_live))
         .route("/api/ready",  get(probe_ready))
-        .nest("/admin/api",     admin_api)
+        .nest("/admin",         admin_web)
         .nest("/api/{tenant}",  tenant_api)
         .nest("/web/{tenant}",  web_tenant)
         .merge(web_global)

@@ -204,3 +204,106 @@ impl PermissionRepo {
             .fetch_all(&self.pool).await?)
     }
 }
+
+// ---------- Session ----------
+
+/// Server-side web session, stored **inside the tenant DB** the user
+/// signed into. Tenancy isolation is therefore automatic: a session
+/// token issued for tenant `acme` is meaningless in tenant `globex`,
+/// because the lookup happens against `acme`'s `user_session` table.
+#[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
+pub struct Session {
+    pub id: i64,
+    pub token: String,
+    pub user_id: i64,
+    pub created_at: NaiveDateTime,
+    pub expires_at: NaiveDateTime,
+    pub last_seen_at: NaiveDateTime,
+    pub revoked_at: Option<NaiveDateTime>,
+    pub user_agent: Option<String>,
+    pub remote_ip: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct NewSession {
+    pub token: String,
+    pub user_id: i64,
+    pub expires_at: NaiveDateTime,
+    pub user_agent: Option<String>,
+    pub remote_ip: Option<String>,
+}
+
+#[derive(Clone)]
+pub struct SessionRepo { pool: SqlitePool }
+
+impl SessionRepo {
+    pub fn new(pool: SqlitePool) -> Self { Self { pool } }
+
+    pub async fn create(&self, s: &NewSession) -> RepoResult<Session> {
+        let id = sqlx::query_scalar::<_, i64>(
+            r#"INSERT INTO user_session (token, user_id, expires_at, user_agent, remote_ip)
+               VALUES (?, ?, ?, ?, ?) RETURNING id"#,
+        )
+        .bind(&s.token).bind(s.user_id).bind(s.expires_at)
+        .bind(&s.user_agent).bind(&s.remote_ip)
+        .fetch_one(&self.pool).await?;
+        self.get(id).await
+    }
+
+    pub async fn get(&self, id: i64) -> RepoResult<Session> {
+        sqlx::query_as::<_, Session>("SELECT * FROM user_session WHERE id = ?")
+            .bind(id).fetch_optional(&self.pool).await?
+            .ok_or(RepoError::NotFound)
+    }
+
+    /// Look up a session by its opaque cookie token. Returns `None`
+    /// for unknown, expired, or revoked tokens.
+    pub async fn find_active_by_token(&self, token: &str) -> RepoResult<Option<Session>> {
+        Ok(sqlx::query_as::<_, Session>(
+            r#"SELECT * FROM user_session
+               WHERE token = ?
+                 AND revoked_at IS NULL
+                 AND expires_at > datetime('now')"#,
+        )
+        .bind(token).fetch_optional(&self.pool).await?)
+    }
+
+    /// Bump `last_seen_at` so we know the session is still in active use.
+    pub async fn touch(&self, id: i64) -> RepoResult<()> {
+        sqlx::query("UPDATE user_session SET last_seen_at = datetime('now') WHERE id = ?")
+            .bind(id).execute(&self.pool).await?;
+        Ok(())
+    }
+
+    pub async fn revoke_by_token(&self, token: &str) -> RepoResult<()> {
+        sqlx::query(
+            r#"UPDATE user_session SET revoked_at = datetime('now')
+               WHERE token = ? AND revoked_at IS NULL"#,
+        )
+        .bind(token).execute(&self.pool).await?;
+        Ok(())
+    }
+
+    pub async fn revoke_all_for_user(&self, user_id: i64) -> RepoResult<()> {
+        sqlx::query(
+            r#"UPDATE user_session SET revoked_at = datetime('now')
+               WHERE user_id = ? AND revoked_at IS NULL"#,
+        )
+        .bind(user_id).execute(&self.pool).await?;
+        Ok(())
+    }
+
+    /// Delete rows that were revoked or expired more than `keep_days`
+    /// days ago. Intended to be called from a scheduled sweep job.
+    pub async fn cleanup(&self, keep_days: i64) -> RepoResult<u64> {
+        let res = sqlx::query(
+            r#"DELETE FROM user_session
+               WHERE (revoked_at IS NOT NULL AND revoked_at < datetime('now', ?))
+                  OR (expires_at < datetime('now', ?))"#,
+        )
+        .bind(format!("-{keep_days} days"))
+        .bind(format!("-{keep_days} days"))
+        .execute(&self.pool).await?;
+        Ok(res.rows_affected())
+    }
+}

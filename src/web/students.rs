@@ -3,14 +3,14 @@
 use askama::Template;
 use axum::{
     extract::{Path, Query},
-    http::HeaderMap,
     response::Response,
+    Extension,
 };
 use serde::Deserialize;
 
 use crate::http::TenantScope;
 use crate::repositories::students::Student;
-use crate::web::auth::read_cookie_from_headers;
+use crate::web::auth::SessionUser;
 use crate::web::error::{render, WebError};
 use crate::web::layout::{nav_items, NavContext, NavItem};
 
@@ -40,7 +40,7 @@ pub struct ListParams { q: Option<String> }
 pub async fn list(
     scope: TenantScope,
     Query(qp): Query<ListParams>,
-    headers: HeaderMap,
+    Extension(session): Extension<SessionUser>,
 ) -> Result<Response, WebError> {
     let students: Vec<Student> = scope.services.repos.students.list(50, 0).await
         .unwrap_or_default();
@@ -65,9 +65,11 @@ pub async fn list(
 
     let rows = if rows.is_empty() && q.is_empty() { sample_students() } else { rows };
 
-    let user = read_cookie_from_headers(&headers, "erp_user")
-        .unwrap_or_else(|| "Admin".into());
-    let nav = NavContext::new(user, scope.tenant.as_str().to_string(), "students", "Students");
+    let nav = NavContext::new(
+        session.display.clone(),
+        scope.tenant.as_str().to_string(),
+        "students", "Students",
+    );
 
     render(&StudentsListPage { nav: &nav, nav_items: nav_items(), q: &q, rows })
 }
@@ -91,7 +93,7 @@ pub struct Tab {
 pub async fn show(
     scope: TenantScope,
     Path((_tenant, id)): Path<(String, i64)>,
-    headers: HeaderMap,
+    Extension(session): Extension<SessionUser>,
 ) -> Result<Response, WebError> {
     let s = scope.services.repos.students.get(id).await.ok();
     let student = match s {
@@ -107,10 +109,12 @@ pub async fn show(
             .unwrap_or_else(|| sample_students().remove(0)),
     };
 
-    let user = read_cookie_from_headers(&headers, "erp_user")
-        .unwrap_or_else(|| "Admin".into());
     let title = format!("Students · {}", student.name);
-    let nav = NavContext::new(user, scope.tenant.as_str().to_string(), "students", title);
+    let nav = NavContext::new(
+        session.display.clone(),
+        scope.tenant.as_str().to_string(),
+        "students", title,
+    );
 
     let current = "overview";
     let tabs = ["overview","attendance","fees","guardians","documents"]

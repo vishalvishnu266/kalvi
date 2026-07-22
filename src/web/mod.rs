@@ -17,6 +17,7 @@
 //!   written **without** repeating `{tenant}`, and handlers pick the tenant
 //!   up via the [`crate::http::TenantScope`] extractor.
 
+pub mod admin;
 pub mod assets;
 pub mod auth;
 pub mod dashboard;

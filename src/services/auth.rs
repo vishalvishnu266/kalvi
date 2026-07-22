@@ -11,10 +11,15 @@ use argon2::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
 };
+use chrono::Duration;
+use rand_core::RngCore;
 
 use crate::repositories::Repositories;
-use crate::repositories::auth::{NewUser, User};
+use crate::repositories::auth::{NewSession, NewUser, Session, User};
 use crate::services::{ServiceError, ServiceResult};
+
+/// Default web session lifetime. Fine as a starting point; move to config later.
+pub const DEFAULT_SESSION_TTL_DAYS: i64 = 14;
 
 #[derive(Clone)]
 pub struct AuthService {
@@ -126,5 +131,62 @@ impl AuthService {
         } else {
             Err(ServiceError::forbidden(code))
         }
+    }
+
+    // ---------------------------------------------------------- sessions
+
+    /// Generate a cryptographically random opaque session token.
+    fn mint_token() -> String {
+        let mut bytes = [0u8; 32];
+        OsRng.fill_bytes(&mut bytes);
+        // URL-safe hex; 64 chars, ~256 bits of entropy.
+        bytes.iter().map(|b| format!("{:02x}", b)).collect()
+    }
+
+    /// Issue a new session for `user_id` and persist it in the tenant DB.
+    /// Returns the created row so callers can grab the token to set as a cookie.
+    pub async fn issue_session(
+        &self,
+        user_id: i64,
+        user_agent: Option<String>,
+        remote_ip: Option<String>,
+    ) -> ServiceResult<Session> {
+        self.issue_session_with_ttl(user_id, DEFAULT_SESSION_TTL_DAYS, user_agent, remote_ip).await
+    }
+
+    pub async fn issue_session_with_ttl(
+        &self,
+        user_id: i64,
+        ttl_days: i64,
+        user_agent: Option<String>,
+        remote_ip: Option<String>,
+    ) -> ServiceResult<Session> {
+        let expires_at = chrono::Utc::now().naive_utc() + Duration::days(ttl_days);
+        let token = Self::mint_token();
+        let s = self.repos.sessions.create(&NewSession {
+            token, user_id, expires_at, user_agent, remote_ip,
+        }).await?;
+        Ok(s)
+    }
+
+    /// Resolve a session cookie value into `(session, user)`. Returns
+    /// `Unauthorized` if the token is unknown, revoked, or expired, or
+    /// if the user has been disabled since sign-in.
+    pub async fn resolve_session(&self, token: &str) -> ServiceResult<(Session, User)> {
+        let session = self.repos.sessions.find_active_by_token(token).await?
+            .ok_or(ServiceError::Unauthorized)?;
+        let user = self.repos.users.get(session.user_id).await?;
+        if !user.is_active {
+            return Err(ServiceError::Unauthorized);
+        }
+        // Best-effort refresh of last_seen_at; failures shouldn't block the request.
+        let _ = self.repos.sessions.touch(session.id).await;
+        Ok((session, user))
+    }
+
+    /// Revoke a specific session (used on logout).
+    pub async fn revoke_session(&self, token: &str) -> ServiceResult<()> {
+        self.repos.sessions.revoke_by_token(token).await?;
+        Ok(())
     }
 }
