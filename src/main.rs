@@ -9,6 +9,7 @@
 
 use std::sync::Arc;
 use std::time::Duration;
+use tower::Layer;
 
 use school_erp::health_probes::Readiness;
 use school_erp::shutdown::{close_pools, wait_for_signal};
@@ -55,6 +56,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let readiness_for_shutdown = readiness.clone();
     let state = AppState { system, tenants };
     let app = build_router(state, readiness);
+    let app = tower_http::normalize_path::NormalizePathLayer::trim_trailing_slash().layer(app);
 
     // --- 4. Serve with graceful shutdown ---
     let listener = tokio::net::TcpListener::bind(&bind).await?;
@@ -67,17 +69,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         tracing::info!("readiness flipped to false; draining in-flight requests");
     };
 
-    // `app` is `NormalizePath<Router>`. Convert via tower's ServiceExt so
-    // `axum::serve` accepts it while preserving the outer NormalizePathLayer.
-    //
-    // Rust 2024 disallows bare trait paths, so we use fully-qualified
-    // trait-function syntax: `<Service as ServiceExt<Request>>::into_make_service(...)`.
-    use tower::ServiceExt;
-    use axum::extract::Request;
-    axum::serve(
-        listener,
-        <_ as ServiceExt<Request>>::into_make_service(app),
-    )
+    axum::serve(listener, tower::make::Shared::new(app))
     .with_graceful_shutdown(shutdown_signal)
     .await?;
 
