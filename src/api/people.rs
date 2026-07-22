@@ -1,103 +1,81 @@
-//! `/api/tenant/people/*` — students & staff.
+//! `/api/{tenant}/people/*` handlers — students and staff.
 
-use axum::{
-    extract::{Path, Query},
-    routing::{get, post},
-    Json, Router,
-};
+use axum::{extract::{Path, Query}, http::StatusCode, Json};
 use serde::Deserialize;
 
-use crate::http::{ExtractServices, ServiceHttpError};
-use crate::http::middleware::TenantScopeState;
+use crate::http::{ServiceHttpError, TenantScope};
 use crate::repositories::staff::{NewStaff, Staff, UpdateStaff};
 use crate::repositories::students::{Student, UpdateStudent};
 use crate::services::people::{Admission, AdmissionResult};
 
-pub fn routes() -> Router<TenantScopeState> {
-    Router::new()
-        // Students
-        .route("/students",              get(list_students))
-        .route("/students/search",       get(search_students))
-        .route("/students/{id}",          get(get_student).put(update_student).delete(delete_student))
-        .route("/students/admit",         post(admit))
-        .route("/students/{id}/withdraw", post(withdraw))
-        .route("/students/{id}/graduate", post(graduate))
-        // Staff
-        .route("/staff",           get(list_staff).post(hire))
-        .route("/staff/{id}",       get(get_staff).put(update_staff))
-        .route("/staff/{id}/terminate", post(terminate))
-}
+// -------- students --------
 
-// --- Students ---
-#[derive(Deserialize)] struct Page { #[serde(default = "d50")] limit: i64, #[serde(default)] offset: i64 }
+#[derive(Deserialize)] pub struct Page { #[serde(default = "d50")] pub limit: i64, #[serde(default)] pub offset: i64 }
 fn d50() -> i64 { 50 }
 
-async fn list_students(ExtractServices(a): ExtractServices, Query(p): Query<Page>)
+pub async fn list_students(scope: TenantScope, Query(p): Query<Page>)
     -> Result<Json<Vec<Student>>, ServiceHttpError>
-{ Ok(Json(a.repos.students.list(p.limit, p.offset).await.map_err(rerr)?)) }
+{ Ok(Json(scope.services.repos.students.list(p.limit, p.offset).await?)) }
 
-#[derive(Deserialize)] struct SearchQ { q: String, #[serde(default = "d50")] limit: i64 }
+#[derive(Deserialize)] pub struct SearchQ { pub q: String, #[serde(default = "d50")] pub limit: i64 }
 
-async fn search_students(ExtractServices(a): ExtractServices, Query(q): Query<SearchQ>)
+pub async fn search_students(scope: TenantScope, Query(q): Query<SearchQ>)
     -> Result<Json<Vec<Student>>, ServiceHttpError>
-{ Ok(Json(a.repos.students.search(&q.q, q.limit).await.map_err(rerr)?)) }
+{ Ok(Json(scope.services.repos.students.search(&q.q, q.limit).await?)) }
 
-async fn get_student(ExtractServices(a): ExtractServices, Path(id): Path<i64>)
+pub async fn get_student(scope: TenantScope, Path((_t, id)): Path<(String, i64)>)
     -> Result<Json<Student>, ServiceHttpError>
-{ Ok(Json(a.repos.students.get(id).await.map_err(rerr)?)) }
+{ Ok(Json(scope.services.repos.students.get(id).await?)) }
 
-async fn update_student(
-    ExtractServices(a): ExtractServices, Path(id): Path<i64>, Json(b): Json<UpdateStudent>,
+pub async fn update_student(
+    scope: TenantScope, Path((_t, id)): Path<(String, i64)>, Json(b): Json<UpdateStudent>,
 ) -> Result<Json<Student>, ServiceHttpError>
-{ Ok(Json(a.repos.students.update(id, &b).await.map_err(rerr)?)) }
+{ Ok(Json(scope.services.repos.students.update(id, &b).await?)) }
 
-async fn delete_student(ExtractServices(a): ExtractServices, Path(id): Path<i64>)
-    -> Result<axum::http::StatusCode, ServiceHttpError>
+pub async fn delete_student(scope: TenantScope, Path((_t, id)): Path<(String, i64)>)
+    -> Result<StatusCode, ServiceHttpError>
 {
-    a.repos.students.delete(id).await.map_err(rerr)?;
-    Ok(axum::http::StatusCode::NO_CONTENT)
+    scope.services.repos.students.delete(id).await?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
-async fn admit(ExtractServices(a): ExtractServices, Json(b): Json<Admission>)
+pub async fn admit(scope: TenantScope, Json(b): Json<Admission>)
     -> Result<Json<AdmissionResult>, ServiceHttpError>
-{ Ok(Json(a.people.admit(b).await?)) }
+{ Ok(Json(scope.services.people.admit(b).await?)) }
 
-async fn withdraw(ExtractServices(a): ExtractServices, Path(id): Path<i64>)
-    -> Result<axum::http::StatusCode, ServiceHttpError>
-{ a.people.withdraw(id).await?; Ok(axum::http::StatusCode::NO_CONTENT) }
+pub async fn withdraw(scope: TenantScope, Path((_t, id)): Path<(String, i64)>)
+    -> Result<StatusCode, ServiceHttpError>
+{ scope.services.people.withdraw(id).await?; Ok(StatusCode::NO_CONTENT) }
 
-async fn graduate(ExtractServices(a): ExtractServices, Path(id): Path<i64>)
-    -> Result<axum::http::StatusCode, ServiceHttpError>
-{ a.people.graduate(id).await?; Ok(axum::http::StatusCode::NO_CONTENT) }
+pub async fn graduate(scope: TenantScope, Path((_t, id)): Path<(String, i64)>)
+    -> Result<StatusCode, ServiceHttpError>
+{ scope.services.people.graduate(id).await?; Ok(StatusCode::NO_CONTENT) }
 
-// --- Staff ---
-async fn list_staff(ExtractServices(a): ExtractServices, Query(p): Query<Page>)
+// -------- staff --------
+
+pub async fn list_staff(scope: TenantScope, Query(p): Query<Page>)
     -> Result<Json<Vec<Staff>>, ServiceHttpError>
-{ Ok(Json(a.repos.staff.list(p.limit, p.offset).await.map_err(rerr)?)) }
+{ Ok(Json(scope.services.repos.staff.list(p.limit, p.offset).await?)) }
 
-async fn hire(ExtractServices(a): ExtractServices, Json(b): Json<NewStaff>)
+pub async fn hire(scope: TenantScope, Json(b): Json<NewStaff>)
     -> Result<Json<Staff>, ServiceHttpError>
-{ Ok(Json(a.people.hire_staff(b).await?)) }
+{ Ok(Json(scope.services.people.hire_staff(b).await?)) }
 
-async fn get_staff(ExtractServices(a): ExtractServices, Path(id): Path<i64>)
+pub async fn get_staff(scope: TenantScope, Path((_t, id)): Path<(String, i64)>)
     -> Result<Json<Staff>, ServiceHttpError>
-{ Ok(Json(a.repos.staff.get(id).await.map_err(rerr)?)) }
+{ Ok(Json(scope.services.repos.staff.get(id).await?)) }
 
-async fn update_staff(
-    ExtractServices(a): ExtractServices, Path(id): Path<i64>, Json(b): Json<UpdateStaff>,
+pub async fn update_staff(
+    scope: TenantScope, Path((_t, id)): Path<(String, i64)>, Json(b): Json<UpdateStaff>,
 ) -> Result<Json<Staff>, ServiceHttpError>
-{ Ok(Json(a.repos.staff.update(id, &b).await.map_err(rerr)?)) }
+{ Ok(Json(scope.services.repos.staff.update(id, &b).await?)) }
 
-#[derive(Deserialize)] struct Terminate { on: chrono::NaiveDate }
+#[derive(Deserialize)] pub struct Terminate { on: chrono::NaiveDate }
 
-async fn terminate(
-    ExtractServices(a): ExtractServices, Path(id): Path<i64>, Json(b): Json<Terminate>,
-) -> Result<axum::http::StatusCode, ServiceHttpError>
+pub async fn terminate(
+    scope: TenantScope, Path((_t, id)): Path<(String, i64)>, Json(b): Json<Terminate>,
+) -> Result<StatusCode, ServiceHttpError>
 {
-    a.people.terminate_staff(id, b.on).await?;
-    Ok(axum::http::StatusCode::NO_CONTENT)
-}
-
-fn rerr(e: crate::error::RepoError) -> ServiceHttpError {
-    ServiceHttpError(crate::ServiceError::from(e))
+    scope.services.people.terminate_staff(id, b.on).await?;
+    Ok(StatusCode::NO_CONTENT)
 }

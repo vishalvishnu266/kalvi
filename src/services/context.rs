@@ -17,7 +17,7 @@
 //!
 //! * **HTTP requests** — built by tenant-scope middleware from headers /
 //!   authenticated user / trace ids; stored in request extensions and
-//!   pulled out via [`crate::http::extractors::ExtractCtx`].
+//!   pulled out via the [`crate::http::TenantScope`] extractor.
 //! * **Background jobs / cron** — construct with
 //!   [`RequestCtx::system`] (`Actor::System { component }`).
 //! * **CLI / admin scripts** — [`RequestCtx::system`] with a descriptive
@@ -28,7 +28,7 @@
 //! ## Adoption guide (READ ME before adding `&RequestCtx` everywhere)
 //!
 //! `AppServices` is tenant-scoped and cached, and the request-context
-//! plumbing (middleware + [`crate::http::extractors::ExtractCtx`]) is
+//! plumbing (the [`crate::http::TenantScope`] extractor) is
 //! already in place for **every** request. Individual service methods do
 //! **not** need `&RequestCtx` unless they actually use it. We deliberately
 //! adopt this parameter **incrementally**, not by a sweeping rewrite.

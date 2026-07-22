@@ -1,51 +1,40 @@
-//! Control-plane endpoints: `/api/admin/tenants/*`.
+//! Control-plane handlers: `/admin/api/tenants/*`.
 //!
 //! These operate on the **system DB** only, and also provision the per-tenant
-//! DB (create + migrate) via [`TenantRegistry`].
+//! DB (create + migrate) via [`crate::tenancy::TenantRegistry`].
+//!
+//! Routing lives in [`crate::http::routes`] — this file only contains the
+//! handler functions.
 
-use axum::{
-    extract::{Path, State},
-    http::StatusCode,
-    routing::{get, post},
-    Json, Router,
-};
+use axum::{extract::{Path, State}, http::StatusCode, Json};
 
-use crate::api::AppState;
+use crate::http::AppState;
 use crate::system::{NewTenant, Tenant, UpdateTenant};
 use crate::tenancy::TenantId;
 
-pub fn routes(state: AppState) -> Router {
-    Router::new()
-        .route("/tenants",              get(list).post(create))
-        .route("/tenants/{tenant_id}",   get(get_one).put(update).delete(soft_delete))
-        .route("/tenants/{tenant_id}/enable",  post(enable))
-        .route("/tenants/{tenant_id}/disable", post(disable))
-        .with_state(state)
+fn err_500<E: std::fmt::Display>(e: E) -> (StatusCode, String) {
+    (StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
+}
+fn err_400<E: std::fmt::Display>(e: E) -> (StatusCode, String) {
+    (StatusCode::BAD_REQUEST, e.to_string())
 }
 
-// --- Handlers ---
-
-async fn list(State(s): State<AppState>) -> Result<Json<Vec<Tenant>>, (StatusCode, String)> {
-    s.system.list().await
-        .map(Json)
-        .map_err(err_500)
+pub async fn list(State(s): State<AppState>) -> Result<Json<Vec<Tenant>>, (StatusCode, String)> {
+    s.system.list().await.map(Json).map_err(err_500)
 }
 
-async fn create(
+pub async fn create(
     State(s): State<AppState>,
     Json(body): Json<NewTenant>,
 ) -> Result<Json<Tenant>, (StatusCode, String)> {
-    // Insert control-plane row
     let tenant = s.system.create(&body).await.map_err(err_400)?;
-
-    // Provision the per-tenant DB (create file + migrate).
-    let tid = TenantId::new(&tenant.tenant_id).map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
+    let tid = TenantId::new(&tenant.tenant_id)
+        .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
     s.tenants.provision(tid).await.map_err(err_500)?;
-
     Ok(Json(tenant))
 }
 
-async fn get_one(
+pub async fn get_one(
     State(s): State<AppState>,
     Path(tid): Path<String>,
 ) -> Result<Json<Tenant>, (StatusCode, String)> {
@@ -55,7 +44,7 @@ async fn get_one(
     }
 }
 
-async fn update(
+pub async fn update(
     State(s): State<AppState>,
     Path(tid): Path<String>,
     Json(body): Json<UpdateTenant>,
@@ -63,8 +52,6 @@ async fn update(
     let existing = s.system.find_by_tenant_id(&tid).await.map_err(err_500)?
         .ok_or((StatusCode::NOT_FOUND, "tenant not found".into()))?;
     let updated = s.system.update(existing.id, &body).await.map_err(err_400)?;
-
-    // If disabled/deleted, evict the cached pool so open connections drain.
     if matches!(updated.status.as_str(), "disabled" | "deleted") {
         if let Ok(t) = TenantId::new(&updated.tenant_id) {
             s.tenants.evict(&t).await;
@@ -73,7 +60,7 @@ async fn update(
     Ok(Json(updated))
 }
 
-async fn soft_delete(
+pub async fn soft_delete(
     State(s): State<AppState>,
     Path(tid): Path<String>,
 ) -> Result<StatusCode, (StatusCode, String)> {
@@ -86,7 +73,7 @@ async fn soft_delete(
     Ok(StatusCode::NO_CONTENT)
 }
 
-async fn enable(
+pub async fn enable(
     State(s): State<AppState>,
     Path(tid): Path<String>,
 ) -> Result<Json<Tenant>, (StatusCode, String)> {
@@ -96,7 +83,7 @@ async fn enable(
     Ok(Json(s.system.get(existing.id).await.map_err(err_500)?))
 }
 
-async fn disable(
+pub async fn disable(
     State(s): State<AppState>,
     Path(tid): Path<String>,
 ) -> Result<Json<Tenant>, (StatusCode, String)> {
@@ -107,13 +94,4 @@ async fn disable(
         s.tenants.evict(&t).await;
     }
     Ok(Json(s.system.get(existing.id).await.map_err(err_500)?))
-}
-
-// --- helpers ---
-
-fn err_500<E: std::fmt::Display>(e: E) -> (StatusCode, String) {
-    (StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
-}
-fn err_400<E: std::fmt::Display>(e: E) -> (StatusCode, String) {
-    (StatusCode::BAD_REQUEST, e.to_string())
 }

@@ -1,25 +1,16 @@
-//! `/api/tenant/auth/*` — per-tenant authentication.
+//! `/api/{tenant}/auth/*` — per-tenant authentication handlers.
+//!
+//! Routing lives in [`crate::http::routes`]. This file only holds the
+//! `pub async fn` handlers.
 
-use axum::{
-    routing::{get, post},
-    Json, Router,
-};
+use axum::{http::StatusCode, Json};
 use serde::Deserialize;
 
-use crate::http::{ExtractServices, ExtractTenant, ServiceHttpError};
-use crate::http::middleware::TenantScopeState;
+use crate::http::{ServiceHttpError, TenantScope};
 use crate::repositories::auth::User;
 
-pub fn routes() -> Router<TenantScopeState> {
-    Router::new()
-        .route("/register",        post(register))
-        .route("/login",           post(login))
-        .route("/change-password", post(change_password))
-        .route("/whoami",          get(whoami))
-}
-
 #[derive(Deserialize)]
-struct RegisterBody {
+pub struct RegisterBody {
     username: String,
     email: Option<String>,
     password: String,
@@ -27,38 +18,34 @@ struct RegisterBody {
     roles: Vec<String>,
 }
 
-async fn register(
-    ExtractServices(app): ExtractServices,
-    Json(b): Json<RegisterBody>,
-) -> Result<Json<User>, ServiceHttpError> {
+pub async fn register(scope: TenantScope, Json(b): Json<RegisterBody>)
+    -> Result<Json<User>, ServiceHttpError>
+{
     let roles: Vec<&str> = b.roles.iter().map(|s| s.as_str()).collect();
-    let u = app.auth
+    let u = scope.services.auth
         .register(&b.username, b.email.as_deref(), &b.password, &roles).await?;
     Ok(Json(u))
 }
 
 #[derive(Deserialize)]
-struct LoginBody { identifier: String, password: String }
+pub struct LoginBody { identifier: String, password: String }
 
-async fn login(
-    ExtractServices(app): ExtractServices,
-    Json(b): Json<LoginBody>,
-) -> Result<Json<User>, ServiceHttpError> {
-    let u = app.auth.login(&b.identifier, &b.password).await?;
-    Ok(Json(u))
+pub async fn login(scope: TenantScope, Json(b): Json<LoginBody>)
+    -> Result<Json<User>, ServiceHttpError>
+{
+    Ok(Json(scope.services.auth.login(&b.identifier, &b.password).await?))
 }
 
 #[derive(Deserialize)]
-struct ChangePwBody { user_id: i64, old_password: String, new_password: String }
+pub struct ChangePwBody { user_id: i64, old_password: String, new_password: String }
 
-async fn change_password(
-    ExtractServices(app): ExtractServices,
-    Json(b): Json<ChangePwBody>,
-) -> Result<axum::http::StatusCode, ServiceHttpError> {
-    app.auth.change_password(b.user_id, &b.old_password, &b.new_password).await?;
-    Ok(axum::http::StatusCode::NO_CONTENT)
+pub async fn change_password(scope: TenantScope, Json(b): Json<ChangePwBody>)
+    -> Result<StatusCode, ServiceHttpError>
+{
+    scope.services.auth.change_password(b.user_id, &b.old_password, &b.new_password).await?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
-async fn whoami(ExtractTenant(t): ExtractTenant) -> Json<serde_json::Value> {
-    Json(serde_json::json!({ "tenant": t.as_str() }))
+pub async fn whoami(scope: TenantScope) -> Json<serde_json::Value> {
+    Json(serde_json::json!({ "tenant": scope.tenant.as_str() }))
 }

@@ -1,20 +1,9 @@
-//! Tenant home: OS-style menu launcher.
-//!
-//! Instead of a dashboard with KPIs, the tenant root (`/web/{tenant}/`)
-//! renders an icon-grid launcher — think macOS Launchpad or an iOS home
-//! screen. Every ERP module gets a large tappable tile so users can jump
-//! straight into the area they need.
+//! Tenant home: OS-style menu launcher at `/web/{tenant}/`.
 
 use askama::Template;
-use axum::{
-    http::HeaderMap,
-    response::Response,
-    routing::get,
-    Router,
-};
+use axum::{http::HeaderMap, response::Response};
 
-use crate::http::middleware::TenantScopeState;
-use crate::http::ExtractTenant;
+use crate::http::TenantScope;
 use crate::web::auth::read_cookie_from_headers;
 use crate::web::error::{render, WebError};
 use crate::web::layout::{nav_items, NavContext, NavItem};
@@ -29,21 +18,13 @@ struct MenuPage<'a> {
 
 /// A single launcher tile on the home screen.
 pub struct Tile {
-    /// Path *relative to the tenant root* (no leading slash). E.g. `students`
-    /// resolves to `/web/{tenant}/students`.
     pub href: &'static str,
-    /// Big display label.
     pub label: &'static str,
-    /// Short one-liner shown under the label on hover / on larger tiles.
     pub description: &'static str,
-    /// Lucide icon name.
     pub icon: &'static str,
-    /// Gradient class pair for the icon tile background (`from-… to-…`).
     pub gradient: &'static str,
 }
 
-/// The canonical launcher grid. All 19 domain modules from the ERP get a
-/// tile. Ordering roughly mirrors day-to-day frequency of use.
 fn tiles() -> &'static [Tile] {
     &[
         Tile { href: "students",       label: "Students",       description: "Admissions & profiles",   icon: "graduation-cap", gradient: "from-brand-500 to-indigo-600" },
@@ -68,16 +49,9 @@ fn tiles() -> &'static [Tile] {
     ]
 }
 
-pub fn routes() -> Router<TenantScopeState> {
-    Router::new().route("/", get(index))
-}
-
-async fn index(
-    ExtractTenant(tenant): ExtractTenant,
-    headers: HeaderMap,
-) -> Result<Response, WebError> {
+pub async fn index(scope: TenantScope, headers: HeaderMap) -> Result<Response, WebError> {
     let user = read_cookie_from_headers(&headers, "erp_user")
         .unwrap_or_else(|| "Admin".into());
-    let nav = NavContext::new(user, tenant.as_str().to_string(), "dashboard", "Home");
+    let nav = NavContext::new(user, scope.tenant.as_str().to_string(), "dashboard", "Home");
     render(&MenuPage { nav: &nav, nav_items: nav_items(), tiles: tiles() })
 }

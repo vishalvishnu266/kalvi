@@ -1,25 +1,20 @@
-//! Students list + detail pages.
+//! Students list + detail pages: `/web/{tenant}/students[/{id}]`.
 
 use askama::Template;
 use axum::{
     extract::{Path, Query},
     http::HeaderMap,
     response::Response,
-    routing::get,
-    Router,
 };
 use serde::Deserialize;
 
-use crate::http::middleware::TenantScopeState;
-use crate::http::{ExtractServices, ExtractTenant};
+use crate::http::TenantScope;
 use crate::repositories::students::Student;
 use crate::web::auth::read_cookie_from_headers;
 use crate::web::error::{render, WebError};
 use crate::web::layout::{nav_items, NavContext, NavItem};
 
-// ---------------------------------------------------------------------------
-// List
-// ---------------------------------------------------------------------------
+// ------------- list -------------
 
 #[derive(Template)]
 #[template(path = "students/list.html")]
@@ -36,27 +31,18 @@ pub struct StudentRow {
     pub admission_no: String,
     pub grade: String,
     pub section: String,
-    pub status: &'static str, // "active" | "inactive"
+    pub status: &'static str,
 }
 
 #[derive(Deserialize)]
-struct ListParams {
-    q: Option<String>,
-}
+pub struct ListParams { q: Option<String> }
 
-pub fn routes() -> Router<TenantScopeState> {
-    Router::new()
-        .route("/students",       get(list))
-        .route("/students/{id}",  get(show))
-}
-
-async fn list(
-    ExtractTenant(tenant): ExtractTenant,
-    ExtractServices(services): ExtractServices,
+pub async fn list(
+    scope: TenantScope,
     Query(qp): Query<ListParams>,
     headers: HeaderMap,
 ) -> Result<Response, WebError> {
-    let students: Vec<Student> = services.repos.students.list(50, 0).await
+    let students: Vec<Student> = scope.services.repos.students.list(50, 0).await
         .unwrap_or_default();
 
     let q = qp.q.unwrap_or_default();
@@ -71,31 +57,22 @@ async fn list(
             id: s.id,
             name,
             admission_no: s.admission_no,
-            grade:   "—".into(), // filled in later once enrollments join
+            grade:   "—".into(),
             section: "—".into(),
-            status: if s.status == "active" { "active" } else { "inactive" },
+            status:  if s.status == "active" { "active" } else { "inactive" },
         })
     }).collect();
 
-    // If empty (e.g. fresh DB), provide a small sample so the UI is
-    // reviewable without needing seed data.
-    let rows = if rows.is_empty() && q.is_empty() {
-        sample_students()
-    } else { rows };
+    let rows = if rows.is_empty() && q.is_empty() { sample_students() } else { rows };
 
     let user = read_cookie_from_headers(&headers, "erp_user")
         .unwrap_or_else(|| "Admin".into());
-    let nav = NavContext::new(user, tenant.as_str().to_string(), "students", "Students");
+    let nav = NavContext::new(user, scope.tenant.as_str().to_string(), "students", "Students");
 
-    render(&StudentsListPage {
-        nav: &nav, nav_items: nav_items(),
-        q: &q, rows,
-    })
+    render(&StudentsListPage { nav: &nav, nav_items: nav_items(), q: &q, rows })
 }
 
-// ---------------------------------------------------------------------------
-// Detail
-// ---------------------------------------------------------------------------
+// ------------- detail -------------
 
 #[derive(Template)]
 #[template(path = "students/show.html")]
@@ -111,13 +88,12 @@ pub struct Tab {
     pub active: bool,
 }
 
-async fn show(
-    ExtractTenant(tenant): ExtractTenant,
-    ExtractServices(services): ExtractServices,
-    Path(id): Path<i64>,
+pub async fn show(
+    scope: TenantScope,
+    Path((_t, id)): Path<(String, i64)>,
     headers: HeaderMap,
 ) -> Result<Response, WebError> {
-    let s = services.repos.students.get(id).await.ok();
+    let s = scope.services.repos.students.get(id).await.ok();
     let student = match s {
         Some(s) => StudentRow {
             id: s.id,
@@ -127,17 +103,14 @@ async fn show(
             section: "—".into(),
             status: if s.status == "active" { "active" } else { "inactive" },
         },
-        None => {
-            // Fall back to a sample so the screen is reviewable without seeds.
-            sample_students().into_iter().find(|r| r.id == id)
-                .unwrap_or_else(|| sample_students().remove(0))
-        }
+        None => sample_students().into_iter().find(|r| r.id == id)
+            .unwrap_or_else(|| sample_students().remove(0)),
     };
 
     let user = read_cookie_from_headers(&headers, "erp_user")
         .unwrap_or_else(|| "Admin".into());
     let title = format!("Students · {}", student.name);
-    let nav = NavContext::new(user, tenant.as_str().to_string(), "students", title);
+    let nav = NavContext::new(user, scope.tenant.as_str().to_string(), "students", title);
 
     let current = "overview";
     let tabs = ["overview","attendance","fees","guardians","documents"]
@@ -145,15 +118,10 @@ async fn show(
         .map(|l| Tab { label: l, active: l == current })
         .collect();
 
-    render(&StudentShowPage {
-        nav: &nav, nav_items: nav_items(),
-        student, tabs,
-    })
+    render(&StudentShowPage { nav: &nav, nav_items: nav_items(), student, tabs })
 }
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+// ------------- helpers -------------
 
 fn display_name(s: &Student) -> String {
     let mid = s.middle_name.as_deref().map(|m| format!(" {m}")).unwrap_or_default();

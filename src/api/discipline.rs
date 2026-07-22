@@ -1,39 +1,27 @@
-//! `/api/tenant/discipline/*`
+//! `/api/{tenant}/discipline/*` handlers.
 
-use axum::{
-    extract::{Path, Query},
-    routing::{get, post},
-    Json, Router,
-};
+use axum::{extract::{Path, Query}, Json};
 use serde::Deserialize;
 
-use crate::http::{ExtractCtx, ExtractServices, ServiceHttpError};
-use crate::http::middleware::TenantScopeState;
+use crate::http::{ServiceHttpError, TenantScope};
 use crate::repositories::discipline::{DisciplineIncident, NewIncident};
 
-pub fn routes() -> Router<TenantScopeState> {
-    Router::new()
-        .route("/",               post(report))
-        .route("/student/{sid}",   get(history))
-        .route("/between",        get(between))
+#[derive(Deserialize)]
+pub struct ReportBody { #[serde(flatten)] incident: NewIncident, #[serde(default)] notify_guardians: bool }
+
+pub async fn report(scope: TenantScope, Json(b): Json<ReportBody>)
+    -> Result<Json<DisciplineIncident>, ServiceHttpError>
+{
+    let ctx = scope.ctx.clone();
+    Ok(Json(scope.services.discipline.report(&ctx, b.incident, b.notify_guardians).await?))
 }
 
-#[derive(Deserialize)] struct ReportBody { #[serde(flatten)] incident: NewIncident, #[serde(default)] notify_guardians: bool }
-
-async fn report(
-    ExtractServices(a): ExtractServices,
-    ExtractCtx(ctx):    ExtractCtx,
-    Json(b):            Json<ReportBody>,
-) -> Result<Json<DisciplineIncident>, ServiceHttpError> {
-    Ok(Json(a.discipline.report(&ctx, b.incident, b.notify_guardians).await?))
-}
-
-async fn history(ExtractServices(a): ExtractServices, Path(sid): Path<i64>)
+pub async fn history(scope: TenantScope, Path((_t, sid)): Path<(String, i64)>)
     -> Result<Json<Vec<DisciplineIncident>>, ServiceHttpError>
-{ Ok(Json(a.discipline.history(sid).await?)) }
+{ Ok(Json(scope.services.discipline.history(sid).await?)) }
 
-#[derive(Deserialize)] struct Range { from: chrono::NaiveDate, to: chrono::NaiveDate }
+#[derive(Deserialize)] pub struct Range { from: chrono::NaiveDate, to: chrono::NaiveDate }
 
-async fn between(ExtractServices(a): ExtractServices, Query(q): Query<Range>)
+pub async fn between(scope: TenantScope, Query(q): Query<Range>)
     -> Result<Json<Vec<DisciplineIncident>>, ServiceHttpError>
-{ Ok(Json(a.repos.discipline.between(q.from, q.to).await.map_err(|e| ServiceHttpError(e.into()))?)) }
+{ Ok(Json(scope.services.repos.discipline.between(q.from, q.to).await?)) }

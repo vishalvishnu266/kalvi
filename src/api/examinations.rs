@@ -1,83 +1,66 @@
-//! `/api/tenant/examinations/*`
+//! `/api/{tenant}/examinations/*` handlers.
 
-use axum::{
-    extract::Path,
-    routing::{get, post},
-    Json, Router,
-};
+use axum::{extract::Path, Json};
 
-use crate::http::{ExtractServices, ServiceHttpError};
-use crate::http::middleware::TenantScopeState;
+use crate::http::{ServiceHttpError, TenantScope};
 use crate::repositories::examinations::{
     EnterResult, Exam, ExamResult, ExamSchedule, GradeBand, NewExam, NewSchedule,
 };
 use crate::services::examinations::ReportCard;
 
-pub fn routes() -> Router<TenantScopeState> {
-    Router::new()
-        .route("/grading-scales",        post(create_scale))
-        .route("/grading-scales/{id}/bands", post(add_band).get(list_bands))
-        .route("/exams",                  post(create_exam))
-        .route("/exams/term/{tid}",       get(list_by_term))
-        .route("/exams/{id}/schedules",   post(schedule).get(list_schedules))
-        .route("/results",                post(enter_result))
-        .route("/results/student/{sid}",  get(for_student))
-        .route("/report-cards/{sid}/{eid}", get(report_card))
-}
+#[derive(serde::Deserialize)] pub struct CreateScale { name: String }
 
-#[derive(serde::Deserialize)] struct CreateScale { name: String }
-
-async fn create_scale(ExtractServices(a): ExtractServices, Json(b): Json<CreateScale>)
+pub async fn create_scale(scope: TenantScope, Json(b): Json<CreateScale>)
     -> Result<Json<serde_json::Value>, ServiceHttpError>
 {
-    let s = a.repos.grading_scales.create_scale(&b.name).await.map_err(|e| ServiceHttpError(e.into()))?;
+    let s = scope.services.repos.grading_scales.create_scale(&b.name).await?;
     Ok(Json(serde_json::json!({ "id": s.id, "name": s.name })))
 }
 
-async fn add_band(ExtractServices(a): ExtractServices, Path(id): Path<i64>, Json(mut b): Json<GradeBand>)
+pub async fn add_band(scope: TenantScope, Path((_t, id)): Path<(String, i64)>, Json(mut b): Json<GradeBand>)
     -> Result<Json<serde_json::Value>, ServiceHttpError>
 {
     b.grading_scale_id = id;
-    let bid = a.repos.grading_scales.add_band(&b).await.map_err(|e| ServiceHttpError(e.into()))?;
+    let bid = scope.services.repos.grading_scales.add_band(&b).await?;
     Ok(Json(serde_json::json!({ "id": bid })))
 }
 
-async fn list_bands(ExtractServices(a): ExtractServices, Path(id): Path<i64>)
+pub async fn list_bands(scope: TenantScope, Path((_t, id)): Path<(String, i64)>)
     -> Result<Json<Vec<GradeBand>>, ServiceHttpError>
-{ Ok(Json(a.repos.grading_scales.bands(id).await.map_err(|e| ServiceHttpError(e.into()))?)) }
+{ Ok(Json(scope.services.repos.grading_scales.bands(id).await?)) }
 
-async fn create_exam(ExtractServices(a): ExtractServices, Json(b): Json<NewExam>)
+pub async fn create_exam(scope: TenantScope, Json(b): Json<NewExam>)
     -> Result<Json<Exam>, ServiceHttpError>
-{ Ok(Json(a.examinations.create_exam(b).await?)) }
+{ Ok(Json(scope.services.examinations.create_exam(b).await?)) }
 
-async fn list_by_term(ExtractServices(a): ExtractServices, Path(tid): Path<i64>)
+pub async fn list_by_term(scope: TenantScope, Path((_t, tid)): Path<(String, i64)>)
     -> Result<Json<Vec<Exam>>, ServiceHttpError>
-{ Ok(Json(a.repos.exams.list_for_term(tid).await.map_err(|e| ServiceHttpError(e.into()))?)) }
+{ Ok(Json(scope.services.repos.exams.list_for_term(tid).await?)) }
 
-async fn schedule(ExtractServices(a): ExtractServices, Path(exam_id): Path<i64>, Json(mut b): Json<NewSchedule>)
+pub async fn schedule(scope: TenantScope, Path((_t, exam_id)): Path<(String, i64)>, Json(mut b): Json<NewSchedule>)
     -> Result<Json<ExamSchedule>, ServiceHttpError>
-{ b.exam_id = exam_id; Ok(Json(a.examinations.schedule(b).await?)) }
+{ b.exam_id = exam_id; Ok(Json(scope.services.examinations.schedule(b).await?)) }
 
-async fn list_schedules(ExtractServices(a): ExtractServices, Path(exam_id): Path<i64>)
+pub async fn list_schedules(scope: TenantScope, Path((_t, exam_id)): Path<(String, i64)>)
     -> Result<Json<Vec<ExamSchedule>>, ServiceHttpError>
-{ Ok(Json(a.repos.exam_schedules.for_exam(exam_id).await.map_err(|e| ServiceHttpError(e.into()))?)) }
+{ Ok(Json(scope.services.repos.exam_schedules.for_exam(exam_id).await?)) }
 
-async fn enter_result(ExtractServices(a): ExtractServices, Json(b): Json<EnterResult>)
+pub async fn enter_result(scope: TenantScope, Json(b): Json<EnterResult>)
     -> Result<Json<ExamResult>, ServiceHttpError>
-{ Ok(Json(a.examinations.enter_result(b).await?)) }
+{ Ok(Json(scope.services.examinations.enter_result(b).await?)) }
 
-async fn for_student(ExtractServices(a): ExtractServices, Path(sid): Path<i64>)
+pub async fn for_student(scope: TenantScope, Path((_t, sid)): Path<(String, i64)>)
     -> Result<Json<Vec<ExamResult>>, ServiceHttpError>
-{ Ok(Json(a.repos.exam_results.for_student(sid).await.map_err(|e| ServiceHttpError(e.into()))?)) }
+{ Ok(Json(scope.services.repos.exam_results.for_student(sid).await?)) }
 
-async fn report_card(
-    ExtractServices(a): ExtractServices, Path((sid, eid)): Path<(i64, i64)>,
+pub async fn report_card(
+    scope: TenantScope, Path((_t, sid, eid)): Path<(String, i64, i64)>,
 ) -> Result<Json<ReportCardOut>, ServiceHttpError> {
-    Ok(Json(ReportCardOut::from(a.examinations.report_card(sid, eid).await?)))
+    Ok(Json(ReportCardOut::from(scope.services.examinations.report_card(sid, eid).await?)))
 }
 
 #[derive(serde::Serialize)]
-struct ReportCardOut {
+pub struct ReportCardOut {
     student_id: i64,
     exam_id: i64,
     rows: Vec<serde_json::Value>,
