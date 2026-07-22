@@ -67,6 +67,11 @@ pub fn build_web_router(tenants: TenantRegistry) -> Router {
     // `students::routes()` is a real, wired-up module. Every other module
     // is served by `modules::routes()` as a "Coming soon" placeholder so
     // every tile on the launcher leads somewhere.
+    //
+    // Trailing-slash handling: `/web/{tenant}` and `/web/{tenant}/` both
+    // resolve to the dashboard, thanks to the `NormalizePathLayer` wrapped
+    // around the whole app in [`crate::api::build_router`]. No per-route
+    // aliases needed here.
     let app_routes = Router::new()
         .merge(dashboard::routes())
         .merge(students::routes())

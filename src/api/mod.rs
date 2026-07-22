@@ -13,8 +13,9 @@
 //! under `/`, `/web/login`, `/web/{tenant}/…`.
 
 use axum::{Router, routing::get};
-use tower::ServiceBuilder;
+use tower::{Layer, ServiceBuilder};
 use tower_http::{
+    normalize_path::{NormalizePath, NormalizePathLayer},
     request_id::{PropagateRequestIdLayer, SetRequestIdLayer},
     trace::{DefaultOnResponse, TraceLayer},
 };
@@ -60,6 +61,15 @@ pub struct AppState {
 /// * `/api/health`, `/api/live`, `/api/ready` — health probes
 /// * `/` and `/web/*`    — server-rendered web UI (login, dashboard, …)
 ///
+/// Returns a `NormalizePath<Router>` service (not a bare `Router`) so that
+/// trailing slashes in incoming request paths are stripped *before* axum's
+/// router does path matching. This works around a well-known axum 0.8
+/// nesting quirk where `nest("/x", inner)` with `inner.route("/", …)`
+/// matches `/x` but 404s on `/x/` (see tokio-rs/axum#3233).
+///
+/// Callers pass the result to `axum::serve` via
+/// `ServiceExt::<Request>::into_make_service` (see `main.rs`).
+///
 /// The `_source` parameter is retained for backwards compatibility. The
 /// built-in tenant subtree always uses [`TenantSource::path_param("tenant")`]
 /// internally, i.e. tenant DB routing is entirely path-based.
@@ -67,7 +77,7 @@ pub fn build_router(
     state: AppState,
     _source: TenantSource,
     readiness: crate::health_probes::Readiness,
-) -> Router {
+) -> NormalizePath<Router> {
     // Tenant-scoped subtree. Tenant id comes from the `{tenant}` path
     // parameter captured by the `.nest("/api/{tenant}", ...)` below.
     let tenant_state = TenantScopeState::new(state.tenants.clone())
@@ -95,7 +105,7 @@ pub fn build_router(
         .layer(axum::middleware::from_fn_with_state(tenant_state.clone(), tenant_scope))
         .with_state(tenant_state);
 
-    // Tower stack applied to every request, in this order:
+    // Observability stack, applied to every request, in outermost-first order:
     //   1. Assign `x-request-id` if the client didn't send one.
     //   2. Open a tracing span carrying method / path / request_id / tenant_id.
     //   3. Propagate `x-request-id` back on the response.
@@ -108,7 +118,7 @@ pub fn build_router(
         )
         .layer(PropagateRequestIdLayer::new(X_REQUEST_ID.clone()));
 
-    Router::new()
+    let router = Router::new()
         .route("/api/health", get(|| async { "ok" }))
         .merge(crate::health_probes::router(readiness))
         // Control-plane (system DB only) lives under /admin/api/*.
@@ -123,5 +133,14 @@ pub fn build_router(
         //   POST /web/logout     → sign out
         //   /web/{tenant}/…      → authenticated app shell
         .merge(crate::web::build_web_router(state.tenants.clone()))
-        .layer(observability)
+        .layer(observability);
+
+    // Wrap the whole router in `NormalizePathLayer` — applied *outside*
+    // axum's routing so the path rewrite (`/x/` → `/x`) happens BEFORE the
+    // router matches. This works around axum 0.8's nesting quirk where a
+    // nested router with `route("/", …)` matches `/x` but 404s on `/x/`
+    // (see tokio-rs/axum#3233). Applying it via `Layer::layer` on the
+    // router — instead of `Router::layer` — is the documented way to make
+    // it actually affect routing.
+    NormalizePathLayer::trim_trailing_slash().layer(router)
 }

@@ -135,6 +135,9 @@ async fn post_login(
                 urlencoding::encode(&display)
             );
             // Redirect into the tenant-scoped app shell under /web/.
+            // Both `/web/{tenant}` and `/web/{tenant}/` resolve — the app
+            // is fronted by `NormalizePathLayer` so trailing slashes are
+            // stripped before routing.
             let location = format!("/web/{}/", tenant.as_str());
             Ok((
                 StatusCode::SEE_OTHER,
@@ -184,17 +187,28 @@ pub async fn require_session(
     req: Request<Body>,
     next: Next,
 ) -> Response {
-    let cookie_tenant = match read_cookie_from_headers(req.headers(), COOKIE_TENANT) {
-        Some(t) => t,
-        None => return Redirect::to("/web/login").into_response(),
+    // Prefer to send unauthenticated users to the *tenant-specific* login
+    // page (so the tenant field is pre-filled and they land back on the
+    // right shell after signing in). Fall back to the global login only
+    // when we don't know the URL tenant yet — which shouldn't normally
+    // happen because `tenant_scope` runs before us and inserts a
+    // `TenantId` extension.
+    let url_tenant = req.extensions().get::<TenantId>().cloned();
+    let login_url = match &url_tenant {
+        Some(t) => format!("/web/{}/login", t.as_str()),
+        None    => "/web/login".to_string(),
     };
 
-    if let Some(url_tenant) = req.extensions().get::<TenantId>() {
-        if url_tenant.as_str() != cookie_tenant {
-            // Redirect to the tenant-specific login for the URL tenant, so
-            // the user lands in the right place after re-auth.
-            let location = format!("/web/{}/login", url_tenant.as_str());
-            return Redirect::to(&location).into_response();
+    let cookie_tenant = match read_cookie_from_headers(req.headers(), COOKIE_TENANT) {
+        Some(t) => t,
+        None    => return Redirect::to(&login_url).into_response(),
+    };
+
+    if let Some(t) = url_tenant {
+        if t.as_str() != cookie_tenant {
+            // Cross-tenant snoop attempt (or a stale cookie from a
+            // different tenant). Bounce to the URL tenant's login.
+            return Redirect::to(&login_url).into_response();
         }
     }
     next.run(req).await

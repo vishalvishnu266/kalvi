@@ -78,9 +78,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         tracing::info!("readiness flipped to false; draining in-flight requests");
     };
 
-    axum::serve(listener, app)
-        .with_graceful_shutdown(shutdown_signal)
-        .await?;
+    // `app` is a `NormalizePath<Router>`. `axum::serve` accepts anything
+    // implementing `IntoMakeService`, so we convert via `tower`'s
+    // `ServiceExt::into_make_service` — the same shape axum uses internally
+    // for a bare `Router`, but this version preserves the outer
+    // `NormalizePathLayer` that rewrites trailing slashes before routing.
+    use tower::ServiceExt;
+    use axum::extract::Request;
+    axum::serve(
+        listener,
+        ServiceExt::<Request>::into_make_service(app),
+    )
+    .with_graceful_shutdown(shutdown_signal)
+    .await?;
 
     // --- 5. Requests have drained; close pools in order ---
     tracing::info!("HTTP server stopped, closing pools");
