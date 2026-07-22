@@ -10,7 +10,7 @@ use serde::Deserialize;
 
 use crate::http::TenantScope;
 use crate::repositories::students::Student;
-use crate::web::auth::SessionUser;
+use crate::middleware::auth::SessionUser;
 use crate::web::error::{render, WebError};
 use crate::web::layout::{nav_items, NavContext, NavItem};
 

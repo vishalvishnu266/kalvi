@@ -10,7 +10,7 @@ use axum::{
     response::{IntoResponse, Redirect, Response},
 };
 
-use crate::web::auth::read_cookie_from_headers;
+use crate::middleware::auth::read_cookie_from_headers;
 use crate::web::error::{render, WebError};
 
 #[derive(Template)]

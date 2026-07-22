@@ -44,6 +44,7 @@ use crate::web::{
     admin as wad, assets as wa, auth as wau, dashboard as wdb, landing as wl,
     modules as wm, students as ws,
 };
+use crate::middleware::auth as wam;
 
 // ============================================================================
 // AppState + ServiceHttpError
@@ -421,7 +422,7 @@ pub fn build_router(state: AppState, readiness: Readiness) -> Router {
         .route("/audit",         get(wm::audit))
         .route("/settings",      get(wm::settings))
         .layer(axum::middleware::from_fn_with_state(
-            state.clone(), wau::require_session,
+            state.clone(), wam::require_session,
         ));
 
     // Tenant-scoped web PUBLIC — the login form/POST for a tenant. Kept

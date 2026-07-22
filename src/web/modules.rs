@@ -6,7 +6,7 @@ use askama::Template;
 use axum::{response::Response, Extension};
 
 use crate::http::TenantScope;
-use crate::web::auth::SessionUser;
+use crate::middleware::auth::SessionUser;
 use crate::web::error::{render, WebError};
 use crate::web::layout::{nav_items, NavContext, NavItem};
 

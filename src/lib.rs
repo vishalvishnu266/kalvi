@@ -5,6 +5,7 @@ pub mod db;
 pub mod error;
 pub mod health_probes;
 pub mod http;
+pub mod middleware;
 pub mod repositories;
 pub mod services;
 pub mod shutdown;
