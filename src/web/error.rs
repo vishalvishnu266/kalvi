@@ -3,6 +3,7 @@
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 
+use crate::error::RepoError;
 use crate::services::ServiceError;
 
 /// A minimal wrapper so `?` works in web handlers.
@@ -21,6 +22,18 @@ impl From<ServiceError> for WebError {
             ServiceError::Unauthorized    => StatusCode::UNAUTHORIZED,
             ServiceError::Forbidden(_)    => StatusCode::FORBIDDEN,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
+        };
+        Self(sc, e.to_string())
+    }
+}
+
+impl From<RepoError> for WebError {
+    fn from(e: RepoError) -> Self {
+        let sc = match &e {
+            RepoError::NotFound       => StatusCode::NOT_FOUND,
+            RepoError::Validation(_)  => StatusCode::BAD_REQUEST,
+            RepoError::Conflict(_)    => StatusCode::CONFLICT,
+            _                         => StatusCode::INTERNAL_SERVER_ERROR,
         };
         Self(sc, e.to_string())
     }

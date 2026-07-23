@@ -42,7 +42,7 @@ use crate::api::{
 };
 use crate::web::{
     admin as wad, assets as wa, auth as wau, dashboard as wdb, landing as wl,
-    modules as wm, students as ws,
+    modules as wm, staff as wsf, students as ws,
 };
 use crate::middleware::auth as wam;
 use crate::middleware::tracing as wtr;
@@ -337,13 +337,14 @@ pub fn build_router(state: AppState, readiness: Readiness) -> Router {
         .route("/",              get(wdb::index))
         .route("/students",      get(ws::list))
         .route("/students/{id}", get(ws::show))
+        .route("/staff",         get(wsf::list))
+        .route("/staff/{id}",    get(wsf::show))
         // module stub screens (one route per placeholder module)
         .route("/attendance",    get(wm::attendance))
         .route("/timetable",     get(wm::timetable))
         .route("/fees",          get(wm::fees))
         .route("/examinations",  get(wm::examinations))
         .route("/academic",      get(wm::academic))
-        .route("/staff",         get(wm::staff))
         .route("/payroll",       get(wm::payroll))
         .route("/guardians",     get(wm::guardians))
         .route("/communication", get(wm::communication))

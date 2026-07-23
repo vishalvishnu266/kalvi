@@ -3,23 +3,23 @@
 {% block content %}
 <!-- Breadcrumb -->
 <nav class="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 mb-4">
-  <a href="/web/{{ nav.tenant_id }}/students" data-turbo-frame="page" class="hover:text-zinc-900 dark:hover:text-zinc-100">Students</a>
+  <a href="/web/{{ nav.tenant_id }}/staff" data-turbo-frame="page" class="hover:text-zinc-900 dark:hover:text-zinc-100">Staff</a>
   <i data-lucide="chevron-right" class="w-3 h-3"></i>
-  <span class="text-zinc-900 dark:text-zinc-100">{{ student.name }}</span>
+  <span class="text-zinc-900 dark:text-zinc-100">{{ staff.name }}</span>
 </nav>
 
 <!-- Profile header -->
 <div class="p-5 rounded-2xl bg-white border border-zinc-200 shadow-hairline
             dark:bg-zinc-900 dark:border-zinc-800">
   <div class="flex flex-col sm:flex-row gap-5 sm:items-center">
-    <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 text-white
-                flex items-center justify-center text-2xl font-semibold shadow-md shadow-brand-500/20">
-      {{ student.name|truncate(1) }}
+    <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-zinc-600 to-zinc-800 text-white
+                flex items-center justify-center text-2xl font-semibold shadow-md shadow-zinc-700/20">
+      {{ staff.name|truncate(1) }}
     </div>
     <div class="flex-1 min-w-0">
       <div class="flex items-center gap-2 flex-wrap">
-        <h2 class="text-xl font-semibold tracking-tight">{{ student.name }}</h2>
-        {% if student.status == "active" %}
+        <h2 class="text-xl font-semibold tracking-tight">{{ staff.name }}</h2>
+        {% if staff.status == "active" %}
         <span class="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
           <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Active
         </span>
@@ -30,9 +30,10 @@
         {% endif %}
       </div>
       <div class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500 dark:text-zinc-400">
-        <span class="inline-flex items-center gap-1"><i data-lucide="hash" class="w-3 h-3"></i>{{ student.admission_no }}</span>
-        <span class="inline-flex items-center gap-1"><i data-lucide="book-open" class="w-3 h-3"></i>{{ student.grade }}</span>
-        <span class="inline-flex items-center gap-1"><i data-lucide="users" class="w-3 h-3"></i>Section {{ student.section }}</span>
+        <span class="inline-flex items-center gap-1"><i data-lucide="hash" class="w-3 h-3"></i>{{ staff.employee_no }}</span>
+        <span class="inline-flex items-center gap-1"><i data-lucide="briefcase" class="w-3 h-3"></i>{{ staff.designation }}</span>
+        <span class="inline-flex items-center gap-1"><i data-lucide="building-2" class="w-3 h-3"></i>{{ staff.department }}</span>
+        <span class="inline-flex items-center gap-1"><i data-lucide="badge-check" class="w-3 h-3"></i>{{ staff.employment_type }}</span>
       </div>
     </div>
     <div class="flex items-center gap-2">
@@ -74,23 +75,26 @@
 
     <div class="p-5 rounded-2xl bg-white border border-zinc-200 shadow-hairline
                 dark:bg-zinc-900 dark:border-zinc-800">
-      <h3 class="text-sm font-semibold mb-4">Personal details</h3>
+      <h3 class="text-sm font-semibold mb-4">Contact & employment</h3>
       <dl class="grid grid-cols-2 sm:grid-cols-3 gap-y-3 gap-x-6 text-sm">
-        <div><dt class="text-xs text-zinc-500 dark:text-zinc-400">Admission #</dt><dd class="mt-0.5 font-mono text-xs">{{ student.admission_no }}</dd></div>
-        <div><dt class="text-xs text-zinc-500 dark:text-zinc-400">Grade</dt><dd class="mt-0.5">{{ student.grade }}</dd></div>
-        <div><dt class="text-xs text-zinc-500 dark:text-zinc-400">Section</dt><dd class="mt-0.5">{{ student.section }}</dd></div>
+        <div><dt class="text-xs text-zinc-500 dark:text-zinc-400">Email</dt><dd class="mt-0.5 truncate">{{ staff.email }}</dd></div>
+        <div><dt class="text-xs text-zinc-500 dark:text-zinc-400">Phone</dt><dd class="mt-0.5">{{ staff.phone }}</dd></div>
+        <div><dt class="text-xs text-zinc-500 dark:text-zinc-400">Employment</dt><dd class="mt-0.5">{{ staff.employment_type }}</dd></div>
+        <div><dt class="text-xs text-zinc-500 dark:text-zinc-400">Designation</dt><dd class="mt-0.5">{{ staff.designation }}</dd></div>
+        <div><dt class="text-xs text-zinc-500 dark:text-zinc-400">Department</dt><dd class="mt-0.5">{{ staff.department }}</dd></div>
+        <div><dt class="text-xs text-zinc-500 dark:text-zinc-400">Employee #</dt><dd class="mt-0.5 font-mono text-xs">{{ staff.employee_no }}</dd></div>
       </dl>
     </div>
 
     <div class="p-5 rounded-2xl bg-white border border-zinc-200 shadow-hairline
                 dark:bg-zinc-900 dark:border-zinc-800">
       <div class="flex items-center justify-between mb-4">
-        <h3 class="text-sm font-semibold">Guardians</h3>
-        <button class="text-xs text-brand-600 dark:text-brand-400 hover:underline">Add</button>
+        <h3 class="text-sm font-semibold">Classes taught</h3>
+        <button class="text-xs text-brand-600 dark:text-brand-400 hover:underline">Assign</button>
       </div>
       <div class="text-sm text-zinc-500 dark:text-zinc-400 py-6 text-center">
-        <i data-lucide="users" class="w-6 h-6 mx-auto mb-2 opacity-50"></i>
-        No guardians linked yet.
+        <i data-lucide="book-open" class="w-6 h-6 mx-auto mb-2 opacity-50"></i>
+        No class assignments yet.
       </div>
     </div>
   </div>
@@ -108,10 +112,10 @@
 
     <div class="p-5 rounded-2xl bg-white border border-zinc-200 shadow-hairline
                 dark:bg-zinc-900 dark:border-zinc-800">
-      <h3 class="text-sm font-semibold mb-3">Fees</h3>
+      <h3 class="text-sm font-semibold mb-3">Payroll</h3>
       <div class="text-sm text-zinc-500 dark:text-zinc-400 py-4 text-center">
-        <i data-lucide="wallet" class="w-6 h-6 mx-auto mb-2 opacity-50"></i>
-        No invoices yet.
+        <i data-lucide="banknote" class="w-6 h-6 mx-auto mb-2 opacity-50"></i>
+        No payslips generated.
       </div>
     </div>
   </div>

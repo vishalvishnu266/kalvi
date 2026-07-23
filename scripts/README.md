@@ -1,4 +1,67 @@
+# Scripts
+
+This folder contains helper scripts that run **against a live server** or a
+tenant's SQLite file. Nothing in `src/` depends on any of these — the
+application ships with **zero built-in mock data**. These scripts exist purely
+so you can populate a demo instance without hand-typing rows.
+
+| Script                | Purpose                                                                 |
+| --------------------- | ----------------------------------------------------------------------- |
+| `adduser.sh`          | Register a default `admin` login user in `acme` and `globex` tenants.   |
+| `e2e_smoke.sh`        | End-to-end smoke test of tenancy, auth, and per-tenant DB isolation.    |
+| `run_smoke_local.sh`  | Convenience wrapper — starts the server, runs the smoke test, cleans up.|
+| `seed_demo.sh`        | **API-based** demo seeder: provisions a `demo` tenant and populates it. |
+| `seed_demo.sql`       | **SQL-based** demo seeder: same rows, piped straight into a tenant DB.  |
+
+---
+
+## Populating a demo tenant
+
+Two options — pick whichever fits your workflow. Both are idempotent.
+
+### Option A — via HTTP API (recommended)
+
+Goes through the same validation the running app enforces, and provisions the
+tenant + admin login for you.
+
+```bash
+# start the server first:
+cargo run --release
+
+# then, in another shell:
+BASE_URL=http://127.0.0.1:3000 bash scripts/seed_demo.sh
+```
+
+After it finishes:
+
+| Field    | Value                          |
+| -------- | ------------------------------ |
+| URL      | <http://127.0.0.1:3000/web/login> |
+| Tenant   | `demo`                         |
+| Username | `admin`                        |
+| Password | `admin123`                     |
+
+Overridable via env vars: `BASE_URL`, `TENANT`, `TENANT_NAME`, `ADMIN_USER`,
+`ADMIN_PASS`.
+
+### Option B — via SQL against the tenant DB
+
+Faster for bulk loads and offline work. Assumes the tenant DB has already
+been provisioned (either by hitting `POST /admin/api/tenants` once, or by any
+first request that resolves the tenant).
+
+```bash
+sqlite3 data/tenants/demo.db < scripts/seed_demo.sql
+```
+
+The script uses `INSERT OR IGNORE` throughout, so re-runs are safe.
+
+---
+
 # End-to-end smoke test
+
+The rest of this document covers the E2E smoke test — a more thorough
+multi-tenant verification harness.
 
 This folder contains scripts you can use against a **live server** to verify
 the multi-tenant flow end-to-end:

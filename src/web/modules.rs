@@ -44,9 +44,6 @@ fn stubs() -> &'static [ModuleStub] {
         ModuleStub { key: "academic",     title: "Academic",     icon: "book-open",      gradient: "from-violet-500 to-purple-600",
             tagline: "Curriculum, subjects, and academic year setup.",
             features: &["Academic year and terms", "Grades, sections, subjects", "Curriculum mapping", "Learning outcomes"] },
-        ModuleStub { key: "staff",        title: "Staff",        icon: "briefcase",      gradient: "from-zinc-600 to-zinc-800",
-            tagline: "Employee directory, roles, and HR essentials.",
-            features: &["Employee profiles", "Roles and permissions", "Leaves and holidays", "Contract & document management"] },
         ModuleStub { key: "payroll",      title: "Payroll",      icon: "banknote",       gradient: "from-lime-500 to-emerald-600",
             tagline: "Salary structures, payslips, and statutory filings.",
             features: &["Salary components", "Monthly payroll run", "Payslips and bank files", "Statutory deductions"] },
@@ -115,7 +112,6 @@ stub_handler!(timetable,     "timetable");
 stub_handler!(fees,          "fees");
 stub_handler!(examinations,  "examinations");
 stub_handler!(academic,      "academic");
-stub_handler!(staff,         "staff");
 stub_handler!(payroll,       "payroll");
 stub_handler!(guardians,     "guardians");
 stub_handler!(communication, "communication");

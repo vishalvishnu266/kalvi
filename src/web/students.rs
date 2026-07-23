@@ -63,8 +63,6 @@ pub async fn list(
         })
     }).collect();
 
-    let rows = if rows.is_empty() && q.is_empty() { sample_students() } else { rows };
-
     let nav = NavContext::new(
         session.display.clone(),
         scope.tenant.as_str().to_string(),
@@ -95,18 +93,14 @@ pub async fn show(
     Path((_tenant, id)): Path<(String, i64)>,
     Extension(session): Extension<SessionUser>,
 ) -> Result<Response, WebError> {
-    let s = scope.services.repos.students.get(id).await.ok();
-    let student = match s {
-        Some(s) => StudentRow {
-            id: s.id,
-            name: display_name(&s),
-            admission_no: s.admission_no,
-            grade: "—".into(),
-            section: "—".into(),
-            status: if s.status == "active" { "active" } else { "inactive" },
-        },
-        None => sample_students().into_iter().find(|r| r.id == id)
-            .unwrap_or_else(|| sample_students().remove(0)),
+    let s = scope.services.repos.students.get(id).await?;
+    let student = StudentRow {
+        id: s.id,
+        name: display_name(&s),
+        admission_no: s.admission_no,
+        grade: "—".into(),
+        section: "—".into(),
+        status: if s.status == "active" { "active" } else { "inactive" },
     };
 
     let title = format!("Students · {}", student.name);
@@ -130,14 +124,4 @@ pub async fn show(
 fn display_name(s: &Student) -> String {
     let mid = s.middle_name.as_deref().map(|m| format!(" {m}")).unwrap_or_default();
     format!("{}{} {}", s.first_name, mid, s.last_name)
-}
-
-fn sample_students() -> Vec<StudentRow> {
-    vec![
-        StudentRow { id: 1, name: "Aarav Sharma".into(), admission_no: "ADM-2025-0001".into(), grade: "Grade 8".into(),  section: "A".into(), status: "active"   },
-        StudentRow { id: 2, name: "Diya Patel".into(),   admission_no: "ADM-2025-0002".into(), grade: "Grade 10".into(), section: "B".into(), status: "active"   },
-        StudentRow { id: 3, name: "Kabir Khan".into(),   admission_no: "ADM-2025-0003".into(), grade: "Grade 6".into(),  section: "C".into(), status: "active"   },
-        StudentRow { id: 4, name: "Ananya Rao".into(),   admission_no: "ADM-2025-0004".into(), grade: "Grade 12".into(), section: "A".into(), status: "inactive" },
-        StudentRow { id: 5, name: "Vihaan Mehta".into(), admission_no: "ADM-2025-0005".into(), grade: "Grade 9".into(),  section: "B".into(), status: "active"   },
-    ]
 }
