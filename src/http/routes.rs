@@ -46,6 +46,7 @@ use crate::web::{
 };
 use crate::middleware::auth as wam;
 use crate::middleware::tracing as wtr;
+pub use crate::middleware::tenant::TenantScope;
 
 // ============================================================================
 // AppState + ServiceHttpError
@@ -90,75 +91,6 @@ impl IntoResponse for ServiceHttpError {
     }
 }
 
-// ============================================================================
-// TenantScope — the ONE extractor that replaces the old tenant middleware.
-// ============================================================================
-
-/// Everything a tenant-scoped handler needs, obtained in one extractor call:
-/// the validated tenant id, the per-tenant [`AppServices`] bundle, and a
-/// fresh [`RequestCtx`].
-///
-/// The extractor:
-/// 1. Pulls the `{tenant}` path segment via `axum::extract::Path`.
-/// 2. Validates it with [`TenantId::new`] (charset + length).
-/// 3. Asks the [`TenantRegistry`] for the cached `AppServices` (or lazily
-///    builds it on first use).
-/// 4. Mints a fresh UUID request id and returns a [`RequestCtx`] with
-///    `Actor::Anonymous`. Real auth can layer on top later.
-///
-/// There is **no middleware** on the tenant path. Any handler that wants
-/// tenant-scoped state just declares `scope: TenantScope` in its signature.
-pub struct TenantScope {
-    pub tenant: TenantId,
-    pub services: AppServices,
-    pub ctx: RequestCtx,
-}
-
-#[derive(Deserialize)]
-struct TenantPath { tenant: String }
-
-impl FromRequestParts<AppState> for TenantScope {
-    type Rejection = (StatusCode, String);
-
-    async fn from_request_parts(
-        parts: &mut Parts,
-        state: &AppState,
-    ) -> Result<Self, Self::Rejection> {
-        let Path(TenantPath { tenant }) =
-            Path::<TenantPath>::from_request_parts(parts, state)
-                .await
-                .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
-
-        let tid = TenantId::new(tenant)
-            .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
-
-        let services = state
-            .tenants
-            .services_for(&tid)
-            .await
-            .map_err(tenant_error_to_http)?;
-
-        let ctx = RequestCtx {
-            tenant: tid.clone(),
-            actor: Actor::Anonymous,
-            request_id: uuid::Uuid::new_v4().to_string(),
-            trace_id: None,
-            permissions: Arc::new(Vec::new()),
-            remote_ip: None,
-        };
-
-        Ok(Self { tenant: tid, services, ctx })
-    }
-}
-
-fn tenant_error_to_http(e: TenantError) -> (StatusCode, String) {
-    match e {
-        TenantError::InvalidId(_) => (StatusCode::BAD_REQUEST, e.to_string()),
-        TenantError::NotFound(_)  => (StatusCode::NOT_FOUND, e.to_string()),
-        TenantError::Disabled(_)  => (StatusCode::FORBIDDEN, e.to_string()),
-        TenantError::Repo(_)      => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
-    }
-}
 
 // ============================================================================
 // build_router — the single view of every URL in the app.
