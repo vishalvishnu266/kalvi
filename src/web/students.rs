@@ -58,7 +58,7 @@ pub async fn list(
     let scope = Scope::from_session(&session);
     let students: Vec<Student> = tscope.services.people
         .list_students_for(scope, 50).await?;
-    info!(rows = students.len(), "student list");
+    info!("student list: {} rows", students.len());
 
     let q = qp.q.unwrap_or_default();
     let ql = q.to_lowercase();

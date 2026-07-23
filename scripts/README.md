@@ -1,173 +1,59 @@
 # Scripts
 
-This folder contains helper scripts that run **against a live server** or a
-tenant's SQLite file. Nothing in `src/` depends on any of these — the
-application ships with **zero built-in mock data**. These scripts exist purely
-so you can populate a demo instance without hand-typing rows.
+Helper scripts for spinning up and populating a **dev** or **demo** instance.
 
-| Script                | Purpose                                                                 |
-| --------------------- | ----------------------------------------------------------------------- |
-| `adduser.sh`          | Register a default `admin` login user in `acme` and `globex` tenants.   |
-| `e2e_smoke.sh`        | End-to-end smoke test of tenancy, auth, and per-tenant DB isolation.    |
-| `run_smoke_local.sh`  | Convenience wrapper — starts the server, runs the smoke test, cleans up.|
-| `seed_demo.sh`        | **API-based** demo seeder: provisions a `demo` tenant and populates it. |
-| `seed_demo.sql`       | **SQL-based** demo seeder: same rows, piped straight into a tenant DB.  |
+Nothing in `src/` depends on any of these — the application itself ships with
+**zero built-in mock data**. These scripts exist purely so you can populate a
+fresh instance without hand-typing rows.
+
+| Script              | What it does                                                                                 |
+| ------------------- | -------------------------------------------------------------------------------------------- |
+| `dev_reset.sh`      | **One command**: stop server → wipe `data/` → rebuild → start → seed. See `docs/DEV_SETUP.md`. |
+| `dev_reset.ps1`     | Windows / PowerShell equivalent of `dev_reset.sh`.                                            |
+| `seed_demo.sh`      | API-based seeder used by `dev_reset.sh`. Also runnable on its own against any live server.   |
+| `seed_demo.sql`     | SQL-based alternative — pipes rows straight into a tenant DB (`sqlite3 data/tenants/demo.db < …`). |
 
 ---
 
-## Populating a demo tenant
-
-Two options — pick whichever fits your workflow. Both are idempotent.
-
-### Option A — via HTTP API (recommended)
-
-Goes through the same validation the running app enforces, and provisions the
-tenant + admin login for you.
+## Fastest path: `dev_reset.sh`
 
 ```bash
-# start the server first:
+bash scripts/dev_reset.sh
+```
+or on Windows:
+```powershell
+pwsh scripts/dev_reset.ps1
+```
+
+After it prints `Done`, open <http://127.0.0.1:3000/web/login> and sign in as
+any of the seeded personas (see [`docs/DEV_SETUP.md`](../docs/DEV_SETUP.md)).
+
+---
+
+## Running `seed_demo.sh` on its own
+
+```bash
+# start the server first
 cargo run --release
 
 # then, in another shell:
 BASE_URL=http://127.0.0.1:3000 bash scripts/seed_demo.sh
 ```
 
-After it finishes:
+Overridable env vars: `BASE_URL`, `TENANT`, `TENANT_NAME`, `ADMIN_USER`, `ADMIN_PASS`.
 
-| Field    | Value                          |
-| -------- | ------------------------------ |
-| URL      | <http://127.0.0.1:3000/web/login> |
-| Tenant   | `demo`                         |
-| Username | `admin`                        |
-| Password | `admin123`                     |
+The script is idempotent — repeated runs are safe.
 
-Overridable via env vars: `BASE_URL`, `TENANT`, `TENANT_NAME`, `ADMIN_USER`,
-`ADMIN_PASS`.
+---
 
-### Option B — via SQL against the tenant DB
-
-Faster for bulk loads and offline work. Assumes the tenant DB has already
-been provisioned (either by hitting `POST /admin/api/tenants` once, or by any
-first request that resolves the tenant).
+## `seed_demo.sql` — offline / bulk-load option
 
 ```bash
 sqlite3 data/tenants/demo.db < scripts/seed_demo.sql
 ```
 
-The script uses `INSERT OR IGNORE` throughout, so re-runs are safe.
+Requires the tenant DB to already exist (create the tenant once via
+`POST /admin/api/tenants` or run any request that resolves the tenant, which
+will run the migrations for you).
 
----
-
-# End-to-end smoke test
-
-The rest of this document covers the E2E smoke test — a more thorough
-multi-tenant verification harness.
-
-This folder contains scripts you can use against a **live server** to verify
-the multi-tenant flow end-to-end:
-
-* Provision two tenants via the admin control-plane API.
-* Hit the per-tenant API with different `x-tenant-id` headers.
-* Prove that data written into tenant `acme` is NOT visible when the same
-  endpoint is called with tenant `globex` (tenant DB isolation).
-* Exercise the discipline endpoint that uses `RequestCtx` and confirm the
-  actor attribution shows up in the resulting notification.
-* Poke the negative paths (unknown tenant → 404, disabled tenant → 403).
-
-## 1. Start the server
-
-From the repo root:
-
-```bash
-# Optional: point the server at a scratch data dir so a smoke test doesn't
-# pollute your real DBs. Both dirs will be auto-created.
-export SYSTEM_DB_URL='sqlite://data/system.db?mode=rwc'
-export TENANT_DB_ROOT='data/tenants'
-export BIND='127.0.0.1:3000'
-export RUST_LOG='school_erp=info,tower_http=info'
-
-cargo run --release
-```
-
-You should see `listening on 127.0.0.1:3000` in the terminal.
-
-Tenant DB files will appear at `data/tenants/<tenant_id>.db`.
-
-## 2. Run the smoke test
-
-```bash
-BASE_URL=http://127.0.0.1:3000 bash scripts/e2e_smoke.sh
-```
-
-Works on Linux, macOS, WSL, or Git-Bash on Windows. The script prints each
-step, the request it sends, and the response. A clean run ends with
-`ALL CHECKS PASSED ✔`.
-
-Optional overrides:
-
-```bash
-BASE_URL=http://192.168.1.100:3000 \
-ACME=schoolA GLOBEX=schoolB \
-ADMIN_USER=admin ADMIN_PASS='s3cret!' \
-bash scripts/e2e_smoke.sh
-```
-
-If you have `jq` on `PATH`, the script uses it to pretty-print JSON;
-otherwise it passes responses through unchanged.
-
-## 3. What the script exercises
-
-| Step | Call | Purpose |
-|-----:|------|---------|
-| 1 | `GET  /api/live` and `GET /api/ready` | Server is up & healthy |
-| 2 | `POST /api/admin/tenants` (`acme`) | Provisioning: creates `data/tenants/acme.db` and runs migrations against it |
-| 3 | `POST /api/admin/tenants` (`globex`) | Second tenant → separate DB file |
-| 4 | `GET  /api/admin/tenants` | Both tenants listed in the system DB |
-| 4b | `POST /api/tenant/auth/register` + `.../auth/login` for each tenant | Creates a default `admin`/`admin123` login user in each tenant and verifies they can sign in. Idempotent — re-runs of the smoke test treat a 409 as success. |
-| 5 | `POST /api/tenant/people/staff` with `x-tenant-id: acme` | Writes into `acme.db` only |
-| 6 | `POST /api/tenant/people/staff` with `x-tenant-id: globex` | Writes into `globex.db` only |
-| 7 | `GET  /api/tenant/people/staff` per tenant | Each tenant only sees *their* staff — this is the isolation check |
-| 8 | `POST /api/tenant/people/students/admit` (acme) | Admits a student in `acme.db` |
-| 9 | `POST /api/tenant/discipline/` (acme, with `x-user-id: 42`) | Exercises the new `RequestCtx` plumbing; the notification title should mention `"reported by user #42"` |
-| 10 | Same call with `x-tenant-id: does-not-exist` | Expected **404 Not Found** — unknown tenant |
-| 11 | `POST /api/admin/tenants/globex/disable` then a globex call | Expected **403 Forbidden** — disabled tenant |
-| 12 | `POST /api/admin/tenants/globex/enable` | Re-enable so subsequent runs work |
-
-## 4. Sign in to the web UI
-
-After a successful run, browse to <http://127.0.0.1:3000/login> and sign in
-with the default credentials created by step 4b:
-
-| Field    | Value                          |
-| -------- | ------------------------------ |
-| Tenant   | `acme` (or `globex`)           |
-| Username | `admin` (or `admin@acme.example`) |
-| Password | `admin123`                     |
-
-Override via `ADMIN_USER` / `ADMIN_PASS` env vars if you want stronger
-credentials — the same values will be accepted by the login form.
-
-## 5. Verifying the tenant DBs directly (optional)
-
-If you have `sqlite3` installed:
-
-```bash
-sqlite3 data/tenants/acme.db   "SELECT count(*) FROM staff;"
-sqlite3 data/tenants/globex.db "SELECT count(*) FROM staff;"
-sqlite3 data/system.db         "SELECT tenant_id, status FROM tenant;"
-```
-
-You should see the counts diverge — proof that the two tenants are backed
-by separate SQLite files.
-
-## 6. Cleanup
-
-Because everything is in flat SQLite files under `data/`, the fastest reset is:
-
-```bash
-# Stop the server first (Ctrl+C), then:
-rm -rf data/
-```
-
-Next `cargo run` will recreate `data/system.db` and an empty
-`data/tenants/` folder.
+Uses `INSERT OR IGNORE` throughout — safe to re-apply.

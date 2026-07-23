@@ -348,6 +348,7 @@ pub fn build_router(state: AppState, readiness: Readiness) -> Router {
     // enclosing template differs. **The role never appears in the URL** —
     // RBAC still controls visibility and scoping.
     use crate::services::perm;
+    use crate::require_perm;
     let web_tenant_shell = Router::new()
         .route("/",              get(wdb::index))
         .route("/students",      get(ws::list)
