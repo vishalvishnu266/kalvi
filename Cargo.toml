@@ -25,7 +25,7 @@ axum = "0.8.9"
 tower = "0.5"
 tower-http = { version = "0.6", features = ["normalize-path"] }
 async-trait = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"] }
 uuid = { version = "1", features = ["v4"] }
 
 # Web (server-rendered) UI

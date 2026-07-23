@@ -4,7 +4,8 @@ use axum::{
 };
 use serde::Deserialize;
 use std::sync::Arc;
-
+use tracing::log::debug;
+use tracing::log::Level::Warn;
 use crate::http::{AppState, ServiceHttpError};
 use crate::tenancy::{TenantId, TenantError};
 use crate::services::{AppServices, RequestCtx, Actor};
@@ -37,6 +38,7 @@ impl FromRequestParts<AppState> for TenantScope {
         parts: &mut Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
+        debug!("tenant scope extractor: parts={:?}", parts);
         let Path(TenantPath { tenant }) =
             Path::<TenantPath>::from_request_parts(parts, state)
                 .await
