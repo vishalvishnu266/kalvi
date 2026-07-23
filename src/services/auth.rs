@@ -16,7 +16,7 @@ use rand_core::RngCore;
 
 use crate::repositories::Repositories;
 use crate::repositories::auth::{NewSession, NewUser, Session, User};
-use crate::session::{SessionStore, TenantDbSessionStore};
+use crate::session::SessionStore;
 use crate::services::{ServiceError, ServiceResult};
 
 /// Default web session lifetime. Fine as a starting point; move to config later.
@@ -25,18 +25,18 @@ pub const DEFAULT_SESSION_TTL_DAYS: i64 = 14;
 #[derive(Clone)]
 pub struct AuthService {
     repos: Arc<Repositories>,
-    sessions: Arc<dyn SessionStore>,
+    sessions: SessionStore,
 }
 
 impl AuthService {
     pub fn new(repos: Arc<Repositories>) -> Self {
-        let sessions = Arc::new(TenantDbSessionStore::new(repos.sessions.clone()));
+        let sessions = SessionStore::TenantDb(repos.sessions.clone());
         Self { repos, sessions }
     }
 
     pub fn with_session_store(
         repos: Arc<Repositories>,
-        sessions: Arc<dyn SessionStore>,
+        sessions: SessionStore,
     ) -> Self {
         Self { repos, sessions }
     }

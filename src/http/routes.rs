@@ -16,21 +16,17 @@
 //! * **Only one `tower` layer remains** — `NormalizePathLayer` — so `/x/`
 //!   and `/x` both match (works around axum#3233).
 
-use std::sync::Arc;
-
 use axum::{
-    extract::{FromRequestParts, Path},
-    http::{request::Parts, StatusCode},
+    http::StatusCode,
     response::{IntoResponse, Response},
     routing::{get, post},
     Json, Router,
 };
-use serde::Deserialize;
 
 use crate::health_probes::Readiness;
-use crate::services::{Actor, AppServices, RequestCtx, ServiceError};
+use crate::services::ServiceError;
 use crate::system::SystemRegistry;
-use crate::tenancy::{TenantError, TenantId, TenantRegistry};
+use crate::tenancy::TenantRegistry;
 
 use crate::http::api_routes;
 use crate::web::{
@@ -42,7 +38,7 @@ use crate::middleware::tracing as wtr;
 pub use crate::middleware::tenant::TenantScope;
 
 // ============================================================================
-// AppState + ServiceHttpError
+// AppState + API error response mapping
 // ============================================================================
 
 /// Router state — one [`TenantRegistry`] (per-tenant DBs) plus one
@@ -53,20 +49,12 @@ pub struct AppState {
     pub tenants: TenantRegistry,
 }
 
-/// Wraps [`ServiceError`] so it can be returned from handlers via `?` and
-/// convert into an HTTP JSON error response.
-pub struct ServiceHttpError(pub ServiceError);
+/// Backward-compatible alias used by API handler signatures.
+pub type ServiceHttpError = ServiceError;
 
-impl From<ServiceError> for ServiceHttpError {
-    fn from(e: ServiceError) -> Self { Self(e) }
-}
-impl From<crate::error::RepoError> for ServiceHttpError {
-    fn from(e: crate::error::RepoError) -> Self { Self(ServiceError::from(e)) }
-}
-
-impl IntoResponse for ServiceHttpError {
+impl IntoResponse for ServiceError {
     fn into_response(self) -> Response {
-        let (status, code) = match &self.0 {
+        let (status, code) = match &self {
             ServiceError::NotFound        => (StatusCode::NOT_FOUND, "not_found"),
             ServiceError::Validation(_)   => (StatusCode::BAD_REQUEST, "validation_error"),
             ServiceError::Conflict(_)     => (StatusCode::CONFLICT, "conflict"),
@@ -78,7 +66,7 @@ impl IntoResponse for ServiceHttpError {
         };
         let body = Json(serde_json::json!({
             "error":   code,
-            "message": self.0.to_string(),
+            "message": self.to_string(),
         }));
         (status, body).into_response()
     }

@@ -17,5 +17,5 @@ pub mod web;
 pub use error::RepoError;
 pub use http::{build_router, AppState};
 pub use services::{Actor, AppServices, RequestCtx, ServiceError, ServiceResult};
-pub use system::{connect_system, migrate_system, DbTenantGuard, SystemRegistry};
+pub use system::{connect_system, migrate_system, SystemRegistry};
 pub use tenancy::{TenantId, TenantRegistry, TenantRegistryConfig};

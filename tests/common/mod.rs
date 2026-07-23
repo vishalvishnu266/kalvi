@@ -10,13 +10,11 @@
 
 #![allow(dead_code)] // helpers here are used selectively by each test file
 
-use std::sync::Arc;
-
 use axum_test::TestServer;
 use school_erp::health_probes::Readiness;
 use school_erp::session::SessionBackendConfig;
-use school_erp::system::{connect_system, migrate_system, DbTenantGuard};
-use school_erp::tenancy::{FileTenantResolver, TenantRegistry, TenantRegistryConfig};
+use school_erp::system::{connect_system, migrate_system};
+use school_erp::tenancy::{TenantAdmissionMode, TenantRegistry, TenantRegistryConfig};
 use school_erp::{build_router, AppState, SystemRegistry};
 use tempfile::TempDir;
 use tower_http::normalize_path::NormalizePathLayer;
@@ -64,8 +62,8 @@ pub async fn boot_with_personas() -> TestApp {
     let system = SystemRegistry::new(sys_pool);
 
     let cfg = TenantRegistryConfig {
-        resolver: Arc::new(FileTenantResolver::new(tenant_root.to_string_lossy().as_ref())),
-        guard:    Arc::new(DbTenantGuard { system: system.clone() }),
+        db_root: tenant_root.clone(),
+        admission: TenantAdmissionMode::SystemDb(system.clone()),
         auto_migrate: true,
         session_backend: SessionBackendConfig::TenantDb,
     };

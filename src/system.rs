@@ -13,7 +13,7 @@ use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, S
 use sqlx::{FromRow, SqlitePool};
 
 use crate::error::{RepoError, RepoResult};
-use crate::tenancy::{TenantError, TenantGuard, TenantId};
+use crate::tenancy::TenantId;
 
 // -------- Pool + migrations --------
 
@@ -246,37 +246,5 @@ impl SystemRegistry {
         .bind(portal_user_id)
         .fetch_all(&self.pool)
         .await?)
-    }
-}
-
-// -------- Tenant guard backed by SystemRegistry --------
-
-#[derive(Clone)]
-pub struct DbTenantGuard {
-    pub system: SystemRegistry,
-}
-
-#[async_trait::async_trait]
-impl TenantGuard for DbTenantGuard {
-    async fn admit(&self, tenant: &TenantId) -> Result<(), TenantError> {
-        tracing::debug!("DbTenantGuard::admit: checking admission for tenant={}", tenant);
-        let row = self.system
-            .find_by_tenant_id(tenant.as_str())
-            .await
-            .map_err(TenantError::from)?;
-        match row {
-            None => {
-                tracing::debug!("DbTenantGuard::admit: tenant={} not found", tenant);
-                Err(TenantError::NotFound(tenant.clone()))
-            }
-            Some(t) if t.status != "active" => {
-                tracing::debug!("DbTenantGuard::admit: tenant={} is disabled (status={})", tenant, t.status);
-                Err(TenantError::Disabled(tenant.clone()))
-            }
-            Some(_) => {
-                tracing::debug!("DbTenantGuard::admit: tenant={} admitted", tenant);
-                Ok(())
-            }
-        }
     }
 }

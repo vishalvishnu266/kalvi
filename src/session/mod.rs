@@ -2,7 +2,6 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::time::Duration;
 
-use async_trait::async_trait;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use sqlx::SqlitePool;
 
@@ -15,49 +14,61 @@ pub enum SessionBackendConfig {
     MemorySqlite { snapshot_root: PathBuf },
 }
 
-impl SessionBackendConfig {
-    pub fn tenant_db() -> Self { Self::TenantDb }
-}
-
-#[async_trait]
-pub trait SessionStore: Send + Sync {
-    async fn create(&self, s: &NewSession) -> RepoResult<Session>;
-    async fn find_active_by_token(&self, token: &str) -> RepoResult<Option<Session>>;
-    async fn touch(&self, id: i64) -> RepoResult<()>;
-    async fn revoke_by_token(&self, token: &str) -> RepoResult<()>;
-    async fn revoke_all_for_user(&self, user_id: i64) -> RepoResult<()>;
-    async fn cleanup(&self, keep_days: i64) -> RepoResult<u64>;
-    async fn checkpoint(&self) -> RepoResult<()> { Ok(()) }
-}
-
 #[derive(Clone)]
-pub struct TenantDbSessionStore {
-    repo: SessionRepo,
+pub enum SessionStore {
+    TenantDb(SessionRepo),
+    MemorySqlite(MemorySqliteSessionStore),
 }
 
-impl TenantDbSessionStore {
-    pub fn new(repo: SessionRepo) -> Self { Self { repo } }
-}
-
-#[async_trait]
-impl SessionStore for TenantDbSessionStore {
-    async fn create(&self, s: &NewSession) -> RepoResult<Session> { self.repo.create(s).await }
-
-    async fn find_active_by_token(&self, token: &str) -> RepoResult<Option<Session>> {
-        self.repo.find_active_by_token(token).await
+impl SessionStore {
+    pub async fn create(&self, s: &NewSession) -> RepoResult<Session> {
+        match self {
+            Self::TenantDb(repo) => repo.create(s).await,
+            Self::MemorySqlite(store) => store.create(s).await,
+        }
     }
 
-    async fn touch(&self, id: i64) -> RepoResult<()> { self.repo.touch(id).await }
-
-    async fn revoke_by_token(&self, token: &str) -> RepoResult<()> {
-        self.repo.revoke_by_token(token).await
+    pub async fn find_active_by_token(&self, token: &str) -> RepoResult<Option<Session>> {
+        match self {
+            Self::TenantDb(repo) => repo.find_active_by_token(token).await,
+            Self::MemorySqlite(store) => store.find_active_by_token(token).await,
+        }
     }
 
-    async fn revoke_all_for_user(&self, user_id: i64) -> RepoResult<()> {
-        self.repo.revoke_all_for_user(user_id).await
+    pub async fn touch(&self, id: i64) -> RepoResult<()> {
+        match self {
+            Self::TenantDb(repo) => repo.touch(id).await,
+            Self::MemorySqlite(store) => store.touch(id).await,
+        }
     }
 
-    async fn cleanup(&self, keep_days: i64) -> RepoResult<u64> { self.repo.cleanup(keep_days).await }
+    pub async fn revoke_by_token(&self, token: &str) -> RepoResult<()> {
+        match self {
+            Self::TenantDb(repo) => repo.revoke_by_token(token).await,
+            Self::MemorySqlite(store) => store.revoke_by_token(token).await,
+        }
+    }
+
+    pub async fn revoke_all_for_user(&self, user_id: i64) -> RepoResult<()> {
+        match self {
+            Self::TenantDb(repo) => repo.revoke_all_for_user(user_id).await,
+            Self::MemorySqlite(store) => store.revoke_all_for_user(user_id).await,
+        }
+    }
+
+    pub async fn cleanup(&self, keep_days: i64) -> RepoResult<u64> {
+        match self {
+            Self::TenantDb(repo) => repo.cleanup(keep_days).await,
+            Self::MemorySqlite(store) => store.cleanup(keep_days).await,
+        }
+    }
+
+    pub async fn checkpoint(&self) -> RepoResult<()> {
+        match self {
+            Self::TenantDb(_) => Ok(()),
+            Self::MemorySqlite(store) => store.checkpoint().await,
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -154,9 +165,8 @@ FROM snapshot_db.user_session
     }
 }
 
-#[async_trait]
-impl SessionStore for MemorySqliteSessionStore {
-    async fn create(&self, s: &NewSession) -> RepoResult<Session> {
+impl MemorySqliteSessionStore {
+    pub async fn create(&self, s: &NewSession) -> RepoResult<Session> {
         let id = sqlx::query_scalar::<_, i64>(
             r#"INSERT INTO user_session (token, user_id, expires_at, user_agent, remote_ip)
                VALUES (?, ?, ?, ?, ?) RETURNING id"#,
@@ -171,7 +181,7 @@ impl SessionStore for MemorySqliteSessionStore {
         self.get(id).await
     }
 
-    async fn find_active_by_token(&self, token: &str) -> RepoResult<Option<Session>> {
+    pub async fn find_active_by_token(&self, token: &str) -> RepoResult<Option<Session>> {
         Ok(sqlx::query_as::<_, Session>(
             r#"SELECT * FROM user_session
                WHERE token = ?
@@ -183,7 +193,7 @@ impl SessionStore for MemorySqliteSessionStore {
         .await?)
     }
 
-    async fn touch(&self, id: i64) -> RepoResult<()> {
+    pub async fn touch(&self, id: i64) -> RepoResult<()> {
         sqlx::query("UPDATE user_session SET last_seen_at = datetime('now') WHERE id = ?")
             .bind(id)
             .execute(&self.pool)
@@ -191,7 +201,7 @@ impl SessionStore for MemorySqliteSessionStore {
         Ok(())
     }
 
-    async fn revoke_by_token(&self, token: &str) -> RepoResult<()> {
+    pub async fn revoke_by_token(&self, token: &str) -> RepoResult<()> {
         sqlx::query(
             r#"UPDATE user_session SET revoked_at = datetime('now')
                WHERE token = ? AND revoked_at IS NULL"#,
@@ -202,7 +212,7 @@ impl SessionStore for MemorySqliteSessionStore {
         Ok(())
     }
 
-    async fn revoke_all_for_user(&self, user_id: i64) -> RepoResult<()> {
+    pub async fn revoke_all_for_user(&self, user_id: i64) -> RepoResult<()> {
         sqlx::query(
             r#"UPDATE user_session SET revoked_at = datetime('now')
                WHERE user_id = ? AND revoked_at IS NULL"#,
@@ -213,7 +223,7 @@ impl SessionStore for MemorySqliteSessionStore {
         Ok(())
     }
 
-    async fn cleanup(&self, keep_days: i64) -> RepoResult<u64> {
+    pub async fn cleanup(&self, keep_days: i64) -> RepoResult<u64> {
         let res = sqlx::query(
             r#"DELETE FROM user_session
                WHERE (revoked_at IS NOT NULL AND revoked_at < datetime('now', ?))
@@ -226,7 +236,7 @@ impl SessionStore for MemorySqliteSessionStore {
         Ok(res.rows_affected())
     }
 
-    async fn checkpoint(&self) -> RepoResult<()> {
+    pub async fn checkpoint(&self) -> RepoResult<()> {
         Self::ensure_snapshot_dir(&self.snapshot_path)?;
         if self.snapshot_path.exists() {
             std::fs::remove_file(&self.snapshot_path)
@@ -236,9 +246,6 @@ impl SessionStore for MemorySqliteSessionStore {
         sqlx::query("VACUUM INTO ?").bind(path).execute(&self.pool).await?;
         Ok(())
     }
-}
-
-impl MemorySqliteSessionStore {
     async fn get(&self, id: i64) -> RepoResult<Session> {
         sqlx::query_as::<_, Session>("SELECT * FROM user_session WHERE id = ?")
             .bind(id)

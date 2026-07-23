@@ -2,19 +2,10 @@ use axum::{
     extract::{FromRequestParts, Path},
     http::{request::Parts, StatusCode},
 };
-use serde::Deserialize;
 use std::sync::Arc;
-use tracing::log::debug;
-use tracing::log::Level::Warn;
-use crate::http::{AppState, ServiceHttpError};
+use crate::http::AppState;
 use crate::tenancy::{TenantId, TenantError};
 use crate::services::{AppServices, RequestCtx, Actor};
-
-/// Helper for pulling the `{tenant}` segment out of the URL path.
-#[derive(Deserialize)]
-struct TenantPath {
-    tenant: String,
-}
 
 /// Everything a tenant-scoped handler needs, obtained in one extractor call:
 /// the validated tenant id, the per-tenant [`AppServices`] bundle, and a
@@ -39,8 +30,8 @@ impl FromRequestParts<AppState> for TenantScope {
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
         tracing::debug!("TenantScope::from_request_parts: extracting tenant from path");
-        let Path(TenantPath { tenant }) =
-            Path::<TenantPath>::from_request_parts(parts, state)
+        let Path(tenant) =
+            Path::<String>::from_request_parts(parts, state)
                 .await
                 .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
 

@@ -4,10 +4,7 @@
 //!
 //! * A [`TenantId`] is a short opaque string extracted from the request
 //!   (subdomain, header, JWT claim — your choice at the HTTP layer).
-//! * A [`TenantResolver`] maps a `TenantId` → a `sqlx` connection URL.
-//!   Two built-in resolvers are provided:
-//!     * [`FileTenantResolver`] — `data/<tenant>.db` (production default).
-//!     * [`InMemoryTenantResolver`] — `sqlite::memory:` per tenant (for tests).
+//! * Tenant DB location is file-per-tenant under a configured root dir.
 //! * A [`TenantRegistry`] lazily builds a [`sqlx::SqlitePool`] the first time
 //!   a tenant is seen, runs migrations if configured to, and caches it for
 //!   the lifetime of the process.
@@ -39,7 +36,7 @@
 //! [`AppServices`]: crate::services::AppServices
 
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use sqlx::SqlitePool;
@@ -51,6 +48,7 @@ use crate::repositories::Repositories;
 use crate::session::{MemorySqliteSessionStore, SessionBackendConfig};
 use crate::services::auth::AuthService;
 use crate::services::AppServices;
+use crate::system::SystemRegistry;
 
 /// Opaque tenant identifier. Wrap a raw string so we can add validation and
 /// avoid mixing it up with other `String`s.
@@ -98,88 +96,17 @@ pub enum TenantError {
     Repo(#[from] RepoError),
 }
 
-/// How a `TenantId` becomes a sqlx connection URL.
-///
-/// Implementations must be cheap and side-effect-free. Actually opening
-/// the DB is the [`TenantRegistry`]'s job.
-pub trait TenantResolver: Send + Sync + 'static {
-    fn db_url(&self, tenant: &TenantId) -> String;
-}
-
-/// The default production resolver: one file per tenant under `root/`.
-///
-/// e.g. `root=data/tenants` → `sqlite://data/tenants/acme.db?mode=rwc`
-pub struct FileTenantResolver {
-    pub root: PathBuf,
-}
-
-impl FileTenantResolver {
-    pub fn new(root: impl AsRef<Path>) -> Self {
-        Self { root: root.as_ref().to_path_buf() }
-    }
-}
-
-impl TenantResolver for FileTenantResolver {
-    fn db_url(&self, tenant: &TenantId) -> String {
-        // TenantId is already sanitized; safe to embed in a path.
-        let path = self.root.join(format!("{}.db", tenant.as_str()));
-        format!("sqlite://{}?mode=rwc", path.display())
-    }
-}
-
-/// A resolver that gives every tenant its own private in-memory database.
-///
-/// Handy for tests and demos. Uses `file:<tenant>?mode=memory&cache=shared`
-/// so that multiple connections from the same pool see the same data.
-pub struct InMemoryTenantResolver;
-
-impl TenantResolver for InMemoryTenantResolver {
-    fn db_url(&self, tenant: &TenantId) -> String {
-        format!("sqlite:file:tenant_{}?mode=memory&cache=shared", tenant.as_str())
-    }
-}
-
-/// Optional allow-list gate. Return `Ok(())` to let a tenant through,
-/// `Err(TenantError::NotFound|Disabled)` to reject. The middleware calls this
-/// **before** touching the pool cache, so unauthorized tenants never create a
-/// file / connection.
-#[async_trait::async_trait]
-pub trait TenantGuard: Send + Sync + 'static {
-    async fn admit(&self, tenant: &TenantId) -> Result<(), TenantError>;
-}
-
-/// A guard that accepts every tenant (useful for dev / tests).
-pub struct AllowAllGuard;
-
-#[async_trait::async_trait]
-impl TenantGuard for AllowAllGuard {
-    async fn admit(&self, _: &TenantId) -> Result<(), TenantError> { Ok(()) }
-}
-
-/// A guard backed by an in-memory whitelist. Swap in a DB-backed one in
-/// production if you have a control-plane table of tenants.
-pub struct StaticAllowList {
-    allowed: std::collections::HashSet<TenantId>,
-}
-
-impl StaticAllowList {
-    pub fn new(ids: impl IntoIterator<Item = TenantId>) -> Self {
-        Self { allowed: ids.into_iter().collect() }
-    }
-}
-
-#[async_trait::async_trait]
-impl TenantGuard for StaticAllowList {
-    async fn admit(&self, tenant: &TenantId) -> Result<(), TenantError> {
-        if self.allowed.contains(tenant) { Ok(()) }
-        else { Err(TenantError::NotFound(tenant.clone())) }
-    }
+#[derive(Clone)]
+pub enum TenantAdmissionMode {
+    AllowAll,
+    StaticAllowList(std::collections::HashSet<TenantId>),
+    SystemDb(SystemRegistry),
 }
 
 /// Configuration for a [`TenantRegistry`].
 pub struct TenantRegistryConfig {
-    pub resolver: Arc<dyn TenantResolver>,
-    pub guard: Arc<dyn TenantGuard>,
+    pub db_root: PathBuf,
+    pub admission: TenantAdmissionMode,
     /// Run `sqlx::migrate!("./migrations")` when a tenant DB is first opened.
     pub auto_migrate: bool,
     /// Session backend selection for tenant-scoped AuthService.
@@ -189,10 +116,10 @@ pub struct TenantRegistryConfig {
 impl TenantRegistryConfig {
     pub fn dev_defaults() -> Self {
         Self {
-            resolver: Arc::new(InMemoryTenantResolver),
-            guard:    Arc::new(AllowAllGuard),
+            db_root: PathBuf::from("data\\tenants"),
+            admission: TenantAdmissionMode::AllowAll,
             auto_migrate: true,
-            session_backend: SessionBackendConfig::tenant_db(),
+            session_backend: SessionBackendConfig::TenantDb,
         }
     }
 }
@@ -212,8 +139,8 @@ struct TenantEntry {
 /// `Clone` is cheap — everything is behind `Arc`s.
 #[derive(Clone)]
 pub struct TenantRegistry {
-    resolver: Arc<dyn TenantResolver>,
-    guard: Arc<dyn TenantGuard>,
+    db_root: PathBuf,
+    admission: TenantAdmissionMode,
     auto_migrate: bool,
     session_backend: SessionBackendConfig,
     entries: Arc<RwLock<HashMap<TenantId, TenantEntry>>>,
@@ -223,17 +150,17 @@ impl TenantRegistry {
     pub fn new(cfg: TenantRegistryConfig) -> Self {
         tracing::debug!("TenantRegistry::new: initializing");
         Self {
-            resolver: cfg.resolver,
-            guard: cfg.guard,
+            db_root: cfg.db_root,
+            admission: cfg.admission,
             auto_migrate: cfg.auto_migrate,
             session_backend: cfg.session_backend,
             entries: Arc::new(RwLock::new(HashMap::new())),
         }
     }
 
-    /// Get (or lazily create + migrate) the pool for a tenant.
-    /// The guard is consulted **before** the cache miss so unauthorized
-    /// tenants never allocate resources.
+    /// Test-only helper for obtaining the per-tenant pool directly.
+    /// Production code should use `services_for`.
+    #[cfg(test)]
     pub async fn pool_for(&self, tenant: &TenantId) -> Result<SqlitePool, TenantError> {
         tracing::debug!("TenantRegistry::pool_for: tenant={}", tenant);
         Ok(self.entry_for(tenant).await?.pool)
@@ -255,8 +182,7 @@ impl TenantRegistry {
     /// write-locked slow path with double-checked insert.
     async fn entry_for(&self, tenant: &TenantId) -> Result<TenantEntry, TenantError> {
         tracing::debug!("TenantRegistry::entry_for: checking guard for tenant={}", tenant);
-        // Guard first (cheap: usually an in-memory check).
-        self.guard.admit(tenant).await?;
+        self.admit(tenant).await?;
 
         // Fast path — read lock.
         if let Some(e) = self.entries.read().await.get(tenant).cloned() {
@@ -270,7 +196,7 @@ impl TenantRegistry {
         if let Some(e) = guard.get(tenant).cloned() {
             return Ok(e);
         }
-        let url = self.resolver.db_url(tenant);
+        let url = self.db_url(tenant);
         tracing::debug!("TenantRegistry::entry_for: db_url={}", url);
         let pool = db::connect(&url).await.map_err(TenantError::from)?;
         if self.auto_migrate {
@@ -291,7 +217,7 @@ impl TenantRegistry {
         if self.entries.read().await.contains_key(&tenant) {
             return Ok(());
         }
-        let url = self.resolver.db_url(&tenant);
+        let url = self.db_url(&tenant);
         let pool = db::connect(&url).await?;
         db::migrate(&pool).await?;
         let services = self.build_services(&tenant, &pool).await?;
@@ -340,10 +266,42 @@ impl TenantRegistry {
             SessionBackendConfig::MemorySqlite { snapshot_root } => {
                 let snapshot = snapshot_root.join(format!("{}.db", tenant.as_str()));
                 let store = MemorySqliteSessionStore::open(snapshot, tenant.as_str()).await?;
-                AuthService::with_session_store(repos.clone(), Arc::new(store))
+                AuthService::with_session_store(
+                    repos.clone(),
+                    crate::session::SessionStore::MemorySqlite(store),
+                )
             }
         };
         Ok(AppServices::from_repos_with_auth(repos, auth))
+    }
+
+    fn db_url(&self, tenant: &TenantId) -> String {
+        let path = self.db_root.join(format!("{}.db", tenant.as_str()));
+        format!("sqlite://{}?mode=rwc", path.display())
+    }
+
+    async fn admit(&self, tenant: &TenantId) -> Result<(), TenantError> {
+        match &self.admission {
+            TenantAdmissionMode::AllowAll => Ok(()),
+            TenantAdmissionMode::StaticAllowList(allowed) => {
+                if allowed.contains(tenant) {
+                    Ok(())
+                } else {
+                    Err(TenantError::NotFound(tenant.clone()))
+                }
+            }
+            TenantAdmissionMode::SystemDb(system) => {
+                let row = system
+                    .find_by_tenant_id(tenant.as_str())
+                    .await
+                    .map_err(TenantError::from)?;
+                match row {
+                    None => Err(TenantError::NotFound(tenant.clone())),
+                    Some(t) if t.status != "active" => Err(TenantError::Disabled(tenant.clone())),
+                    Some(_) => Ok(()),
+                }
+            }
+        }
     }
 }
 
@@ -364,7 +322,20 @@ mod tests {
 
     #[tokio::test]
     async fn registry_isolates_two_tenants() {
-        let reg = TenantRegistry::new(TenantRegistryConfig::dev_defaults());
+        let root = std::env::temp_dir().join(format!(
+            "kalvi_tenants_{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&root).unwrap();
+        let reg = TenantRegistry::new(TenantRegistryConfig {
+            db_root: root.clone(),
+            admission: TenantAdmissionMode::AllowAll,
+            auto_migrate: true,
+            session_backend: SessionBackendConfig::TenantDb,
+        });
         let a = TenantId::new("tenant_a").unwrap();
         let b = TenantId::new("tenant_b").unwrap();
 
@@ -388,5 +359,6 @@ mod tests {
             .fetch_one(&pool_b).await.unwrap();
         assert_eq!(count_a, 1);
         assert_eq!(count_b, 0);
+        let _ = std::fs::remove_dir_all(root);
     }
 }

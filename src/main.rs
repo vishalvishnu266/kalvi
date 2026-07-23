@@ -9,15 +9,14 @@
 //! * `BIND`               (default: `0.0.0.0:3000`)
 //! * `SHUTDOWN_TIMEOUT_S` (default: `30`) — per-step timeout for pool close
 
-use std::sync::Arc;
 use std::time::Duration;
 use tower::Layer;
 
 use school_erp::health_probes::Readiness;
 use school_erp::session::SessionBackendConfig;
 use school_erp::shutdown::{close_pools, wait_for_signal};
-use school_erp::system::{connect_system, migrate_system, DbTenantGuard};
-use school_erp::tenancy::{FileTenantResolver, TenantRegistry, TenantRegistryConfig};
+use school_erp::system::{connect_system, migrate_system};
+use school_erp::tenancy::{TenantAdmissionMode, TenantRegistry, TenantRegistryConfig};
 use school_erp::{build_router, AppState, SystemRegistry};
 
 #[tokio::main]
@@ -71,8 +70,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // --- 2. Tenant registry ---
     tracing::debug!("main: initializing tenant registry with root: {}", tenant_root);
     let cfg = TenantRegistryConfig {
-        resolver: Arc::new(FileTenantResolver::new(&tenant_root)),
-        guard:    Arc::new(DbTenantGuard { system: system.clone() }),
+        db_root: std::path::PathBuf::from(&tenant_root),
+        admission: TenantAdmissionMode::SystemDb(system.clone()),
         auto_migrate: true,
         session_backend,
     };
