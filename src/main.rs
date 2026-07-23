@@ -19,6 +19,7 @@ use school_erp::{build_router, AppState, SystemRegistry};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let _ = dotenvy::dotenv();
     init_tracing();
     tracing::debug!("main: application starting");
 
