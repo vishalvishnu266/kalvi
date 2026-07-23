@@ -27,7 +27,7 @@ use serde::Deserialize;
 
 use crate::http::AppState;
 use crate::middleware::auth::read_cookie_from_headers;
-use crate::tenancy::TenantId;
+use crate::tenancy::{tenant_services_for, TenantId};
 use crate::web::error::{render, WebError};
 
 pub const COOKIE_TENANT: &str = crate::middleware::auth::COOKIE_TENANT;
@@ -95,7 +95,7 @@ async fn post_login_with_redirect(
             });
         }
     };
-    let services = match state.tenants.services_for(&tenant).await {
+    let services = match tenant_services_for(&state.tenants, &tenant).await {
         Ok(s) => s,
         Err(e) => {
             return render(&LoginPage {
@@ -168,7 +168,7 @@ pub async fn post_logout(
     let cookie_session = read_cookie_from_headers(&headers, crate::middleware::auth::COOKIE_SESSION);
     if let (Some(tid), Some(token)) = (cookie_tenant, cookie_session) {
         if let Ok(t) = TenantId::new(tid) {
-            if let Ok(services) = state.tenants.services_for(&t).await {
+            if let Ok(services) = tenant_services_for(&state.tenants, &t).await {
                 let _ = services.auth.revoke_session(&token).await;
             }
         }

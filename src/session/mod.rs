@@ -8,12 +8,6 @@ use sqlx::SqlitePool;
 use crate::error::{RepoError, RepoResult};
 use crate::repositories::auth::{NewSession, Session, SessionRepo};
 
-#[derive(Debug, Clone)]
-pub enum SessionBackendConfig {
-    TenantDb,
-    MemorySqlite { snapshot_root: PathBuf },
-}
-
 #[derive(Clone)]
 pub enum SessionStore {
     TenantDb(SessionRepo),

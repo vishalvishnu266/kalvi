@@ -16,7 +16,7 @@ use std::time::Duration;
 
 use sqlx::SqlitePool;
 
-use crate::tenancy::TenantRegistry;
+use crate::tenancy::{tenant_shutdown, TenantRegistry};
 
 /// Resolve when the process receives a termination signal.
 ///
@@ -50,7 +50,7 @@ pub async fn close_pools(
     tracing::debug!("close_pools: starting shutdown sequence");
     // 1. Tenants — checkpoints each tenant's WAL.
     tracing::debug!("close_pools: closing tenant pools");
-    let tenants_shutdown = tenants.shutdown();
+    let tenants_shutdown = tenant_shutdown(tenants);
     if tokio::time::timeout(step_timeout, tenants_shutdown).await.is_err() {
         tracing::warn!("tenant pools did not close within {:?}", step_timeout);
     } else {

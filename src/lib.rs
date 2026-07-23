@@ -18,4 +18,7 @@ pub use error::RepoError;
 pub use http::{build_router, AppState};
 pub use services::{Actor, AppServices, RequestCtx, ServiceError, ServiceResult};
 pub use system::{connect_system, migrate_system, SystemRegistry};
-pub use tenancy::{TenantId, TenantRegistry, TenantRegistryConfig};
+pub use tenancy::{
+    new_tenant_registry, tenant_active_ids, tenant_evict, tenant_provision,
+    tenant_services_for, tenant_shutdown, TenantId, TenantRegistry,
+};

@@ -17,7 +17,7 @@ use crate::middleware::auth::{read_cookie_from_headers, SessionUser};
 use crate::repositories::students::Student;
 use crate::services::people::Scope;
 use crate::system::{NewPortalMembership, NewPortalUser};
-use crate::tenancy::TenantId;
+use crate::tenancy::{tenant_services_for, TenantId};
 use crate::web::error::{render, WebError};
 
 const COOKIE_PORTAL: &str = "erp_portal";
@@ -213,7 +213,7 @@ pub async fn post_link_tenant(
     };
     let tid = TenantId::new(f.tenant.trim().to_string())
         .map_err(|e| WebError::bad(e.to_string()))?;
-    let services = state.tenants.services_for(&tid).await
+    let services = tenant_services_for(&state.tenants, &tid).await
         .map_err(|e| WebError::bad(format!("tenant unavailable: {e}")))?;
     let user = services.auth.login(&f.identifier, &f.password).await
         .map_err(|_| WebError::forbidden("invalid tenant credentials"))?;
@@ -297,7 +297,7 @@ async fn build_membership_views(state: &AppState, portal_user_id: i64) -> Result
             Ok(v) => v,
             Err(_) => continue,
         };
-        let services = match state.tenants.services_for(&tid).await {
+        let services = match tenant_services_for(&state.tenants, &tid).await {
             Ok(v) => v,
             Err(_) => continue,
         };

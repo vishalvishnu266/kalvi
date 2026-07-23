@@ -8,7 +8,7 @@ use axum::{
 };
 use axum::extract::Path;
 use crate::http::AppState;
-use crate::tenancy::TenantId;
+use crate::tenancy::{tenant_services_for, TenantId};
 
 /// Cookie names.
 ///
@@ -98,7 +98,7 @@ pub async fn require_session(
         return Redirect::to(&login_url).into_response();
     };
 
-    let Ok(services) = state.tenants.services_for(&tenant).await else {
+    let Ok(services) = tenant_services_for(&state.tenants, &tenant).await else {
         return Redirect::to(&login_url).into_response();
     };
 

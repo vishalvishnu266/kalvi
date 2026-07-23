@@ -13,10 +13,9 @@ use std::time::Duration;
 use tower::Layer;
 
 use school_erp::health_probes::Readiness;
-use school_erp::session::SessionBackendConfig;
 use school_erp::shutdown::{close_pools, wait_for_signal};
 use school_erp::system::{connect_system, migrate_system};
-use school_erp::tenancy::{TenantAdmissionMode, TenantRegistry, TenantRegistryConfig};
+use school_erp::tenancy::{new_tenant_registry, TenantAdmissionMode};
 use school_erp::{build_router, AppState, SystemRegistry};
 
 #[tokio::main]
@@ -44,13 +43,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     std::fs::create_dir_all("data").ok();
     std::fs::create_dir_all(&tenant_root).ok();
 
-    let session_backend = match session_backend_raw.as_str() {
-        "tenant_db" => SessionBackendConfig::TenantDb,
+    let session_snapshot_root = match session_backend_raw.as_str() {
+        "tenant_db" => None,
         "memory_sqlite" => {
             std::fs::create_dir_all(&session_snapshot_root).ok();
-            SessionBackendConfig::MemorySqlite {
-                snapshot_root: std::path::PathBuf::from(&session_snapshot_root),
-            }
+            Some(std::path::PathBuf::from(&session_snapshot_root))
         }
         other => {
             return Err(format!(
@@ -69,13 +66,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // --- 2. Tenant registry ---
     tracing::debug!("main: initializing tenant registry with root: {}", tenant_root);
-    let cfg = TenantRegistryConfig {
-        db_root: std::path::PathBuf::from(&tenant_root),
-        admission: TenantAdmissionMode::SystemDb(system.clone()),
-        auto_migrate: true,
-        session_backend,
-    };
-    let tenants = TenantRegistry::new(cfg);
+    let tenants = new_tenant_registry(
+        std::path::PathBuf::from(&tenant_root),
+        TenantAdmissionMode::SystemDb(system.clone()),
+        true,
+        session_snapshot_root,
+    );
     let tenants_for_shutdown = tenants.clone();
 
     // --- 3. Router (all routes live in src/http/routes.rs) ---

@@ -4,7 +4,7 @@ use axum::{
 };
 use std::sync::Arc;
 use crate::http::AppState;
-use crate::tenancy::{TenantId, TenantError};
+use crate::tenancy::{tenant_services_for, TenantError, TenantId};
 use crate::services::{AppServices, RequestCtx, Actor};
 
 /// Everything a tenant-scoped handler needs, obtained in one extractor call:
@@ -40,9 +40,7 @@ impl FromRequestParts<AppState> for TenantScope {
             .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
 
         tracing::debug!("TenantScope::from_request_parts: resolving services for tenant={}", tid);
-        let services = state
-            .tenants
-            .services_for(&tid)
+        let services = tenant_services_for(&state.tenants, &tid)
             .await
             .map_err(tenant_error_to_http)?;
 
