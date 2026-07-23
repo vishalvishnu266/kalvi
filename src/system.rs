@@ -18,6 +18,7 @@ use crate::tenancy::{TenantError, TenantGuard, TenantId};
 // -------- Pool + migrations --------
 
 pub async fn connect_system(url: &str) -> RepoResult<SqlitePool> {
+    tracing::debug!("connect_system: connecting to {}", url);
     let opts = SqliteConnectOptions::from_str(url)
         .map_err(RepoError::from)?
         .create_if_missing(true)
@@ -33,6 +34,7 @@ pub async fn connect_system(url: &str) -> RepoResult<SqlitePool> {
 }
 
 pub async fn migrate_system(pool: &SqlitePool) -> RepoResult<()> {
+    tracing::debug!("migrate_system: running migrations_system");
     sqlx::migrate!("./migrations_system").run(pool).await?;
     Ok(())
 }
@@ -76,7 +78,10 @@ pub struct SystemRegistry {
 }
 
 impl SystemRegistry {
-    pub fn new(pool: SqlitePool) -> Self { Self { pool } }
+    pub fn new(pool: SqlitePool) -> Self {
+        tracing::debug!("SystemRegistry::new: initializing");
+        Self { pool }
+    }
     pub fn pool(&self) -> &SqlitePool { &self.pool }
 
     /// Clone the underlying pool handle. Cheap (`Arc` clone) and needed by
@@ -157,14 +162,24 @@ pub struct DbTenantGuard {
 #[async_trait::async_trait]
 impl TenantGuard for DbTenantGuard {
     async fn admit(&self, tenant: &TenantId) -> Result<(), TenantError> {
+        tracing::debug!("DbTenantGuard::admit: checking admission for tenant={}", tenant);
         let row = self.system
             .find_by_tenant_id(tenant.as_str())
             .await
             .map_err(TenantError::from)?;
         match row {
-            None => Err(TenantError::NotFound(tenant.clone())),
-            Some(t) if t.status != "active" => Err(TenantError::Disabled(tenant.clone())),
-            Some(_) => Ok(()),
+            None => {
+                tracing::debug!("DbTenantGuard::admit: tenant={} not found", tenant);
+                Err(TenantError::NotFound(tenant.clone()))
+            }
+            Some(t) if t.status != "active" => {
+                tracing::debug!("DbTenantGuard::admit: tenant={} is disabled (status={})", tenant, t.status);
+                Err(TenantError::Disabled(tenant.clone()))
+            }
+            Some(_) => {
+                tracing::debug!("DbTenantGuard::admit: tenant={} admitted", tenant);
+                Ok(())
+            }
         }
     }
 }

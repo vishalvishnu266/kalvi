@@ -23,11 +23,15 @@ pub struct Readiness(pub Arc<AtomicBool>);
 impl Readiness {
     /// Start out ready (the default is `false`, so bump it here).
     pub fn new_ready() -> Self {
+        tracing::debug!("Readiness::new_ready: initializing as ready");
         let r = Self::default();
         r.set_ready(true);
         r
     }
 
     pub fn is_ready(&self) -> bool { self.0.load(Ordering::SeqCst) }
-    pub fn set_ready(&self, v: bool) { self.0.store(v, Ordering::SeqCst); }
+    pub fn set_ready(&self, v: bool) {
+        tracing::debug!("Readiness::set_ready: v={}", v);
+        self.0.store(v, Ordering::SeqCst);
+    }
 }

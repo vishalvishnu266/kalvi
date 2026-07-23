@@ -12,6 +12,7 @@ use crate::error::{RepoError, RepoResult};
 /// * WAL journal mode + `synchronous = NORMAL` for good write throughput
 /// * 5s busy timeout so short lock contention doesn't fail immediately
 pub async fn connect(url: &str) -> RepoResult<SqlitePool> {
+    tracing::debug!("db::connect: connecting to {}", url);
     let opts = SqliteConnectOptions::from_str(url)
         .map_err(RepoError::from)?
         .create_if_missing(true)
@@ -30,6 +31,7 @@ pub async fn connect(url: &str) -> RepoResult<SqlitePool> {
 
 /// Run all embedded migrations from `./migrations`.
 pub async fn migrate(pool: &SqlitePool) -> RepoResult<()> {
+    tracing::debug!("db::migrate: running migrations");
     sqlx::migrate!("./migrations").run(pool).await?;
     Ok(())
 }

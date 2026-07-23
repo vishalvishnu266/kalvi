@@ -20,6 +20,7 @@ use school_erp::{build_router, AppState, SystemRegistry};
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     init_tracing();
+    tracing::debug!("main: application starting");
 
     // --- Config ---
     let system_url = std::env::var("SYSTEM_DB_URL")
@@ -37,12 +38,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     std::fs::create_dir_all(&tenant_root).ok();
 
     // --- 1. Central DB ---
+    tracing::debug!("main: connecting to system db at {}", system_url);
     let sys_pool = connect_system(&system_url).await?;
+    tracing::debug!("main: running system migrations");
     migrate_system(&sys_pool).await?;
     let system = SystemRegistry::new(sys_pool);
     let system_pool_for_shutdown = system.pool_clone();
 
     // --- 2. Tenant registry ---
+    tracing::debug!("main: initializing tenant registry with root: {}", tenant_root);
     let cfg = TenantRegistryConfig {
         resolver: Arc::new(FileTenantResolver::new(&tenant_root)),
         guard:    Arc::new(DbTenantGuard { system: system.clone() }),
@@ -52,6 +56,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let tenants_for_shutdown = tenants.clone();
 
     // --- 3. Router (all routes live in src/http/routes.rs) ---
+    tracing::debug!("main: building router");
     let readiness = Readiness::new_ready();
     let readiness_for_shutdown = readiness.clone();
     let state = AppState { system, tenants };
@@ -64,17 +69,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("listening on {bind}");
 
     let shutdown_signal = async move {
+        tracing::debug!("shutdown_signal: waiting for signal");
         wait_for_signal().await;
+        tracing::debug!("shutdown_signal: signal received, setting readiness to false");
         readiness_for_shutdown.set_ready(false);
         tracing::info!("readiness flipped to false; draining in-flight requests");
     };
 
+    tracing::debug!("main: starting axum server");
     axum::serve(listener, tower::make::Shared::new(app))
     .with_graceful_shutdown(shutdown_signal)
     .await?;
 
     // --- 5. Requests drained; close pools in order ---
     tracing::info!("HTTP server stopped, closing pools");
+    tracing::debug!("main: closing database pools");
     close_pools(&tenants_for_shutdown, &system_pool_for_shutdown, shutdown_timeout).await;
 
     tracing::info!("shutdown complete");

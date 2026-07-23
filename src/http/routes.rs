@@ -122,6 +122,7 @@ impl IntoResponse for ServiceHttpError {
 /// Returns `NormalizePath<Router>` so trailing slashes are trimmed *before*
 /// axum routes.
 pub fn build_router(state: AppState, readiness: Readiness) -> Router {
+    tracing::debug!("build_router: assembling application router");
     // Probes: `/api/health` is state-free; `/api/live` and `/api/ready` want
     // a shared `Readiness` flag. We pass `Readiness` as a request Extension
     // so probe handlers don't need their own router-level state — this lets
@@ -130,6 +131,7 @@ pub fn build_router(state: AppState, readiness: Readiness) -> Router {
 
     // ---------------------------------------------------------------- admin
     // Control-plane routes: operate on the system DB via `State<AppState>`.
+    tracing::debug!("build_router: configuring admin routes");
     let admin_api = Router::new()
         .route("/tenants",                      get(adm::list).post(adm::create))
         .route("/tenants/{tenant_id}",          get(adm::get_one).put(adm::update).delete(adm::soft_delete))
@@ -386,6 +388,7 @@ pub fn build_router(state: AppState, readiness: Readiness) -> Router {
         .nest("/api", admin_api);
 
     // ------------------------------------------------------------ assemble
+    tracing::debug!("build_router: finalizing assembly and adding middleware");
     let router = Router::new()
         .route("/api/health", get(|| async { "ok" }))
         .route("/api/live",   get(probe_live))
@@ -400,6 +403,7 @@ pub fn build_router(state: AppState, readiness: Readiness) -> Router {
 
     // `NormalizePathLayer` is applied *outside* axum's routing so path
     // rewrite happens BEFORE the router matches (axum#3233).
+    tracing::debug!("build_router: router assembly complete");
     router
 }
 

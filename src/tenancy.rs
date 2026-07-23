@@ -214,6 +214,7 @@ pub struct TenantRegistry {
 
 impl TenantRegistry {
     pub fn new(cfg: TenantRegistryConfig) -> Self {
+        tracing::debug!("TenantRegistry::new: initializing");
         Self {
             resolver: cfg.resolver,
             guard: cfg.guard,
@@ -226,6 +227,7 @@ impl TenantRegistry {
     /// The guard is consulted **before** the cache miss so unauthorized
     /// tenants never allocate resources.
     pub async fn pool_for(&self, tenant: &TenantId) -> Result<SqlitePool, TenantError> {
+        tracing::debug!("TenantRegistry::pool_for: tenant={}", tenant);
         Ok(self.entry_for(tenant).await?.pool)
     }
 
@@ -236,6 +238,7 @@ impl TenantRegistry {
     /// (a few `Arc::clone`s), avoiding the per-request cost of
     /// reconstructing every service.
     pub async fn services_for(&self, tenant: &TenantId) -> Result<AppServices, TenantError> {
+        tracing::debug!("TenantRegistry::services_for: tenant={}", tenant);
         Ok(self.entry_for(tenant).await?.services)
     }
 
@@ -243,22 +246,27 @@ impl TenantRegistry {
     /// Applies the guard first, then a read-locked fast path, then a
     /// write-locked slow path with double-checked insert.
     async fn entry_for(&self, tenant: &TenantId) -> Result<TenantEntry, TenantError> {
+        tracing::debug!("TenantRegistry::entry_for: checking guard for tenant={}", tenant);
         // Guard first (cheap: usually an in-memory check).
         self.guard.admit(tenant).await?;
 
         // Fast path — read lock.
         if let Some(e) = self.entries.read().await.get(tenant).cloned() {
+            tracing::debug!("TenantRegistry::entry_for: cache hit for tenant={}", tenant);
             return Ok(e);
         }
 
         // Slow path — write lock, double-check, then create.
+        tracing::debug!("TenantRegistry::entry_for: cache miss for tenant={}, creating new entry", tenant);
         let mut guard = self.entries.write().await;
         if let Some(e) = guard.get(tenant).cloned() {
             return Ok(e);
         }
         let url = self.resolver.db_url(tenant);
+        tracing::debug!("TenantRegistry::entry_for: db_url={}", url);
         let pool = db::connect(&url).await.map_err(TenantError::from)?;
         if self.auto_migrate {
+            tracing::debug!("TenantRegistry::entry_for: running auto-migration for tenant={}", tenant);
             db::migrate(&pool).await.map_err(TenantError::from)?;
         }
         let entry = TenantEntry {
@@ -266,6 +274,7 @@ impl TenantRegistry {
             pool,
         };
         guard.insert(tenant.clone(), entry.clone());
+        tracing::debug!("TenantRegistry::entry_for: entry created and cached for tenant={}", tenant);
         Ok(entry)
     }
 

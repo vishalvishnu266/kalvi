@@ -38,21 +38,24 @@ impl FromRequestParts<AppState> for TenantScope {
         parts: &mut Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
-        debug!("tenant scope extractor: parts={:?}", parts);
+        tracing::debug!("TenantScope::from_request_parts: extracting tenant from path");
         let Path(TenantPath { tenant }) =
             Path::<TenantPath>::from_request_parts(parts, state)
                 .await
                 .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
 
+        tracing::debug!("TenantScope::from_request_parts: validating tenant_id={}", tenant);
         let tid = TenantId::new(tenant)
             .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
 
+        tracing::debug!("TenantScope::from_request_parts: resolving services for tenant={}", tid);
         let services = state
             .tenants
             .services_for(&tid)
             .await
             .map_err(tenant_error_to_http)?;
 
+        tracing::debug!("TenantScope::from_request_parts: successfully resolved scope for tenant={}", tid);
         let ctx = RequestCtx {
             tenant: tid.clone(),
             actor: Actor::Anonymous,

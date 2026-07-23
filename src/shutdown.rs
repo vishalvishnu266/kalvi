@@ -47,7 +47,9 @@ pub async fn close_pools(
     system_pool: &SqlitePool,
     step_timeout: Duration,
 ) {
+    tracing::debug!("close_pools: starting shutdown sequence");
     // 1. Tenants — checkpoints each tenant's WAL.
+    tracing::debug!("close_pools: closing tenant pools");
     let tenants_shutdown = tenants.shutdown();
     if tokio::time::timeout(step_timeout, tenants_shutdown).await.is_err() {
         tracing::warn!("tenant pools did not close within {:?}", step_timeout);
@@ -56,10 +58,12 @@ pub async fn close_pools(
     }
 
     // 2. System pool.
+    tracing::debug!("close_pools: closing system pool");
     let system_close = system_pool.close();
     if tokio::time::timeout(step_timeout, system_close).await.is_err() {
         tracing::warn!("system pool did not close within {:?}", step_timeout);
     } else {
         tracing::info!("system pool closed");
     }
+    tracing::debug!("close_pools: shutdown sequence complete");
 }
