@@ -147,14 +147,14 @@ hire_one() {
   esac
 }
 
-hire_one "EMP-DEMO-001" "Meera"  "Iyer"    "Principal"        "full-time" "+91-98100-00001" "meera.iyer@$TENANT.example"
-hire_one "EMP-DEMO-002" "Rohit"  "Verma"   "Math Teacher"     "full-time" "+91-98100-00002" "rohit.verma@$TENANT.example"
-hire_one "EMP-DEMO-003" "Sana"   "Ali"     "Science Teacher"  "full-time" "+91-98100-00003" "sana.ali@$TENANT.example"
-hire_one "EMP-DEMO-004" "David"  "Thomas"  "Librarian"        "part-time" "+91-98100-00004" "david.thomas@$TENANT.example"
-hire_one "EMP-DEMO-005" "Neha"   "Kapoor"  "Accountant"       "full-time" "+91-98100-00005" "neha.kapoor@$TENANT.example"
-hire_one "EMP-DEMO-006" "Arjun"  "Nair"    "PE Teacher"       "full-time" "+91-98100-00006" "arjun.nair@$TENANT.example"
-hire_one "EMP-DEMO-007" "Priya"  "Menon"   "English Teacher"  "full-time" "+91-98100-00007" "priya.menon@$TENANT.example"
-hire_one "EMP-DEMO-008" "Amit"   "Gupta"   "IT Administrator" "full-time" "+91-98100-00008" "amit.gupta@$TENANT.example"
+hire_one "EMP-DEMO-001" "Meera"  "Iyer"    "Principal"        "full_time" "+91-98100-00001" "meera.iyer@$TENANT.example"
+hire_one "EMP-DEMO-002" "Rohit"  "Verma"   "Math Teacher"     "full_time" "+91-98100-00002" "rohit.verma@$TENANT.example"
+hire_one "EMP-DEMO-003" "Sana"   "Ali"     "Science Teacher"  "full_time" "+91-98100-00003" "sana.ali@$TENANT.example"
+hire_one "EMP-DEMO-004" "David"  "Thomas"  "Librarian"        "part_time" "+91-98100-00004" "david.thomas@$TENANT.example"
+hire_one "EMP-DEMO-005" "Neha"   "Kapoor"  "Accountant"       "full_time" "+91-98100-00005" "neha.kapoor@$TENANT.example"
+hire_one "EMP-DEMO-006" "Arjun"  "Nair"    "PE Teacher"       "full_time" "+91-98100-00006" "arjun.nair@$TENANT.example"
+hire_one "EMP-DEMO-007" "Priya"  "Menon"   "English Teacher"  "full_time" "+91-98100-00007" "priya.menon@$TENANT.example"
+hire_one "EMP-DEMO-008" "Amit"   "Gupta"   "IT Administrator" "full_time" "+91-98100-00008" "amit.gupta@$TENANT.example"
 
 # ---------- 4. Admit students ----------
 bold "Admitting students…"
