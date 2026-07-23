@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Portal Home</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0; background: #fafafa; color: #111; }
+    main { max-width: 72rem; margin: 0 auto; padding: 2rem 1rem; }
+    .card { background: #fff; border: 1px solid #e4e4e7; border-radius: .75rem; padding: 1rem; margin-bottom: 1rem; }
+    .row { display: flex; justify-content: space-between; gap: .8rem; align-items: center; }
+    .muted { color: #52525b; font-size: .92rem; }
+    input { padding: .45rem .5rem; border: 1px solid #d4d4d8; border-radius: .4rem; }
+    button { padding: .5rem .75rem; border: 0; border-radius: .4rem; background: #4f46e5; color: #fff; cursor: pointer; }
+    table { width: 100%; border-collapse: collapse; margin-top: .6rem; }
+    th, td { text-align: left; border-bottom: 1px solid #e4e4e7; padding: .5rem .35rem; font-size: .9rem; }
+    .err { color: #b91c1c; margin-bottom: .4rem; }
+  </style>
+</head>
+<body>
+<main>
+  <div class="row">
+    <div>
+      <h1>Portal Home</h1>
+      <p class="muted">{{ user_display }}</p>
+    </div>
+    <form method="post" action="/portal/logout"><button type="submit">Sign out</button></form>
+  </div>
+
+  <section class="card">
+    <h2>Link school account</h2>
+    <p class="muted">Use tenant login credentials to attach each school account.</p>
+    {% match error %}
+    {% when Some with (e) %}<p class="err">{{ e }}</p>{% when None %}{% endmatch %}
+    <form method="post" action="/portal/link-tenant" style="display:flex; gap:.5rem; flex-wrap: wrap;">
+      <input name="tenant" placeholder="tenant id" required />
+      <input name="identifier" placeholder="username or email" required />
+      <input name="password" type="password" placeholder="password" required />
+      <button type="submit">Link</button>
+    </form>
+  </section>
+
+  {% for m in memberships %}
+  <section class="card">
+    <h3>Tenant: {{ m.tenant_id }} · Role: {{ m.role }}</h3>
+    {% if m.students.is_empty() %}
+      <p class="muted">No students visible in this tenant.</p>
+    {% else %}
+      <table>
+        <thead><tr><th>Name</th><th>Admission #</th><th>Open</th></tr></thead>
+        <tbody>
+        {% for s in m.students %}
+          <tr>
+            <td>{{ s.name }}</td>
+            <td>{{ s.admission_no }}</td>
+            <td><a href="/portal/{{ m.tenant_id }}/students/{{ s.id }}">View tenant page</a></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+  </section>
+  {% endfor %}
+</main>
+</body>
+</html>

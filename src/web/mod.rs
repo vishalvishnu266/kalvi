@@ -10,12 +10,16 @@
 //! * `GET  /web/login`              — global login form.
 //! * `POST /web/login`              — submit login.
 //! * `POST /web/logout`             — sign out.
+//! * `GET  /portal/login`           — global portal login.
+//! * `POST /portal/register`        — create portal account.
+//! * `GET  /portal`                 — cross-tenant portal hub.
 //! * `/web/{tenant}/…`              — tenant-scoped app shell (dashboard,
 //!   students, module stubs, tenant-specific login). The `{tenant}` segment
 //!   is factored out via a single `.nest("/web/{tenant}", …)`, mirroring
 //!   how `/api/{tenant}` works — individual routes inside the nest are
 //!   written **without** repeating `{tenant}`, and handlers pick the tenant
 //!   up via the [`crate::http::TenantScope`] extractor.
+//! * `/portal/{tenant}/…`           — tenant-scoped parent/student portal shell.
 
 pub mod admin;
 pub mod assets;
@@ -27,5 +31,6 @@ pub mod landing;
 pub mod layout;
 pub mod guardians;
 pub mod modules;
+pub mod portal;
 pub mod staff;
 pub mod students;

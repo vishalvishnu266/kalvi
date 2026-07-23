@@ -197,10 +197,10 @@ what "parent only sees their own child" actually is.
 ## 8. Portal URL policy
 
 **The role never appears in the URL.** URLs describe resources
-(`/web/{tenant}/students/42`), not callers. See the docstring at the top of
-`src/http/routes.rs :: web_tenant_shell` for the reasoning and the future
-extension seam (`/web/{tenant}/portal/…`) for when the parent/student UX
-diverges enough to warrant its own shell.
+(`/web/{tenant}/students/42` and `/portal/{tenant}/students/42`), not callers.
+Staff/teacher routes live under `/web/{tenant}/…`; parent/student routes live
+under `/portal/{tenant}/…`, and the global portal hub lives at `/portal` where
+linked tenant accounts are aggregated.
 
 ---
 
@@ -334,10 +334,10 @@ Carried forward from the Step-3 rollout. Small, incremental — pick any one.
 - [ ] **Staff self-service (`Scope::SelfStaff`)** — for the future employee
       portal (view own payslip, mark own leave). Needs
       `StaffRepo::find_by_user_id(uid)` + a `Scope::SelfStaff(uid)` variant.
-- [ ] **Parent/student portal shell (`/web/{tenant}/portal/…`)** — extension
-      seam is documented in `routes.rs`. Add when the guardian/student UX
-      diverges enough (different sidebar, no admin top-bar). The **role
-      never goes into the URL** — RBAC still controls everything.
+- [ ] **Cross-tenant parent portal** — current shell is tenant-scoped at
+      `/portal/{tenant}/…`. Add global portal identity + tenant membership
+      mapping so one parent account can switch schools without separate
+      tenant logins.
 - [ ] **Roles & permissions admin screen** — CRUD over `role_permission`
       inside a new `/web/{tenant}/settings/roles` page. Would let tenant
       admins rebind without touching migrations.

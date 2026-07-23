@@ -16,6 +16,7 @@ use rand_core::RngCore;
 
 use crate::repositories::Repositories;
 use crate::repositories::auth::{NewSession, NewUser, Session, User};
+use crate::session::{SessionStore, TenantDbSessionStore};
 use crate::services::{ServiceError, ServiceResult};
 
 /// Default web session lifetime. Fine as a starting point; move to config later.
@@ -24,10 +25,21 @@ pub const DEFAULT_SESSION_TTL_DAYS: i64 = 14;
 #[derive(Clone)]
 pub struct AuthService {
     repos: Arc<Repositories>,
+    sessions: Arc<dyn SessionStore>,
 }
 
 impl AuthService {
-    pub fn new(repos: Arc<Repositories>) -> Self { Self { repos } }
+    pub fn new(repos: Arc<Repositories>) -> Self {
+        let sessions = Arc::new(TenantDbSessionStore::new(repos.sessions.clone()));
+        Self { repos, sessions }
+    }
+
+    pub fn with_session_store(
+        repos: Arc<Repositories>,
+        sessions: Arc<dyn SessionStore>,
+    ) -> Self {
+        Self { repos, sessions }
+    }
 
     fn hash(password: &str) -> ServiceResult<String> {
         let salt = SaltString::generate(&mut OsRng);
@@ -143,7 +155,7 @@ impl AuthService {
         bytes.iter().map(|b| format!("{:02x}", b)).collect()
     }
 
-    /// Issue a new session for `user_id` and persist it in the tenant DB.
+    /// Issue a new session for `user_id` in the configured tenant session backend.
     /// Returns the created row so callers can grab the token to set as a cookie.
     pub async fn issue_session(
         &self,
@@ -163,7 +175,7 @@ impl AuthService {
     ) -> ServiceResult<Session> {
         let expires_at = chrono::Utc::now().naive_utc() + Duration::days(ttl_days);
         let token = Self::mint_token();
-        let s = self.repos.sessions.create(&NewSession {
+        let s = self.sessions.create(&NewSession {
             token, user_id, expires_at, user_agent, remote_ip,
         }).await?;
         Ok(s)
@@ -173,20 +185,26 @@ impl AuthService {
     /// `Unauthorized` if the token is unknown, revoked, or expired, or
     /// if the user has been disabled since sign-in.
     pub async fn resolve_session(&self, token: &str) -> ServiceResult<(Session, User)> {
-        let session = self.repos.sessions.find_active_by_token(token).await?
+        let session = self.sessions.find_active_by_token(token).await?
             .ok_or(ServiceError::Unauthorized)?;
         let user = self.repos.users.get(session.user_id).await?;
         if !user.is_active {
             return Err(ServiceError::Unauthorized);
         }
         // Best-effort refresh of last_seen_at; failures shouldn't block the request.
-        let _ = self.repos.sessions.touch(session.id).await;
+        let _ = self.sessions.touch(session.id).await;
         Ok((session, user))
     }
 
     /// Revoke a specific session (used on logout).
     pub async fn revoke_session(&self, token: &str) -> ServiceResult<()> {
-        self.repos.sessions.revoke_by_token(token).await?;
+        self.sessions.revoke_by_token(token).await?;
+        Ok(())
+    }
+
+    /// Persist session backend state (no-op for tenant-db sessions).
+    pub async fn checkpoint_sessions(&self) -> ServiceResult<()> {
+        self.sessions.checkpoint().await?;
         Ok(())
     }
 }

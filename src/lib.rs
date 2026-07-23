@@ -7,6 +7,7 @@ pub mod health_probes;
 pub mod http;
 pub mod middleware;
 pub mod repositories;
+pub mod session;
 pub mod services;
 pub mod shutdown;
 pub mod system;

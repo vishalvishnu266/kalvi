@@ -207,10 +207,13 @@ impl PermissionRepo {
 
 // ---------- Session ----------
 
-/// Server-side web session, stored **inside the tenant DB** the user
-/// signed into. Tenancy isolation is therefore automatic: a session
-/// token issued for tenant `acme` is meaningless in tenant `globex`,
-/// because the lookup happens against `acme`'s `user_session` table.
+/// Server-side web session model.
+///
+/// Storage backend is configurable at runtime:
+/// * tenant DB table (`user_session`) — legacy/default mode
+/// * tenant-scoped in-memory SQLite with snapshot checkpointing
+///
+/// The row shape stays the same regardless of backend.
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct Session {
     pub id: i64,

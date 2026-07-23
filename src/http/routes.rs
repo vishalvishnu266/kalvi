@@ -1,4 +1,4 @@
-//! **Every URL in the app is registered in this single file.**
+//! Top-level application router assembly.
 //!
 //! Design rules for this module:
 //!
@@ -10,9 +10,9 @@
 //!   validates the `{tenant}` path segment and looks the entry up in the
 //!   [`TenantRegistry`]. That's it — no `tower` middleware, no request
 //!   extensions plumbing.
-//! * **Routing lives here; handlers live where they always did.** Every
-//!   handler is a `pub async fn` in its per-domain file (`src/api/*.rs`,
-//!   `src/web/*.rs`). This module only wires URL → handler.
+//! * **Top-level wiring lives here; API URL wiring lives in**
+//!   [`crate::http::api_routes`]. Handlers remain in their per-domain files
+//!   (`src/api/*.rs`, `src/web/*.rs`).
 //! * **Only one `tower` layer remains** — `NormalizePathLayer` — so `/x/`
 //!   and `/x` both match (works around axum#3233).
 
@@ -22,7 +22,7 @@ use axum::{
     extract::{FromRequestParts, Path},
     http::{request::Parts, StatusCode},
     response::{IntoResponse, Response},
-    routing::{delete, get, post},
+    routing::{get, post},
     Json, Router,
 };
 use serde::Deserialize;
@@ -32,17 +32,10 @@ use crate::services::{Actor, AppServices, RequestCtx, ServiceError};
 use crate::system::SystemRegistry;
 use crate::tenancy::{TenantError, TenantId, TenantRegistry};
 
-// Handler imports (one alias per per-domain module for tidy routing calls).
-use crate::api::{
-    academic as ac, admin as adm, attendance as at, audit as au, auth as ath,
-    communication as cm, discipline as di, documents as dc, enrollment as en,
-    examinations as ex, fees as fe, guardians as gd, health as hl, hostel as ho,
-    inventory as iv, library as lb, payroll as pr, people as pp, timetable as tt,
-    transport as tr,
-};
+use crate::http::api_routes;
 use crate::web::{
     admin as wad, assets as wa, auth as wau, dashboard as wdb, guardians as wgd,
-    landing as wl, modules as wm, staff as wsf, students as ws,
+    landing as wl, modules as wm, portal as wp, staff as wsf, students as ws,
 };
 use crate::middleware::auth as wam;
 use crate::middleware::tracing as wtr;
@@ -109,6 +102,8 @@ impl IntoResponse for ServiceHttpError {
 ///   /admin/api/tenants             → control-plane list / create
 ///   /admin/api/tenants/{id}        → get / update / delete
 ///   /admin/api/tenants/{id}/enable | /disable
+///   /portal/login | /portal/register → global portal auth
+///   /portal                        → cross-tenant portal hub
 ///
 ///   /api/{tenant}/…                → per-tenant JSON API (19 modules)
 ///
@@ -117,6 +112,10 @@ impl IntoResponse for ServiceHttpError {
 ///   /web/{tenant}/                 → dashboard launcher (session-gated)
 ///   /web/{tenant}/students[/{id}]  → students screen (session-gated)
 ///   /web/{tenant}/{module}         → placeholder stub screens (session-gated)
+///
+///   /portal/{tenant}/login         → tenant-locked portal sign-in
+///   /portal/{tenant}/              → parent/student portal home
+///   /portal/{tenant}/students      → parent/student student list
 /// ```
 ///
 /// Returns `NormalizePath<Router>` so trailing slashes are trimmed *before*
@@ -129,191 +128,12 @@ pub fn build_router(state: AppState, readiness: Readiness) -> Router {
     // us keep the whole outer router uniformly `Router<AppState>` and avoid
     // axum 0.8's state-type merge restrictions.
 
-    // ---------------------------------------------------------------- admin
-    // Control-plane routes: operate on the system DB via `State<AppState>`.
-    tracing::debug!("build_router: configuring admin routes");
-    let admin_api = Router::new()
-        .route("/tenants",                      get(adm::list).post(adm::create))
-        .route("/tenants/{tenant_id}",          get(adm::get_one).put(adm::update).delete(adm::soft_delete))
-        .route("/tenants/{tenant_id}/enable",   post(adm::enable))
-        .route("/tenants/{tenant_id}/disable",  post(adm::disable));
+    // ------------------------------------------------------------- API routes
+    tracing::debug!("build_router: configuring admin + tenant api routes");
+    let admin_api = api_routes::admin_api();
+    let tenant_api = api_routes::tenant_api();
 
-    // -------------------------------------------------- per-tenant JSON API
-    // Every handler declares `TenantScope` in its signature — the extractor
-    // pulls the `{tenant}` path segment and resolves AppServices with zero
-    // middleware. Routes are grouped by module for readability.
-    let tenant_api = Router::new()
-        // auth
-        .route("/auth/register",         post(ath::register))
-        .route("/auth/login",            post(ath::login))
-        .route("/auth/change-password",  post(ath::change_password))
-        .route("/auth/whoami",           get(ath::whoami))
-
-        // academic
-        .route("/academic/years",                          get(ac::list_years).post(ac::create_year))
-        .route("/academic/years/current",                  get(ac::current_year))
-        .route("/academic/years/{id}/activate",            post(ac::activate_year))
-        .route("/academic/years/{id}/terms",               get(ac::list_terms).post(ac::create_term))
-        .route("/academic/grades",                         get(ac::list_grades))
-        .route("/academic/sections",                       get(ac::list_sections))
-        .route("/academic/rooms",                          get(ac::list_rooms).post(ac::create_room))
-        .route("/academic/subjects",                       get(ac::list_subjects).post(ac::create_subject))
-        .route("/academic/class-sections",                 post(ac::create_class_section))
-        .route("/academic/class-sections/{year_id}",       get(ac::list_class_sections))
-        .route("/academic/class-sections/{id}/subjects",   get(ac::list_class_subjects).post(ac::assign_class_subject))
-
-        // people (students + staff)
-        .route("/people/students",                   get(pp::list_students))
-        .route("/people/students/search",            get(pp::search_students))
-        .route("/people/students/{id}",              get(pp::get_student).put(pp::update_student).delete(pp::delete_student))
-        .route("/people/students/admit",             post(pp::admit))
-        .route("/people/students/{id}/withdraw",     post(pp::withdraw))
-        .route("/people/students/{id}/graduate",     post(pp::graduate))
-        .route("/people/staff",                      get(pp::list_staff).post(pp::hire))
-        .route("/people/staff/{id}",                 get(pp::get_staff).put(pp::update_staff))
-        .route("/people/staff/{id}/terminate",       post(pp::terminate))
-
-        // guardians
-        .route("/guardians",                    get(gd::list).post(gd::create))
-        .route("/guardians/{id}",               get(gd::get_one).delete(gd::remove))
-        .route("/guardians/link",               post(gd::link))
-        .route("/guardians/link/{sid}/{gid}",   delete(gd::unlink))
-        .route("/guardians/of-student/{sid}",   get(gd::of_student))
-
-        // enrollment
-        .route("/enrollment",                              post(en::enroll))
-        .route("/enrollment/transfer",                     post(en::transfer))
-        .route("/enrollment/close-current",                post(en::close_current))
-        .route("/enrollment/roster/{class_section_id}",    get(en::roster))
-        .route("/enrollment/history/{student_id}",         get(en::history))
-        .route("/enrollment/promote",                      post(en::promote_class))
-
-        // attendance
-        .route("/attendance/students/mark",         post(at::mark_one))
-        .route("/attendance/students/mark-class",   post(at::mark_class))
-        .route("/attendance/students/for/{sid}",    get(at::for_student))
-        .route("/attendance/students/percentage",   get(at::percentage))
-        .route("/attendance/students/class/{id}",   get(at::for_class_on))
-        .route("/attendance/staff/mark",            post(at::mark_staff))
-        .route("/attendance/staff/for/{sid}",       get(at::for_staff))
-
-        // timetable
-        .route("/timetable/periods",       get(tt::list_periods).post(tt::create_period))
-        .route("/timetable/slots",         post(tt::set_slot))
-        .route("/timetable/slots/{id}",    delete(tt::remove_slot))
-        .route("/timetable/class/{id}",    get(tt::class_grid))
-        .route("/timetable/teacher/{id}",  get(tt::teacher_grid))
-        .route("/timetable/room/{id}",     get(tt::room_grid))
-
-        // examinations
-        .route("/examinations/grading-scales",              post(ex::create_scale))
-        .route("/examinations/grading-scales/{id}/bands",   post(ex::add_band).get(ex::list_bands))
-        .route("/examinations/exams",                       post(ex::create_exam))
-        .route("/examinations/exams/term/{tid}",            get(ex::list_by_term))
-        .route("/examinations/exams/{id}/schedules",        post(ex::schedule).get(ex::list_schedules))
-        .route("/examinations/results",                     post(ex::enter_result))
-        .route("/examinations/results/student/{sid}",       get(ex::for_student))
-        .route("/examinations/report-cards/{sid}/{eid}",    get(ex::report_card))
-
-        // fees
-        .route("/fees/categories",              get(fe::list_categories).post(fe::create_category))
-        .route("/fees/structures",              post(fe::create_structure))
-        .route("/fees/structures/year/{yid}",   get(fe::list_structures))
-        .route("/fees/structures/{id}/items",   post(fe::add_item).get(fe::list_items))
-        .route("/fees/invoices/generate",       post(fe::generate_invoice))
-        .route("/fees/invoices/student/{sid}",  get(fe::for_student))
-        .route("/fees/invoices/{id}",           get(fe::get_invoice))
-        .route("/fees/invoices/{id}/lines",     get(fe::get_lines))
-        .route("/fees/invoices/{id}/cancel",    post(fe::cancel))
-        .route("/fees/outstanding/{sid}",       get(fe::outstanding))
-        .route("/fees/overdue",                 get(fe::overdue))
-        .route("/fees/aging",                   get(fe::aging))
-        .route("/fees/payments",                post(fe::record_payment))
-        .route("/fees/payments/invoice/{id}",   get(fe::payments_for_invoice))
-        .route("/fees/discounts",               post(fe::grant_discount))
-        .route("/fees/discounts/student/{sid}", get(fe::discounts_for_student))
-        .route("/fees/ledger/trial-balance",    get(fe::trial_balance))
-
-        // payroll
-        .route("/payroll/components",                    get(pr::list_components))
-        .route("/payroll/structures/set",                post(pr::set_salary))
-        .route("/payroll/payslips/generate",             post(pr::generate))
-        .route("/payroll/payslips/month",                post(pr::generate_month))
-        .route("/payroll/payslips/{id}/approve",         post(pr::approve))
-        .route("/payroll/payslips/{id}/pay",             post(pr::pay))
-        .route("/payroll/payslips/staff/{sid}/{year}",   get(pr::list_for_staff))
-
-        // library
-        .route("/library/books",               get(lb::list_books).post(lb::create_book))
-        .route("/library/books/search",        get(lb::search))
-        .route("/library/books/{id}",          get(lb::get_book))
-        .route("/library/books/{id}/adjust",   post(lb::adjust))
-        .route("/library/issues/student",      post(lb::issue_student))
-        .route("/library/issues/staff",        post(lb::issue_staff))
-        .route("/library/issues/{id}/return",  post(lb::return_book))
-        .route("/library/issues/overdue",      get(lb::overdue))
-
-        // transport
-        .route("/transport/vehicles",              get(tr::list_vehicles).post(tr::create_vehicle))
-        .route("/transport/routes",                get(tr::list_routes).post(tr::create_route))
-        .route("/transport/routes/{id}/stops",     get(tr::list_stops).post(tr::add_stop))
-        .route("/transport/routes/{id}/students",  get(tr::students_on_route))
-        .route("/transport/assignments",           post(tr::assign))
-        .route("/transport/assignments/{id}/end",  post(tr::end_assignment))
-
-        // hostel
-        .route("/hostel/hostels",                     get(ho::list_hostels).post(ho::create_hostel))
-        .route("/hostel/hostels/{id}/rooms",          get(ho::list_rooms).post(ho::create_room))
-        .route("/hostel/allocations",                 post(ho::allocate))
-        .route("/hostel/allocations/transfer",        post(ho::transfer))
-        .route("/hostel/allocations/{sid}/vacate",    post(ho::vacate))
-        .route("/hostel/allocations/active/{sid}",    get(ho::active_for))
-
-        // inventory
-        .route("/inventory/vendors",                     get(iv::list_vendors).post(iv::create_vendor))
-        .route("/inventory/items",                       get(iv::list_items).post(iv::create_item))
-        .route("/inventory/items/low-stock",             get(iv::low_stock))
-        .route("/inventory/items/{id}",                  get(iv::get_item))
-        .route("/inventory/items/{id}/history",          get(iv::history))
-        .route("/inventory/movements",                   post(iv::move_stock))
-        .route("/inventory/purchase-orders",             post(iv::create_po))
-        .route("/inventory/purchase-orders/{id}",        get(iv::get_po))
-        .route("/inventory/purchase-orders/{id}/status", post(iv::set_po_status))
-
-        // communication
-        .route("/communication/announcements",                     get(cm::active).post(cm::broadcast))
-        .route("/communication/announcements/class/{cid}",         get(cm::for_class))
-        .route("/communication/announcements/{id}",                delete(cm::delete_ann))
-        .route("/communication/messages",                          post(cm::send))
-        .route("/communication/messages/inbox/{uid}",              get(cm::inbox))
-        .route("/communication/messages/unread/{uid}",             get(cm::unread))
-        .route("/communication/messages/{id}/read",                post(cm::mark_read_msg))
-        .route("/communication/notifications",                     post(cm::notify))
-        .route("/communication/notifications/user/{uid}",          get(cm::for_user))
-        .route("/communication/notifications/{id}/read",           post(cm::mark_read))
-        .route("/communication/notifications/user/{uid}/read-all", post(cm::read_all))
-
-        // health (student clinic records)
-        .route("/health/records/{sid}",      get(hl::get_record).post(hl::upsert))
-        .route("/health/records/{sid}/bmi",  get(hl::bmi))
-        .route("/health/vaccinations/{sid}", get(hl::list_vacc).post(hl::add_vacc))
-        .route("/health/visits/{sid}",       get(hl::list_visits).post(hl::add_visit))
-
-        // discipline
-        .route("/discipline",                post(di::report))
-        .route("/discipline/student/{sid}",  get(di::history))
-        .route("/discipline/between",        get(di::between))
-
-        // documents
-        .route("/documents",                                post(dc::attach))
-        .route("/documents/{id}",                           delete(dc::remove))
-        .route("/documents/owner/{owner_type}/{owner_id}",  get(dc::for_owner))
-
-        // audit
-        .route("/audit/entity/{entity}/{id}", get(au::for_entity))
-        .route("/audit/user/{uid}",           get(au::for_user));
-
-    // --------------------------------------------- web UI (public + shell)
+    // --------------------------------------------- web UI (public + shells)
     //
     // Global public routes: landing, assets, tenant-less login/logout.
     // These do NOT live under `/web/{tenant}` because they have no tenant
@@ -322,9 +142,14 @@ pub fn build_router(state: AppState, readiness: Readiness) -> Router {
         .route("/",               get(wl::index))
         .route("/assets/{*path}", get(wa::serve))
         .route("/web/login",      get(wau::get_login).post(wau::post_login))
-        .route("/web/logout",     post(wau::post_logout));
+        .route("/web/logout",     post(wau::post_logout))
+        .route("/portal",         get(wp::home))
+        .route("/portal/login",   get(wp::get_login).post(wp::post_login))
+        .route("/portal/register",get(wp::get_register).post(wp::post_register))
+        .route("/portal/link-tenant", post(wp::post_link_tenant))
+        .route("/portal/logout",  post(wp::post_logout));
 
-    // Tenant-scoped web shell — session-GATED half.
+    // Tenant-scoped staff shell — session-gated.
     //
     // Just like the JSON API, the `{tenant}` segment is factored out of every
     // individual route via `.nest("/web/{tenant}", …)`. Handlers keep using
@@ -338,23 +163,14 @@ pub fn build_router(state: AppState, readiness: Readiness) -> Router {
     // hides them from the sidebar and dashboard; this middleware is the
     // defense-in-depth layer that catches manual URL edits.
     //
-    // ## Future extension: parent / student portal
-    //
-    // If/when the parent-guardian or student self-service UX needs its own
-    // shell (different sidebar, no top bar, mobile-first cards, etc.), add a
-    // `let portal_shell = Router::new()...` block below with the same
-    // `require_session` layer and nest it at `/web/{tenant}/portal`.
-    // Handlers can be shared: the same `ws::list` handler works, only the
-    // enclosing template differs. **The role never appears in the URL** —
-    // RBAC still controls visibility and scoping.
     use crate::services::perm;
     use crate::require_perm;
     let web_tenant_shell = Router::new()
         .route("/",              get(wdb::index))
         .route("/students",      get(ws::list)
-            .route_layer(require_perm!(perm::STUDENTS_VIEW, perm::STUDENTS_VIEW_OWN)))
+            .route_layer(require_perm!(perm::STUDENTS_VIEW)))
         .route("/students/{id}", get(ws::show)
-            .route_layer(require_perm!(perm::STUDENTS_VIEW, perm::STUDENTS_VIEW_OWN)))
+            .route_layer(require_perm!(perm::STUDENTS_VIEW)))
         .route("/staff",         get(wsf::list)
             .route_layer(require_perm!(perm::STAFF_VIEW)))
         .route("/staff/{id}",    get(wsf::show)
@@ -379,13 +195,13 @@ pub fn build_router(state: AppState, readiness: Readiness) -> Router {
         .route("/timetable",     get(wm::timetable)
             .route_layer(require_perm!(perm::TIMETABLE_VIEW, perm::TIMETABLE_MANAGE)))
         .route("/fees",          get(wm::fees)
-            .route_layer(require_perm!(perm::FEES_VIEW, perm::FEES_VIEW_OWN, perm::FEES_COLLECT, perm::FEES_PAY)))
+            .route_layer(require_perm!(perm::FEES_VIEW, perm::FEES_COLLECT)))
         .route("/examinations",  get(wm::examinations)
-            .route_layer(require_perm!(perm::EXAMINATIONS_VIEW, perm::EXAMINATIONS_VIEW_OWN, perm::EXAMINATIONS_ENTER_MARKS)))
+            .route_layer(require_perm!(perm::EXAMINATIONS_VIEW, perm::EXAMINATIONS_ENTER_MARKS)))
         .route("/academic",      get(wm::academic)
             .route_layer(require_perm!(perm::ACADEMIC_VIEW)))
         .route("/payroll",       get(wm::payroll)
-            .route_layer(require_perm!(perm::PAYROLL_VIEW, perm::PAYROLL_VIEW_OWN)))
+            .route_layer(require_perm!(perm::PAYROLL_VIEW, perm::PAYROLL_RUN)))
         .route("/communication", get(wm::communication)
             .route_layer(require_perm!(perm::COMMUNICATION_VIEW, perm::COMMUNICATION_BROADCAST)))
         .route("/library",       get(wm::library)
@@ -406,6 +222,7 @@ pub fn build_router(state: AppState, readiness: Readiness) -> Router {
             .route_layer(require_perm!(perm::AUDIT_VIEW)))
         .route("/settings",      get(wm::settings)
             .route_layer(require_perm!(perm::SETTINGS_VIEW, perm::SETTINGS_MANAGE)))
+        .layer(axum::middleware::from_fn(wam::require_staff_shell))
         .layer(axum::middleware::from_fn_with_state(
             state.clone(), wam::require_session,
         ));
@@ -420,6 +237,23 @@ pub fn build_router(state: AppState, readiness: Readiness) -> Router {
     let web_tenant = Router::new()
         .merge(web_tenant_public)
         .merge(web_tenant_shell);
+
+    // Tenant-scoped parent/student portal shell.
+    let portal_tenant_public = Router::new()
+        .route("/login", get(wau::get_portal_tenant_login).post(wau::post_portal_login));
+    let portal_tenant_shell = Router::new()
+        .route("/", get(wp::index))
+        .route("/students", get(wp::students)
+            .route_layer(require_perm!(perm::STUDENTS_VIEW_OWN)))
+        .route("/students/{id}", get(wp::student_show)
+            .route_layer(require_perm!(perm::STUDENTS_VIEW_OWN)))
+        .layer(axum::middleware::from_fn(wam::require_portal_shell))
+        .layer(axum::middleware::from_fn_with_state(
+            state.clone(), wam::require_session,
+        ));
+    let portal_tenant = Router::new()
+        .merge(portal_tenant_public)
+        .merge(portal_tenant_shell);
 
     // ------------------------------------------- admin (control-plane) UI
     //
@@ -446,6 +280,7 @@ pub fn build_router(state: AppState, readiness: Readiness) -> Router {
         .nest("/admin",         admin_web)
         .nest("/api/{tenant}",  tenant_api)
         .nest("/web/{tenant}",  web_tenant)
+        .nest("/portal/{tenant}", portal_tenant)
         .merge(web_global)
         .with_state(state)
         .layer(axum::Extension(readiness))

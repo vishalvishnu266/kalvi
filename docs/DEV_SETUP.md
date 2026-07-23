@@ -13,6 +13,7 @@ pwsh scripts/dev_reset.ps1
 ```
 
 That's it. When it prints `Done`, open <http://127.0.0.1:3000/web/login>.
+For parent/student cross-tenant portal auth, open <http://127.0.0.1:3000/portal/login>.
 
 ---
 
@@ -49,6 +50,8 @@ however long `cargo build --release` takes.
 | `FOREGROUND` | `0`                                  | `1` = keep the server attached to the current terminal.  |
 | `LOG_FILE`   | `.dev_server.log`                    | Where the background server's stdout+stderr are written. |
 | `PID_FILE`   | `.dev_server.pid`                    | Where the background server's PID is written.            |
+| `SESSION_BACKEND` | `tenant_db`                      | Session storage backend: `tenant_db` or `memory_sqlite`.|
+| `SESSION_SNAPSHOT_ROOT` | `data/sessions`            | Snapshot folder used by `memory_sqlite` backend.         |
 
 ---
 

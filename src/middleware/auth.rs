@@ -66,8 +66,8 @@ impl SessionUser {
 ///    the check — redirect to the global login.
 /// 2. Require an `erp_session` cookie. Missing → redirect to
 ///    `/web/{tenant}/login`.
-/// 3. Resolve the session against the **tenant's own DB** (sessions live
-///    per-tenant). Unknown / revoked / expired → redirect to login.
+/// 3. Resolve the session against the tenant-scoped session backend.
+///    Unknown / revoked / expired → redirect to login.
 /// 4. Stash the resolved user into the request extensions so downstream
 ///    handlers can read it via [`SessionUser`] without a second DB hit.
 pub async fn require_session(
@@ -165,6 +165,46 @@ pub async fn check_perm(
     }
 }
 
+/// Gate `/web/{tenant}/...` to staff-facing roles.
+///
+/// Assumes [`require_session`] has already run and attached [`SessionUser`].
+pub async fn require_staff_shell(
+    req: AxumRequest<Body>,
+    next: Next,
+) -> Response {
+    let path = req.uri().path().to_string();
+    let Some(session) = req.extensions().get::<SessionUser>() else {
+        return Redirect::to("/web/login").into_response();
+    };
+    if session.is_role("guardian") || session.is_role("student") {
+        if let Some(t) = url_tenant_from_prefix(&path, "/web/") {
+            return Redirect::to(&format!("/portal/{t}/")).into_response();
+        }
+        return Redirect::to("/web/login").into_response();
+    }
+    next.run(req).await
+}
+
+/// Gate `/portal/{tenant}/...` to parent/student roles.
+///
+/// Assumes [`require_session`] has already run and attached [`SessionUser`].
+pub async fn require_portal_shell(
+    req: AxumRequest<Body>,
+    next: Next,
+) -> Response {
+    let path = req.uri().path().to_string();
+    let Some(session) = req.extensions().get::<SessionUser>() else {
+        return Redirect::to("/web/login").into_response();
+    };
+    if session.is_role("guardian") || session.is_role("student") {
+        return next.run(req).await;
+    }
+    if let Some(t) = url_tenant_from_prefix(&path, "/portal/") {
+        return Redirect::to(&format!("/web/{t}/")).into_response();
+    }
+    Redirect::to("/web/login").into_response()
+}
+
 /// Ergonomic wrapper around [`check_perm`] for use with `.route_layer(...)`.
 ///
 /// Expands to a fresh `axum::middleware::from_fn(...)` closure per invocation,
@@ -230,10 +270,8 @@ fn forbidden_response(path: &str, missing: &[&str]) -> Response {
     }
 }
 
-/// Parse the `{tenant}` segment out of a URL path like `/web/acme/students`.
-/// Returns `None` if the path doesn't start with `/web/<tenant>/`.
-fn url_tenant_from(path: &str) -> Option<String> {
-    let rest = path.strip_prefix("/web/")?;
+fn url_tenant_from_prefix(path: &str, prefix: &str) -> Option<String> {
+    let rest = path.strip_prefix(prefix)?;
     let seg = rest.split('/').next()?;
     if seg.is_empty() || seg == "login" || seg == "logout" { return None; }
     Some(seg.to_string())

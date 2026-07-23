@@ -69,6 +69,42 @@ pub struct UpdateTenant {
     pub status: Option<String>,
 }
 
+#[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
+pub struct PortalUser {
+    pub id: i64,
+    pub username: String,
+    pub email: String,
+    #[serde(skip_serializing)]
+    pub password_hash: String,
+    pub is_active: bool,
+    pub created_at: NaiveDateTime,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct NewPortalUser {
+    pub username: String,
+    pub email: String,
+    pub password_hash: String,
+}
+
+#[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
+pub struct PortalMembership {
+    pub id: i64,
+    pub portal_user_id: i64,
+    pub tenant_id: String,
+    pub tenant_user_id: i64,
+    pub role: String,
+    pub created_at: NaiveDateTime,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct NewPortalMembership {
+    pub portal_user_id: i64,
+    pub tenant_id: String,
+    pub tenant_user_id: i64,
+    pub role: String,
+}
+
 // -------- Registry --------
 
 /// Repository-plus-service for the control-plane tenants table.
@@ -149,6 +185,67 @@ impl SystemRegistry {
     pub async fn delete(&self, id: i64) -> RepoResult<()> {
         // Soft delete — actual file cleanup is a separate ops task.
         self.set_status(id, "deleted").await
+    }
+
+    pub async fn create_portal_user(&self, u: &NewPortalUser) -> RepoResult<PortalUser> {
+        let id = sqlx::query_scalar::<_, i64>(
+            r#"INSERT INTO portal_user (username, email, password_hash)
+               VALUES (?, ?, ?) RETURNING id"#,
+        )
+        .bind(&u.username)
+        .bind(&u.email)
+        .bind(&u.password_hash)
+        .fetch_one(&self.pool)
+        .await?;
+        self.get_portal_user(id).await
+    }
+
+    pub async fn get_portal_user(&self, id: i64) -> RepoResult<PortalUser> {
+        sqlx::query_as::<_, PortalUser>("SELECT * FROM portal_user WHERE id = ?")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await?
+            .ok_or(RepoError::NotFound)
+    }
+
+    pub async fn find_portal_user_by_identifier(&self, identifier: &str) -> RepoResult<Option<PortalUser>> {
+        Ok(sqlx::query_as::<_, PortalUser>(
+            "SELECT * FROM portal_user WHERE username = ? OR email = ? LIMIT 1",
+        )
+        .bind(identifier)
+        .bind(identifier)
+        .fetch_optional(&self.pool)
+        .await?)
+    }
+
+    pub async fn add_portal_membership(&self, m: &NewPortalMembership) -> RepoResult<()> {
+        if !matches!(m.role.as_str(), "guardian" | "student") {
+            return Err(RepoError::validation("role must be guardian|student"));
+        }
+        sqlx::query(
+            r#"INSERT OR IGNORE INTO portal_membership
+               (portal_user_id, tenant_id, tenant_user_id, role)
+               VALUES (?, ?, ?, ?)"#,
+        )
+        .bind(m.portal_user_id)
+        .bind(&m.tenant_id)
+        .bind(m.tenant_user_id)
+        .bind(&m.role)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn list_portal_memberships(&self, portal_user_id: i64) -> RepoResult<Vec<PortalMembership>> {
+        Ok(sqlx::query_as::<_, PortalMembership>(
+            r#"SELECT pm.* FROM portal_membership pm
+               INNER JOIN tenant t ON t.tenant_id = pm.tenant_id
+               WHERE pm.portal_user_id = ? AND t.status = 'active'
+               ORDER BY pm.tenant_id, pm.id"#,
+        )
+        .bind(portal_user_id)
+        .fetch_all(&self.pool)
+        .await?)
     }
 }
 

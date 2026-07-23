@@ -4,6 +4,8 @@
 //! Environment variables:
 //! * `SYSTEM_DB_URL`      (default: `sqlite://data/system.db?mode=rwc`)
 //! * `TENANT_DB_ROOT`     (default: `data/tenants`)
+//! * `SESSION_BACKEND`    (default: `tenant_db`) — `tenant_db` or `memory_sqlite`
+//! * `SESSION_SNAPSHOT_ROOT` (default: `data/sessions`) — used by `memory_sqlite`
 //! * `BIND`               (default: `0.0.0.0:3000`)
 //! * `SHUTDOWN_TIMEOUT_S` (default: `30`) — per-step timeout for pool close
 
@@ -12,6 +14,7 @@ use std::time::Duration;
 use tower::Layer;
 
 use school_erp::health_probes::Readiness;
+use school_erp::session::SessionBackendConfig;
 use school_erp::shutdown::{close_pools, wait_for_signal};
 use school_erp::system::{connect_system, migrate_system, DbTenantGuard};
 use school_erp::tenancy::{FileTenantResolver, TenantRegistry, TenantRegistryConfig};
@@ -28,6 +31,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .unwrap_or_else(|_| "sqlite://data/system.db?mode=rwc".to_string());
     let tenant_root = std::env::var("TENANT_DB_ROOT")
         .unwrap_or_else(|_| "data/tenants".to_string());
+    let session_backend_raw = std::env::var("SESSION_BACKEND")
+        .unwrap_or_else(|_| "tenant_db".to_string());
+    let session_snapshot_root = std::env::var("SESSION_SNAPSHOT_ROOT")
+        .unwrap_or_else(|_| "data/sessions".to_string());
     let bind = std::env::var("BIND").unwrap_or_else(|_| "0.0.0.0:3000".to_string());
     let shutdown_timeout = std::env::var("SHUTDOWN_TIMEOUT_S")
         .ok().and_then(|v| v.parse::<u64>().ok())
@@ -37,6 +44,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Ensure data directories exist.
     std::fs::create_dir_all("data").ok();
     std::fs::create_dir_all(&tenant_root).ok();
+
+    let session_backend = match session_backend_raw.as_str() {
+        "tenant_db" => SessionBackendConfig::TenantDb,
+        "memory_sqlite" => {
+            std::fs::create_dir_all(&session_snapshot_root).ok();
+            SessionBackendConfig::MemorySqlite {
+                snapshot_root: std::path::PathBuf::from(&session_snapshot_root),
+            }
+        }
+        other => {
+            return Err(format!(
+                "unsupported SESSION_BACKEND='{other}', use tenant_db or memory_sqlite"
+            ).into());
+        }
+    };
 
     // --- 1. Central DB ---
     tracing::debug!("main: connecting to system db at {}", system_url);
@@ -52,6 +74,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         resolver: Arc::new(FileTenantResolver::new(&tenant_root)),
         guard:    Arc::new(DbTenantGuard { system: system.clone() }),
         auto_migrate: true,
+        session_backend,
     };
     let tenants = TenantRegistry::new(cfg);
     let tenants_for_shutdown = tenants.clone();

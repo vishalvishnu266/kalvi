@@ -1,7 +1,7 @@
 //! REST API handler modules.
 //!
 //! Every submodule here only contains `pub async fn` handlers. The router
-//! that wires URLs to these handlers lives in [`crate::http::routes`].
+//! that wires URLs to these handlers lives in [`crate::http::api_routes`].
 //!
 //! `AppState` and `TenantScope` used to be re-exported from here — they now
 //! live in [`crate::http`] to keep this module a pure handler namespace.

@@ -118,9 +118,17 @@ pub struct AppServices {
 impl AppServices {
     pub fn new(pool: SqlitePool) -> Self {
         let repos = Arc::new(Repositories::new(pool));
+        let auth = auth::AuthService::new(repos.clone());
+        Self::from_repos_with_auth(repos, auth)
+    }
+
+    pub fn from_repos_with_auth(
+        repos: Arc<Repositories>,
+        auth: auth::AuthService,
+    ) -> Self {
         Self {
             academic:      academic::AcademicService::new(repos.clone()),
-            auth:          auth::AuthService::new(repos.clone()),
+            auth,
             people:        people::PeopleService::new(repos.clone()),
             enrollment:    enrollment::EnrollmentService::new(repos.clone()),
             attendance:    attendance::AttendanceService::new(repos.clone()),

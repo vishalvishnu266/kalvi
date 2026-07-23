@@ -12,6 +12,8 @@
 //! * `GET  /web/login`              — global login form.
 //! * `POST /web/login`              — submit login.
 //! * `GET  /web/{tenant}/login`     — tenant-specific login form.
+//! * `GET  /portal/{tenant}/login`  — portal tenant login form.
+//! * `POST /portal/{tenant}/login`  — submit portal login.
 //! * `POST /web/logout`             — clear the session cookies.
 
 use askama::Template;
@@ -53,6 +55,10 @@ pub async fn get_tenant_login(Path(tenant): Path<String>) -> Result<Response, We
     render(&LoginPage { error: None, tenant: &tenant, identifier: "", tenant_locked: true })
 }
 
+pub async fn get_portal_tenant_login(Path(tenant): Path<String>) -> Result<Response, WebError> {
+    render(&LoginPage { error: None, tenant: &tenant, identifier: "", tenant_locked: true })
+}
+
 #[derive(Deserialize)]
 pub struct LoginForm {
     tenant: String,
@@ -63,6 +69,21 @@ pub struct LoginForm {
 pub async fn post_login(
     State(state): State<AppState>,
     Form(f): Form<LoginForm>,
+) -> Result<Response, WebError> {
+    post_login_with_redirect(state, f, "/web").await
+}
+
+pub async fn post_portal_login(
+    State(state): State<AppState>,
+    Form(f): Form<LoginForm>,
+) -> Result<Response, WebError> {
+    post_login_with_redirect(state, f, "/portal").await
+}
+
+async fn post_login_with_redirect(
+    state: AppState,
+    f: LoginForm,
+    base_path: &str,
 ) -> Result<Response, WebError> {
     let tenant = match TenantId::new(f.tenant.clone()) {
         Ok(t) => t,
@@ -87,7 +108,7 @@ pub async fn post_login(
 
     match services.auth.login(&f.identifier, &f.password).await {
         Ok(user) => {
-            // Issue a server-side session stored in the tenant DB.
+            // Issue a server-side session in the configured tenant session backend.
             let session = match services.auth.issue_session(user.id, None, None).await {
                 Ok(s) => s,
                 Err(e) => {
@@ -114,7 +135,7 @@ pub async fn post_login(
                 "{COOKIE_SESSION}={}; Path=/; Max-Age={max_age}; SameSite=Lax; HttpOnly",
                 session.token
             );
-            let location = format!("/web/{}/", tenant.as_str());
+            let location = format!("{}/{}/", base_path, tenant.as_str());
             Ok((
                 StatusCode::SEE_OTHER,
                 [

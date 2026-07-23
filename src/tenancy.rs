@@ -47,6 +47,9 @@ use tokio::sync::RwLock;
 
 use crate::db;
 use crate::error::{RepoError, RepoResult};
+use crate::repositories::Repositories;
+use crate::session::{MemorySqliteSessionStore, SessionBackendConfig};
+use crate::services::auth::AuthService;
 use crate::services::AppServices;
 
 /// Opaque tenant identifier. Wrap a raw string so we can add validation and
@@ -179,6 +182,8 @@ pub struct TenantRegistryConfig {
     pub guard: Arc<dyn TenantGuard>,
     /// Run `sqlx::migrate!("./migrations")` when a tenant DB is first opened.
     pub auto_migrate: bool,
+    /// Session backend selection for tenant-scoped AuthService.
+    pub session_backend: SessionBackendConfig,
 }
 
 impl TenantRegistryConfig {
@@ -187,6 +192,7 @@ impl TenantRegistryConfig {
             resolver: Arc::new(InMemoryTenantResolver),
             guard:    Arc::new(AllowAllGuard),
             auto_migrate: true,
+            session_backend: SessionBackendConfig::tenant_db(),
         }
     }
 }
@@ -209,6 +215,7 @@ pub struct TenantRegistry {
     resolver: Arc<dyn TenantResolver>,
     guard: Arc<dyn TenantGuard>,
     auto_migrate: bool,
+    session_backend: SessionBackendConfig,
     entries: Arc<RwLock<HashMap<TenantId, TenantEntry>>>,
 }
 
@@ -219,6 +226,7 @@ impl TenantRegistry {
             resolver: cfg.resolver,
             guard: cfg.guard,
             auto_migrate: cfg.auto_migrate,
+            session_backend: cfg.session_backend,
             entries: Arc::new(RwLock::new(HashMap::new())),
         }
     }
@@ -269,10 +277,8 @@ impl TenantRegistry {
             tracing::debug!("TenantRegistry::entry_for: running auto-migration for tenant={}", tenant);
             db::migrate(&pool).await.map_err(TenantError::from)?;
         }
-        let entry = TenantEntry {
-            services: AppServices::new(pool.clone()),
-            pool,
-        };
+        let services = self.build_services(tenant, &pool).await?;
+        let entry = TenantEntry { services, pool };
         guard.insert(tenant.clone(), entry.clone());
         tracing::debug!("TenantRegistry::entry_for: entry created and cached for tenant={}", tenant);
         Ok(entry)
@@ -288,10 +294,8 @@ impl TenantRegistry {
         let url = self.resolver.db_url(&tenant);
         let pool = db::connect(&url).await?;
         db::migrate(&pool).await?;
-        let entry = TenantEntry {
-            services: AppServices::new(pool.clone()),
-            pool,
-        };
+        let services = self.build_services(&tenant, &pool).await?;
+        let entry = TenantEntry { services, pool };
         // Double-check under the write lock in case another task raced us.
         let mut guard = self.entries.write().await;
         guard.entry(tenant).or_insert(entry);
@@ -302,6 +306,9 @@ impl TenantRegistry {
     /// Closes the underlying pool.
     pub async fn evict(&self, tenant: &TenantId) {
         if let Some(entry) = self.entries.write().await.remove(tenant) {
+            if let Err(e) = entry.services.auth.checkpoint_sessions().await {
+                tracing::warn!("failed to checkpoint session backend on evict: {}", e);
+            }
             entry.pool.close().await;
         }
     }
@@ -310,6 +317,9 @@ impl TenantRegistry {
     pub async fn shutdown(&self) {
         let mut guard = self.entries.write().await;
         for (_, entry) in guard.drain() {
+            if let Err(e) = entry.services.auth.checkpoint_sessions().await {
+                tracing::warn!("failed to checkpoint session backend on shutdown: {}", e);
+            }
             entry.pool.close().await;
         }
     }
@@ -317,6 +327,23 @@ impl TenantRegistry {
     /// Ids of tenants currently cached.
     pub async fn active_tenants(&self) -> Vec<TenantId> {
         self.entries.read().await.keys().cloned().collect()
+    }
+
+    async fn build_services(
+        &self,
+        tenant: &TenantId,
+        pool: &SqlitePool,
+    ) -> RepoResult<AppServices> {
+        let repos = Arc::new(Repositories::new(pool.clone()));
+        let auth = match &self.session_backend {
+            SessionBackendConfig::TenantDb => AuthService::new(repos.clone()),
+            SessionBackendConfig::MemorySqlite { snapshot_root } => {
+                let snapshot = snapshot_root.join(format!("{}.db", tenant.as_str()));
+                let store = MemorySqliteSessionStore::open(snapshot, tenant.as_str()).await?;
+                AuthService::with_session_store(repos.clone(), Arc::new(store))
+            }
+        };
+        Ok(AppServices::from_repos_with_auth(repos, auth))
     }
 }
 
