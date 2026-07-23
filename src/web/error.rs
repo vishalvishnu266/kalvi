@@ -11,6 +11,8 @@ pub struct WebError(pub StatusCode, pub String);
 
 impl WebError {
     pub fn bad(msg: impl Into<String>) -> Self { Self(StatusCode::BAD_REQUEST, msg.into()) }
+    pub fn forbidden(msg: impl Into<String>) -> Self { Self(StatusCode::FORBIDDEN, msg.into()) }
+    pub fn not_found(msg: impl Into<String>) -> Self { Self(StatusCode::NOT_FOUND, msg.into()) }
 }
 
 impl From<ServiceError> for WebError {

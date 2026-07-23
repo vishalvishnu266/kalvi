@@ -41,10 +41,12 @@
                      dark:bg-zinc-800 dark:border-zinc-700 dark:hover:bg-zinc-700">
         <i data-lucide="message-square" class="w-4 h-4 text-zinc-500"></i> Message
       </button>
+      {% if can_edit %}
       <button class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm text-white
                      bg-brand-600 hover:bg-brand-700 shadow-sm shadow-brand-600/20">
         <i data-lucide="edit-3" class="w-4 h-4"></i> Edit
       </button>
+      {% endif %}
     </div>
   </div>
 

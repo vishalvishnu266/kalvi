@@ -18,7 +18,7 @@ use crate::http::TenantScope;
 use crate::middleware::auth::SessionUser;
 use crate::repositories::staff::Staff;
 use crate::web::error::{render, WebError};
-use crate::web::layout::{nav_items, NavContext, NavItem};
+use crate::web::layout::{visible_nav_items, NavContext, NavItem};
 
 // ---------------------------- list ----------------------------
 
@@ -26,7 +26,7 @@ use crate::web::layout::{nav_items, NavContext, NavItem};
 #[template(path = "staff/list.html")]
 struct StaffListPage<'a> {
     nav: &'a NavContext,
-    nav_items: &'static [NavItem],
+    nav_items: Vec<&'static NavItem>,
     q: &'a str,
     rows: Vec<StaffRow>,
 }
@@ -76,8 +76,9 @@ pub async fn list(
         scope.tenant.as_str().to_string(),
         "staff", "Staff",
     );
+    let nav_items = visible_nav_items(&session);
 
-    render(&StaffListPage { nav: &nav, nav_items: nav_items(), q: &q, rows })
+    render(&StaffListPage { nav: &nav, nav_items, q: &q, rows })
 }
 
 // --------------------------- detail ---------------------------
@@ -86,7 +87,7 @@ pub async fn list(
 #[template(path = "staff/show.html")]
 struct StaffShowPage<'a> {
     nav: &'a NavContext,
-    nav_items: &'static [NavItem],
+    nav_items: Vec<&'static NavItem>,
     staff: StaffRow,
     tabs: Vec<Tab>,
 }
@@ -118,7 +119,8 @@ pub async fn show(
         .map(|l| Tab { label: l, active: l == current })
         .collect();
 
-    render(&StaffShowPage { nav: &nav, nav_items: nav_items(), staff, tabs })
+    let nav_items = visible_nav_items(&session);
+    render(&StaffShowPage { nav: &nav, nav_items, staff, tabs })
 }
 
 // -------------------------- helpers --------------------------

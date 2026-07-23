@@ -8,7 +8,7 @@ use axum::{response::Response, Extension};
 use crate::http::TenantScope;
 use crate::middleware::auth::SessionUser;
 use crate::web::error::{render, WebError};
-use crate::web::layout::{nav_items, NavContext, NavItem};
+use crate::web::layout::{visible_nav_items, NavContext, NavItem};
 
 struct ModuleStub {
     key: &'static str,
@@ -23,7 +23,7 @@ struct ModuleStub {
 #[template(path = "modules/stub.html")]
 struct StubPage<'a> {
     nav: &'a NavContext,
-    nav_items: &'static [NavItem],
+    nav_items: Vec<&'static NavItem>,
     module: &'a ModuleStub,
 }
 
@@ -93,7 +93,8 @@ async fn render_stub(key: &'static str, scope: TenantScope, session: SessionUser
         scope.tenant.as_str().to_string(),
         key, module.title,
     );
-    render(&StubPage { nav: &nav, nav_items: nav_items(), module })
+    let nav_items = visible_nav_items(&session);
+    render(&StubPage { nav: &nav, nav_items, module })
 }
 
 // One thin handler per stub module. Routes are wired in `http::routes`.

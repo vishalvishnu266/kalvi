@@ -82,20 +82,42 @@ case "$RETURN_CODE" in
   *)       fail "unexpected $RETURN_CODE from POST /admin/api/tenants: $RETURN_BODY" ;;
 esac
 
-# ---------- 2. Register the admin login (idempotent) ----------
-call POST "/api/$TENANT/auth/register" "{
-  \"username\": \"$ADMIN_USER\",
-  \"email\":    \"$ADMIN_USER@$TENANT.example\",
-  \"password\": \"$ADMIN_PASS\",
-  \"roles\":    [\"admin\"]
-}"
-case "$RETURN_CODE" in
-  200|201) ok "registered admin user '$ADMIN_USER'" ;;
-  409)     warn "admin user '$ADMIN_USER' already exists" ;;
-  *)       fail "unexpected $RETURN_CODE from register: $RETURN_BODY" ;;
-esac
+# ---------- 2. Register logins (idempotent) ----------
+# The tenant DB already ships (via migrations 017 + 019) with the standard
+# role catalogue — admin/principal/teacher/accountant/librarian/student/
+# guardian — and a baseline permission → role mapping. Assigning a role at
+# registration time is therefore all we need to do here; RBAC filtering on
+# the sidebar, dashboard tiles, and (soon) route guards picks it up.
 
-# Quick login sanity check.
+register_user() {
+  local user="$1" pass="$2" role="$3" email="$4"
+  call POST "/api/$TENANT/auth/register" "{
+    \"username\": \"$user\",
+    \"email\":    \"$email\",
+    \"password\": \"$pass\",
+    \"roles\":    [\"$role\"]
+  }"
+  case "$RETURN_CODE" in
+    200|201) ok "registered $role user '$user'" ;;
+    409)     warn "user '$user' already exists — skipped" ;;
+    *)       fail "register '$user' failed ($RETURN_CODE): $RETURN_BODY" ;;
+  esac
+}
+
+# The primary admin account (name/pass driven by env vars — see top of file).
+register_user "$ADMIN_USER" "$ADMIN_PASS" "admin" "$ADMIN_USER@$TENANT.example"
+
+# A handful of role-scoped demo logins so you can eyeball the RBAC-filtered
+# sidebar + dashboard tiles as any of these personas. All share the password
+# `demo1234` for convenience — never do this outside dev / demo.
+register_user "principal"  "demo1234" "principal"  "principal@$TENANT.example"
+register_user "teacher"    "demo1234" "teacher"    "teacher@$TENANT.example"
+register_user "accountant" "demo1234" "accountant" "accountant@$TENANT.example"
+register_user "librarian"  "demo1234" "librarian"  "librarian@$TENANT.example"
+register_user "parent"     "demo1234" "guardian"   "parent@$TENANT.example"
+register_user "student1"   "demo1234" "student"    "student1@$TENANT.example"
+
+# Quick login sanity check against the admin credentials.
 call POST "/api/$TENANT/auth/login" "{
   \"identifier\": \"$ADMIN_USER\",
   \"password\":   \"$ADMIN_PASS\"
@@ -175,10 +197,19 @@ admit_one "ADM-DEMO-0010" "Sara"    "Fernandes" "2011-06-06" "female"
 bold "Done."
 ok "tenant '$TENANT' seeded"
 echo
-echo "  Sign in at: $BASE_URL/web/login"
-echo "  Tenant:     $TENANT"
-echo "  Username:   $ADMIN_USER"
-echo "  Password:   $ADMIN_PASS"
+echo "  Sign in at:  $BASE_URL/web/login (or $BASE_URL/web/$TENANT/login)"
+echo "  Tenant:      $TENANT"
+echo
+echo "  Role-scoped demo logins (all share password: demo1234)"
+echo "    admin       — $ADMIN_USER / $ADMIN_PASS  (sees everything)"
+echo "    principal   — principal   / demo1234     (most modules, no settings)"
+echo "    teacher     — teacher     / demo1234     (students, attendance, marks)"
+echo "    accountant  — accountant  / demo1234     (fees, payroll)"
+echo "    librarian   — librarian   / demo1234     (library only)"
+echo "    parent      — parent      / demo1234     (own child's views + pay fees)"
+echo "    student1    — student1    / demo1234     (own attendance/fees/marks)"
+echo
+echo "  Sidebar and dashboard tiles will vary by role thanks to RBAC filtering."
 echo
 echo "  Tenant home: $BASE_URL/web/$TENANT/"
 echo "  Students:    $BASE_URL/web/$TENANT/students"

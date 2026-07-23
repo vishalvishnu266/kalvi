@@ -6,11 +6,13 @@
     <h2 class="text-xl font-semibold tracking-tight">Students</h2>
     <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">{{ rows.len() }} shown</p>
   </div>
+  {% if can_admit %}
   <button class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm text-white
                  bg-brand-600 hover:bg-brand-700 shadow-sm shadow-brand-600/20">
     <i data-lucide="user-plus" class="w-4 h-4"></i>
     <span class="hidden sm:inline">Admit student</span>
   </button>
+  {% endif %}
 </div>
 
 <!-- Filters bar -->
@@ -37,7 +39,11 @@
   <i data-lucide="graduation-cap" class="w-10 h-10 mx-auto mb-3 text-zinc-400"></i>
   <p class="text-sm text-zinc-600 dark:text-zinc-400">
     {% if q.is_empty() %}
-      No students yet. Click <span class="font-medium text-zinc-900 dark:text-zinc-100">Admit student</span> to get started.
+      {% if can_admit %}
+        No students yet. Click <span class="font-medium text-zinc-900 dark:text-zinc-100">Admit student</span> to get started.
+      {% else %}
+        No students to show.
+      {% endif %}
     {% else %}
       No students match "<span class="font-medium">{{ q }}</span>".
     {% endif %}

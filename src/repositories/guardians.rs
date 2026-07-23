@@ -116,4 +116,31 @@ impl GuardianRepo {
             "SELECT student_id FROM student_guardian WHERE guardian_id = ?",
         ).bind(guardian_id).fetch_all(&self.pool).await?)
     }
+
+    /// Resolve a login user id to its guardian row (if the user is linked as
+    /// a guardian). Returns `None` if the user isn't associated with a
+    /// guardian record — e.g. staff or admin accounts.
+    pub async fn find_by_user_id(&self, user_id: i64) -> RepoResult<Option<Guardian>> {
+        Ok(sqlx::query_as::<_, Guardian>(
+            "SELECT * FROM guardian WHERE user_id = ? LIMIT 1",
+        ).bind(user_id).fetch_optional(&self.pool).await?)
+    }
+
+    /// Convenience: return the ids of all students linked to the guardian
+    /// row that owns `user_id`. Empty vec if there is no such link.
+    pub async fn students_of_user(&self, user_id: i64) -> RepoResult<Vec<i64>> {
+        match self.find_by_user_id(user_id).await? {
+            Some(g) => self.students_of_guardian(g.id).await,
+            None    => Ok(Vec::new()),
+        }
+    }
+
+    /// Fast "is this user allowed to see this student's data?" check.
+    pub async fn is_guardian_of(&self, user_id: i64, student_id: i64) -> RepoResult<bool> {
+        Ok(sqlx::query_scalar::<_, i64>(
+            r#"SELECT COUNT(*) FROM student_guardian sg
+                 INNER JOIN guardian g ON g.id = sg.guardian_id
+                 WHERE g.user_id = ? AND sg.student_id = ?"#,
+        ).bind(user_id).bind(student_id).fetch_one(&self.pool).await? > 0)
+    }
 }

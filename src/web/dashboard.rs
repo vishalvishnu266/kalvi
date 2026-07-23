@@ -1,52 +1,71 @@
 //! Tenant home: OS-style menu launcher at `/web/{tenant}/`.
+//!
+//! Tiles are RBAC-filtered per request via [`visible_tiles`] so a signed-in
+//! parent or teacher only sees the modules they can actually open.
 
 use askama::Template;
 use axum::{response::Response, Extension};
 
 use crate::http::TenantScope;
 use crate::middleware::auth::SessionUser;
+use crate::services::perm::*;
 use crate::web::error::{render, WebError};
-use crate::web::layout::{nav_items, NavContext, NavItem};
+use crate::web::layout::{visible_nav_items, NavContext, NavItem};
 
 #[derive(Template)]
 #[template(path = "dashboard.html")]
 struct MenuPage<'a> {
     nav: &'a NavContext,
-    nav_items: &'static [NavItem],
-    tiles: &'static [Tile],
+    nav_items: Vec<&'static NavItem>,
+    tiles: Vec<&'static Tile>,
 }
 
 /// A single launcher tile on the home screen.
+///
+/// `perm` mirrors the RBAC gate on [`NavItem`]: `None` = always visible,
+/// `Some(codes)` = visible when the current session holds *any* of the codes.
 pub struct Tile {
     pub href: &'static str,
     pub label: &'static str,
     pub description: &'static str,
     pub icon: &'static str,
     pub gradient: &'static str,
+    pub perm: Option<&'static [&'static str]>,
 }
 
 fn tiles() -> &'static [Tile] {
     &[
-        Tile { href: "students",       label: "Students",       description: "Admissions & profiles",   icon: "graduation-cap", gradient: "from-brand-500 to-indigo-600" },
-        Tile { href: "attendance",     label: "Attendance",     description: "Daily marking & reports", icon: "calendar-check", gradient: "from-emerald-500 to-teal-600" },
-        Tile { href: "timetable",      label: "Timetable",      description: "Classes & periods",       icon: "calendar-days",  gradient: "from-sky-500 to-blue-600" },
-        Tile { href: "fees",           label: "Fees",           description: "Invoices & payments",     icon: "wallet",         gradient: "from-amber-500 to-orange-600" },
-        Tile { href: "examinations",   label: "Exams",          description: "Grades & report cards",   icon: "clipboard-check", gradient: "from-fuchsia-500 to-pink-600" },
-        Tile { href: "academic",       label: "Academic",       description: "Curriculum & subjects",   icon: "book-open",      gradient: "from-violet-500 to-purple-600" },
-        Tile { href: "staff",          label: "Staff",          description: "Employees & roles",       icon: "briefcase",      gradient: "from-zinc-600 to-zinc-800" },
-        Tile { href: "payroll",        label: "Payroll",        description: "Salaries & payslips",     icon: "banknote",       gradient: "from-lime-500 to-emerald-600" },
-        Tile { href: "guardians",      label: "Guardians",      description: "Parents & contacts",      icon: "users",          gradient: "from-rose-500 to-pink-600" },
-        Tile { href: "communication",  label: "Communication",  description: "Notices & messages",      icon: "megaphone",      gradient: "from-orange-500 to-red-600" },
-        Tile { href: "library",        label: "Library",        description: "Books & loans",           icon: "library",        gradient: "from-teal-500 to-cyan-600" },
-        Tile { href: "transport",      label: "Transport",      description: "Routes & stops",          icon: "bus",            gradient: "from-yellow-500 to-amber-600" },
-        Tile { href: "hostel",         label: "Hostel",         description: "Rooms & allocations",     icon: "bed-double",     gradient: "from-indigo-500 to-blue-700" },
-        Tile { href: "inventory",      label: "Inventory",      description: "Assets & stock",          icon: "package",        gradient: "from-stone-500 to-stone-700" },
-        Tile { href: "health",         label: "Health",         description: "Medical & incidents",     icon: "heart-pulse",    gradient: "from-red-500 to-rose-600" },
-        Tile { href: "discipline",     label: "Discipline",     description: "Incidents & merits",      icon: "shield-alert",   gradient: "from-orange-600 to-red-700" },
-        Tile { href: "documents",      label: "Documents",      description: "Files & certificates",    icon: "file-text",      gradient: "from-slate-500 to-slate-700" },
-        Tile { href: "audit",          label: "Audit",          description: "Change history",          icon: "history",        gradient: "from-neutral-500 to-neutral-700" },
-        Tile { href: "settings",       label: "Settings",       description: "Tenant configuration",    icon: "settings",       gradient: "from-zinc-500 to-zinc-700" },
+        Tile { href: "students",       label: "Students",       description: "Admissions & profiles",   icon: "graduation-cap", gradient: "from-brand-500 to-indigo-600",  perm: Some(&[STUDENTS_VIEW, STUDENTS_VIEW_OWN]) },
+        Tile { href: "attendance",     label: "Attendance",     description: "Daily marking & reports", icon: "calendar-check", gradient: "from-emerald-500 to-teal-600",  perm: Some(&[ATTENDANCE_VIEW, ATTENDANCE_VIEW_OWN, ATTENDANCE_MARK]) },
+        Tile { href: "timetable",      label: "Timetable",      description: "Classes & periods",       icon: "calendar-days",  gradient: "from-sky-500 to-blue-600",      perm: Some(&[TIMETABLE_VIEW, TIMETABLE_MANAGE]) },
+        Tile { href: "fees",           label: "Fees",           description: "Invoices & payments",     icon: "wallet",         gradient: "from-amber-500 to-orange-600",  perm: Some(&[FEES_VIEW, FEES_VIEW_OWN, FEES_COLLECT, FEES_PAY]) },
+        Tile { href: "examinations",   label: "Exams",          description: "Grades & report cards",   icon: "clipboard-check",gradient: "from-fuchsia-500 to-pink-600",  perm: Some(&[EXAMINATIONS_VIEW, EXAMINATIONS_VIEW_OWN, EXAMINATIONS_ENTER_MARKS]) },
+        Tile { href: "academic",       label: "Academic",       description: "Curriculum & subjects",   icon: "book-open",      gradient: "from-violet-500 to-purple-600", perm: Some(&[ACADEMIC_VIEW]) },
+        Tile { href: "staff",          label: "Staff",          description: "Employees & roles",       icon: "briefcase",      gradient: "from-zinc-600 to-zinc-800",     perm: Some(&[STAFF_VIEW]) },
+        Tile { href: "payroll",        label: "Payroll",        description: "Salaries & payslips",     icon: "banknote",       gradient: "from-lime-500 to-emerald-600",  perm: Some(&[PAYROLL_VIEW, PAYROLL_VIEW_OWN]) },
+        Tile { href: "guardians",      label: "Guardians",      description: "Parents & contacts",      icon: "users",          gradient: "from-rose-500 to-pink-600",     perm: Some(&[GUARDIANS_VIEW]) },
+        Tile { href: "communication",  label: "Communication",  description: "Notices & messages",      icon: "megaphone",      gradient: "from-orange-500 to-red-600",    perm: Some(&[COMMUNICATION_VIEW, COMMUNICATION_BROADCAST]) },
+        Tile { href: "library",        label: "Library",        description: "Books & loans",           icon: "library",        gradient: "from-teal-500 to-cyan-600",     perm: Some(&[LIBRARY_VIEW]) },
+        Tile { href: "transport",      label: "Transport",      description: "Routes & stops",          icon: "bus",            gradient: "from-yellow-500 to-amber-600",  perm: Some(&[TRANSPORT_VIEW]) },
+        Tile { href: "hostel",         label: "Hostel",         description: "Rooms & allocations",     icon: "bed-double",     gradient: "from-indigo-500 to-blue-700",   perm: Some(&[HOSTEL_VIEW]) },
+        Tile { href: "inventory",      label: "Inventory",      description: "Assets & stock",          icon: "package",        gradient: "from-stone-500 to-stone-700",   perm: Some(&[INVENTORY_VIEW]) },
+        Tile { href: "health",         label: "Health",         description: "Medical & incidents",     icon: "heart-pulse",    gradient: "from-red-500 to-rose-600",      perm: Some(&[HEALTH_VIEW]) },
+        Tile { href: "discipline",     label: "Discipline",     description: "Incidents & merits",      icon: "shield-alert",   gradient: "from-orange-600 to-red-700",    perm: Some(&[DISCIPLINE_VIEW]) },
+        Tile { href: "documents",      label: "Documents",      description: "Files & certificates",    icon: "file-text",      gradient: "from-slate-500 to-slate-700",   perm: Some(&[DOCUMENTS_VIEW]) },
+        Tile { href: "audit",          label: "Audit",          description: "Change history",          icon: "history",        gradient: "from-neutral-500 to-neutral-700",perm: Some(&[AUDIT_VIEW]) },
+        Tile { href: "settings",       label: "Settings",       description: "Tenant configuration",    icon: "settings",       gradient: "from-zinc-500 to-zinc-700",     perm: Some(&[SETTINGS_VIEW, SETTINGS_MANAGE]) },
     ]
+}
+
+/// Return the tiles the current session is allowed to launch.
+fn visible_tiles(session: &SessionUser) -> Vec<&'static Tile> {
+    tiles()
+        .iter()
+        .filter(|t| match t.perm {
+            None => true,
+            Some(codes) => session.any_of(codes),
+        })
+        .collect()
 }
 
 pub async fn index(
@@ -58,5 +77,7 @@ pub async fn index(
         scope.tenant.as_str().to_string(),
         "dashboard", "Home",
     );
-    render(&MenuPage { nav: &nav, nav_items: nav_items(), tiles: tiles() })
+    let nav_items = visible_nav_items(&session);
+    let tiles = visible_tiles(&session);
+    render(&MenuPage { nav: &nav, nav_items, tiles })
 }

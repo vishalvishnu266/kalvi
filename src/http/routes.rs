@@ -332,31 +332,67 @@ pub fn build_router(state: AppState, readiness: Readiness) -> Router {
     // no per-route path repetition, no separate middleware for tenant lookup.
     //
     // Every route here is behind `require_session`, which validates the
-    // opaque `erp_session` cookie against the tenant's own DB.
+    // opaque `erp_session` cookie against the tenant's own DB, followed by
+    // per-module `require_perm!(...)` gates that return a friendly 403 to
+    // callers who lack the right RBAC codes. Nav/tile filtering already
+    // hides them from the sidebar and dashboard; this middleware is the
+    // defense-in-depth layer that catches manual URL edits.
+    //
+    // ## Future extension: parent / student portal
+    //
+    // If/when the parent-guardian or student self-service UX needs its own
+    // shell (different sidebar, no top bar, mobile-first cards, etc.), add a
+    // `let portal_shell = Router::new()...` block below with the same
+    // `require_session` layer and nest it at `/web/{tenant}/portal`.
+    // Handlers can be shared: the same `ws::list` handler works, only the
+    // enclosing template differs. **The role never appears in the URL** —
+    // RBAC still controls visibility and scoping.
+    use crate::services::perm;
     let web_tenant_shell = Router::new()
         .route("/",              get(wdb::index))
-        .route("/students",      get(ws::list))
-        .route("/students/{id}", get(ws::show))
-        .route("/staff",         get(wsf::list))
-        .route("/staff/{id}",    get(wsf::show))
+        .route("/students",      get(ws::list)
+            .route_layer(require_perm!(perm::STUDENTS_VIEW, perm::STUDENTS_VIEW_OWN)))
+        .route("/students/{id}", get(ws::show)
+            .route_layer(require_perm!(perm::STUDENTS_VIEW, perm::STUDENTS_VIEW_OWN)))
+        .route("/staff",         get(wsf::list)
+            .route_layer(require_perm!(perm::STAFF_VIEW)))
+        .route("/staff/{id}",    get(wsf::show)
+            .route_layer(require_perm!(perm::STAFF_VIEW)))
         // module stub screens (one route per placeholder module)
-        .route("/attendance",    get(wm::attendance))
-        .route("/timetable",     get(wm::timetable))
-        .route("/fees",          get(wm::fees))
-        .route("/examinations",  get(wm::examinations))
-        .route("/academic",      get(wm::academic))
-        .route("/payroll",       get(wm::payroll))
-        .route("/guardians",     get(wm::guardians))
-        .route("/communication", get(wm::communication))
-        .route("/library",       get(wm::library))
-        .route("/transport",     get(wm::transport))
-        .route("/hostel",        get(wm::hostel))
-        .route("/inventory",     get(wm::inventory))
-        .route("/health",        get(wm::health))
-        .route("/discipline",    get(wm::discipline))
-        .route("/documents",     get(wm::documents))
-        .route("/audit",         get(wm::audit))
-        .route("/settings",      get(wm::settings))
+        .route("/attendance",    get(wm::attendance)
+            .route_layer(require_perm!(perm::ATTENDANCE_VIEW, perm::ATTENDANCE_VIEW_OWN, perm::ATTENDANCE_MARK)))
+        .route("/timetable",     get(wm::timetable)
+            .route_layer(require_perm!(perm::TIMETABLE_VIEW, perm::TIMETABLE_MANAGE)))
+        .route("/fees",          get(wm::fees)
+            .route_layer(require_perm!(perm::FEES_VIEW, perm::FEES_VIEW_OWN, perm::FEES_COLLECT, perm::FEES_PAY)))
+        .route("/examinations",  get(wm::examinations)
+            .route_layer(require_perm!(perm::EXAMINATIONS_VIEW, perm::EXAMINATIONS_VIEW_OWN, perm::EXAMINATIONS_ENTER_MARKS)))
+        .route("/academic",      get(wm::academic)
+            .route_layer(require_perm!(perm::ACADEMIC_VIEW)))
+        .route("/payroll",       get(wm::payroll)
+            .route_layer(require_perm!(perm::PAYROLL_VIEW, perm::PAYROLL_VIEW_OWN)))
+        .route("/guardians",     get(wm::guardians)
+            .route_layer(require_perm!(perm::GUARDIANS_VIEW)))
+        .route("/communication", get(wm::communication)
+            .route_layer(require_perm!(perm::COMMUNICATION_VIEW, perm::COMMUNICATION_BROADCAST)))
+        .route("/library",       get(wm::library)
+            .route_layer(require_perm!(perm::LIBRARY_VIEW)))
+        .route("/transport",     get(wm::transport)
+            .route_layer(require_perm!(perm::TRANSPORT_VIEW)))
+        .route("/hostel",        get(wm::hostel)
+            .route_layer(require_perm!(perm::HOSTEL_VIEW)))
+        .route("/inventory",     get(wm::inventory)
+            .route_layer(require_perm!(perm::INVENTORY_VIEW)))
+        .route("/health",        get(wm::health)
+            .route_layer(require_perm!(perm::HEALTH_VIEW)))
+        .route("/discipline",    get(wm::discipline)
+            .route_layer(require_perm!(perm::DISCIPLINE_VIEW)))
+        .route("/documents",     get(wm::documents)
+            .route_layer(require_perm!(perm::DOCUMENTS_VIEW)))
+        .route("/audit",         get(wm::audit)
+            .route_layer(require_perm!(perm::AUDIT_VIEW)))
+        .route("/settings",      get(wm::settings)
+            .route_layer(require_perm!(perm::SETTINGS_VIEW, perm::SETTINGS_MANAGE)))
         .layer(axum::middleware::from_fn_with_state(
             state.clone(), wam::require_session,
         ));
