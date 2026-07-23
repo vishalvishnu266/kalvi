@@ -87,7 +87,7 @@ if (-not $SkipBuild) {
     Warn "SKIP_BUILD=1 — assuming existing binary is current"
 }
 
-$Bin = Join-Path 'target' (Join-Path $Profile 'school-erp.exe')
+$Bin = Join-Path 'target' (Join-Path $Profile 'school_erp.exe')
 if (-not (Test-Path $Bin)) { Fail "server binary not found at $Bin" }
 
 # ---------- 4. Start server -----------------------------------------------

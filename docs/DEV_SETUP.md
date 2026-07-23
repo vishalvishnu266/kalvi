@@ -81,7 +81,7 @@ tail -f .dev_server.log
 kill $(cat .dev_server.pid)
 
 # start again without wiping the DB
-BIND=0.0.0.0:3000 ./target/release/school-erp &
+BIND=0.0.0.0:3000 ./target/release/school_erp &
 ```
 
 ---

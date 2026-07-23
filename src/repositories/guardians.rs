@@ -30,6 +30,21 @@ pub struct NewGuardian {
     pub address: Option<String>,
 }
 
+/// Partial update — `None` = leave column unchanged.
+///
+/// For nullable text columns (`phone`, `email`, `occupation`, `address`)
+/// callers who want to *clear* the value should pass `Some(String::new())`;
+/// the repo maps empty strings to SQL `NULL` before applying the update.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct UpdateGuardian {
+    pub first_name: Option<String>,
+    pub last_name:  Option<String>,
+    pub phone:      Option<String>,
+    pub email:      Option<String>,
+    pub occupation: Option<String>,
+    pub address:    Option<String>,
+}
+
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct StudentGuardianLink {
     pub student_id: i64,
@@ -75,6 +90,34 @@ impl GuardianRepo {
             .bind(id).execute(&self.pool).await?;
         if res.rows_affected() == 0 { return Err(RepoError::NotFound); }
         Ok(())
+    }
+
+    /// Partial update. `Some(_)` overwrites the column, `None` leaves it
+    /// alone. For nullable text columns an empty string is treated as
+    /// "explicit clear" and stored as SQL `NULL`.
+    pub async fn update(&self, id: i64, u: &UpdateGuardian) -> RepoResult<Guardian> {
+        // Normalize empty strings on nullable columns to NULL so the web
+        // form can "clear" them by submitting an empty input.
+        let phone      = u.phone.as_ref()     .map(|v| if v.is_empty() { None } else { Some(v.clone()) });
+        let email      = u.email.as_ref()     .map(|v| if v.is_empty() { None } else { Some(v.clone()) });
+        let occupation = u.occupation.as_ref().map(|v| if v.is_empty() { None } else { Some(v.clone()) });
+        let address    = u.address.as_ref()   .map(|v| if v.is_empty() { None } else { Some(v.clone()) });
+
+        sqlx::query(
+            r#"UPDATE guardian SET
+                 first_name = COALESCE(?, first_name),
+                 last_name  = COALESCE(?, last_name),
+                 phone      = COALESCE(?, phone),
+                 email      = COALESCE(?, email),
+                 occupation = COALESCE(?, occupation),
+                 address    = COALESCE(?, address)
+               WHERE id = ?"#,
+        )
+        .bind(&u.first_name).bind(&u.last_name)
+        .bind(phone).bind(email).bind(occupation).bind(address)
+        .bind(id)
+        .execute(&self.pool).await?;
+        self.get(id).await
     }
 
     // ---- Linking ----

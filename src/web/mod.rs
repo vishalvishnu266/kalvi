@@ -25,6 +25,7 @@ pub mod error;
 pub mod filters;
 pub mod landing;
 pub mod layout;
+pub mod guardians;
 pub mod modules;
 pub mod staff;
 pub mod students;

@@ -193,7 +193,97 @@ admit_one "ADM-DEMO-0008" "Meera"   "Krishna" "2012-12-25" "female"
 admit_one "ADM-DEMO-0009" "Yash"    "Joshi"   "2010-08-17" "male"
 admit_one "ADM-DEMO-0010" "Sara"    "Fernandes" "2011-06-06" "female"
 
-# ---------- 5. Done ----------
+# ---------- 5. Guardians ----------
+# Create guardian records and link them to the first couple of students.
+# The API returns the created record's id, which we capture so we can
+# `POST /guardians/link` with the correct student_id/guardian_id pair.
+bold "Adding guardians…"
+
+# Small helper to extract a numeric `id` from a JSON blob without requiring
+# `jq`. Falls back to a regex grep so the script works in minimal shells.
+json_id() {
+  if command -v jq >/dev/null 2>&1; then
+    echo "$1" | jq -r '.id // empty'
+  else
+    echo "$1" | grep -o '"id"[[:space:]]*:[[:space:]]*[0-9]\+' | head -n1 | grep -o '[0-9]\+'
+  fi
+}
+
+# Look up a student id by admission number so links stay stable across re-runs.
+student_id_for() {
+  local adm="$1"
+  call GET "/api/$TENANT/people/students?limit=200"
+  if [[ "$RETURN_CODE" == "200" ]]; then
+    if command -v jq >/dev/null 2>&1; then
+      echo "$RETURN_BODY" | jq -r ".[] | select(.admission_no==\"$adm\") | .id" | head -n1
+    else
+      # crude sed-based fallback
+      echo "$RETURN_BODY" | tr '}' '\n' | grep -F "\"admission_no\":\"$adm\"" \
+        | grep -o '"id":[0-9]\+' | head -n1 | grep -o '[0-9]\+'
+    fi
+  fi
+}
+
+add_guardian() {
+  local first="$1" last="$2" phone="$3" email="$4" occ="$5"
+  call POST "/api/$TENANT/guardians" "{
+    \"first_name\": \"$first\",
+    \"last_name\":  \"$last\",
+    \"phone\":      \"$phone\",
+    \"email\":      \"$email\",
+    \"occupation\": \"$occ\"
+  }"
+  case "$RETURN_CODE" in
+    200|201)
+      GUARDIAN_ID="$(json_id "$RETURN_BODY")"
+      ok "added guardian $first $last (id $GUARDIAN_ID)"
+      ;;
+    409)
+      warn "guardian $first $last already exists — skipping link step"
+      GUARDIAN_ID=""
+      ;;
+    *)
+      fail "add guardian $first $last failed ($RETURN_CODE): $RETURN_BODY"
+      ;;
+  esac
+}
+
+link_guardian() {
+  local sid="$1" gid="$2" rel="$3" primary="$4"
+  [[ -z "$sid" || -z "$gid" ]] && { warn "missing sid/gid — skipping link"; return; }
+  call POST "/api/$TENANT/guardians/link" "{
+    \"student_id\":   $sid,
+    \"guardian_id\":  $gid,
+    \"relationship\": \"$rel\",
+    \"is_primary\":   $primary,
+    \"is_emergency\": true,
+    \"can_pickup\":   true
+  }"
+  case "$RETURN_CODE" in
+    200|201|204) ok "linked guardian $gid → student $sid ($rel)" ;;
+    *)           fail "link failed ($RETURN_CODE): $RETURN_BODY" ;;
+  esac
+}
+
+# Aarav Sharma's parents.
+add_guardian "Rajesh" "Sharma" "+91-98200-00001" "rajesh.sharma@demo.example" "Software Engineer"
+GID_RAJESH="$GUARDIAN_ID"
+add_guardian "Priya"  "Sharma" "+91-98200-00002" "priya.sharma@demo.example"  "Doctor"
+GID_PRIYA="$GUARDIAN_ID"
+
+# Diya Patel's father.
+add_guardian "Nikhil" "Patel"  "+91-98200-00003" "nikhil.patel@demo.example"  "Business Owner"
+GID_NIKHIL="$GUARDIAN_ID"
+
+# Resolve student ids and link.
+SID_AARAV="$(student_id_for ADM-DEMO-0001)"
+SID_DIYA="$(student_id_for  ADM-DEMO-0002)"
+
+[[ -n "$GID_RAJESH" ]] && link_guardian "$SID_AARAV" "$GID_RAJESH" "father" true
+[[ -n "$GID_PRIYA"  ]] && link_guardian "$SID_AARAV" "$GID_PRIYA"  "mother" false
+[[ -n "$GID_NIKHIL" ]] && link_guardian "$SID_DIYA"  "$GID_NIKHIL" "father" true
+
+# ---------- 6. Done ----------
 bold "Done."
 ok "tenant '$TENANT' seeded"
 echo

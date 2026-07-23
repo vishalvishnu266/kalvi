@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% let action_url %}
+{% if id.is_some() %}
+  {% let action_url = format!("/web/{}/guardians/{}", nav.tenant_id, id.unwrap()) %}
+{% else %}
+  {% let action_url = format!("/web/{}/guardians", nav.tenant_id) %}
+{% endif %}
+
+<!-- Breadcrumb -->
+<nav class="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 mb-4">
+  <a href="/web/{{ nav.tenant_id }}/guardians" data-turbo-frame="page" class="hover:text-zinc-900 dark:hover:text-zinc-100">Guardians</a>
+  <i data-lucide="chevron-right" class="w-3 h-3"></i>
+  <span class="text-zinc-900 dark:text-zinc-100">
+    {% if id.is_some() %}Edit{% else %}New{% endif %}
+  </span>
+</nav>
+
+<div class="max-w-2xl">
+  <div class="mb-4">
+    <h2 class="text-xl font-semibold tracking-tight">
+      {% if id.is_some() %}Edit guardian{% else %}Add guardian{% endif %}
+    </h2>
+    <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
+      Guardians can be linked to one or more students from the student's profile.
+    </p>
+  </div>
+
+  {% if error.is_some() %}
+  <div class="mb-4 p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-800
+              dark:bg-rose-500/10 dark:border-rose-500/30 dark:text-rose-300 text-sm flex items-center gap-2">
+    <i data-lucide="alert-circle" class="w-4 h-4"></i>
+    <span>{{ error.unwrap() }}</span>
+  </div>
+  {% endif %}
+
+  <form method="post" action="{{ action_url }}"
+        class="p-5 rounded-2xl bg-white border border-zinc-200 shadow-hairline
+               dark:bg-zinc-900 dark:border-zinc-800 space-y-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">First name <span class="text-rose-500">*</span></label>
+        <input name="first_name" value="{{ form.first_name }}" required
+               class="w-full px-3 py-2 rounded-lg text-sm
+                      bg-white border border-zinc-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
+                      dark:bg-zinc-800 dark:border-zinc-700" />
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Last name <span class="text-rose-500">*</span></label>
+        <input name="last_name" value="{{ form.last_name }}" required
+               class="w-full px-3 py-2 rounded-lg text-sm
+                      bg-white border border-zinc-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
+                      dark:bg-zinc-800 dark:border-zinc-700" />
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Phone</label>
+        <input name="phone" value="{{ form.phone }}"
+               class="w-full px-3 py-2 rounded-lg text-sm
+                      bg-white border border-zinc-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
+                      dark:bg-zinc-800 dark:border-zinc-700" />
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Email</label>
+        <input name="email" type="email" value="{{ form.email }}"
+               class="w-full px-3 py-2 rounded-lg text-sm
+                      bg-white border border-zinc-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
+                      dark:bg-zinc-800 dark:border-zinc-700" />
+      </div>
+      <div class="sm:col-span-2">
+        <label class="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Occupation</label>
+        <input name="occupation" value="{{ form.occupation }}"
+               class="w-full px-3 py-2 rounded-lg text-sm
+                      bg-white border border-zinc-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
+                      dark:bg-zinc-800 dark:border-zinc-700" />
+      </div>
+      <div class="sm:col-span-2">
+        <label class="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Address</label>
+        <textarea name="address" rows="3"
+                  class="w-full px-3 py-2 rounded-lg text-sm
+                         bg-white border border-zinc-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
+                         dark:bg-zinc-800 dark:border-zinc-700">{{ form.address }}</textarea>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-end gap-2 pt-2">
+      <a href="/web/{{ nav.tenant_id }}/guardians" data-turbo-frame="page"
+         class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm
+                bg-white border border-zinc-200 hover:bg-zinc-50
+                dark:bg-zinc-800 dark:border-zinc-700 dark:hover:bg-zinc-700">
+        Cancel
+      </a>
+      <button type="submit"
+              class="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg text-sm text-white
+                     bg-brand-600 hover:bg-brand-700 shadow-sm shadow-brand-600/20">
+        <i data-lucide="check" class="w-4 h-4"></i>
+        {% if id.is_some() %}Save changes{% else %}Create guardian{% endif %}
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

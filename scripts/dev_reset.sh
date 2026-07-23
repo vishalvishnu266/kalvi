@@ -127,7 +127,7 @@ else
   warn "SKIP_BUILD=1 — assuming existing binary is current"
 fi
 
-BIN="target/$PROFILE/school-erp"
+BIN="target/$PROFILE/school_erp"
 [[ -x "$BIN" ]] || fail "server binary not found at $BIN — build failed?"
 
 # ---------- 4. Start server -----------------------------------------------

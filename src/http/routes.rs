@@ -41,8 +41,8 @@ use crate::api::{
     transport as tr,
 };
 use crate::web::{
-    admin as wad, assets as wa, auth as wau, dashboard as wdb, landing as wl,
-    modules as wm, staff as wsf, students as ws,
+    admin as wad, assets as wa, auth as wau, dashboard as wdb, guardians as wgd,
+    landing as wl, modules as wm, staff as wsf, students as ws,
 };
 use crate::middleware::auth as wam;
 use crate::middleware::tracing as wtr;
@@ -359,6 +359,20 @@ pub fn build_router(state: AppState, readiness: Readiness) -> Router {
             .route_layer(require_perm!(perm::STAFF_VIEW)))
         .route("/staff/{id}",    get(wsf::show)
             .route_layer(require_perm!(perm::STAFF_VIEW)))
+        // ---- Guardians (full CRUD) ---------------------------------------
+        // Reads: guardians.view. Writes: guardians.manage.
+        .route("/guardians",              get(wgd::list)
+            .post(wgd::create)
+            .route_layer(require_perm!(perm::GUARDIANS_VIEW, perm::GUARDIANS_MANAGE)))
+        .route("/guardians/new",          get(wgd::new_form)
+            .route_layer(require_perm!(perm::GUARDIANS_MANAGE)))
+        .route("/guardians/{id}",         get(wgd::show)
+            .post(wgd::update)
+            .route_layer(require_perm!(perm::GUARDIANS_VIEW, perm::GUARDIANS_MANAGE)))
+        .route("/guardians/{id}/edit",    get(wgd::edit_form)
+            .route_layer(require_perm!(perm::GUARDIANS_MANAGE)))
+        .route("/guardians/{id}/delete",  axum::routing::post(wgd::delete)
+            .route_layer(require_perm!(perm::GUARDIANS_MANAGE)))
         // module stub screens (one route per placeholder module)
         .route("/attendance",    get(wm::attendance)
             .route_layer(require_perm!(perm::ATTENDANCE_VIEW, perm::ATTENDANCE_VIEW_OWN, perm::ATTENDANCE_MARK)))
@@ -372,8 +386,6 @@ pub fn build_router(state: AppState, readiness: Readiness) -> Router {
             .route_layer(require_perm!(perm::ACADEMIC_VIEW)))
         .route("/payroll",       get(wm::payroll)
             .route_layer(require_perm!(perm::PAYROLL_VIEW, perm::PAYROLL_VIEW_OWN)))
-        .route("/guardians",     get(wm::guardians)
-            .route_layer(require_perm!(perm::GUARDIANS_VIEW)))
         .route("/communication", get(wm::communication)
             .route_layer(require_perm!(perm::COMMUNICATION_VIEW, perm::COMMUNICATION_BROADCAST)))
         .route("/library",       get(wm::library)
