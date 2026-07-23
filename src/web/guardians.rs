@@ -72,7 +72,9 @@ struct ShowPage<'a> {
 
 /// Single template shared by the "new" and "edit" screens.
 ///
-/// `id = None` means we're creating; `id = Some(_)` means editing.
+/// `is_edit = true` means we're editing an existing guardian; the template
+/// uses `action_url` (pre-computed in Rust) for the form target and swaps
+/// its heading / submit-button label accordingly.
 #[derive(Template)]
 #[template(path = "guardians/form.html")]
 struct FormPage<'a> {
@@ -80,8 +82,10 @@ struct FormPage<'a> {
     nav_items: Vec<&'static NavItem>,
     /// Sticky form values so validation errors don't wipe user input.
     form: &'a GuardianForm,
-    /// `None` for create, `Some(id)` for edit — controls the form action.
-    id: Option<i64>,
+    /// Where the form posts to (list URL for create, item URL for update).
+    action_url: String,
+    /// True when editing; drives copy on the page.
+    is_edit: bool,
     error: Option<&'a str>,
 }
 
@@ -299,14 +303,19 @@ fn render_form(
     id: Option<i64>,
     error: Option<&str>,
 ) -> Result<Response, WebError> {
-    let title = if id.is_some() { "Edit guardian" } else { "New guardian" };
+    let is_edit = id.is_some();
+    let title = if is_edit { "Edit guardian" } else { "New guardian" };
+    let action_url = match id {
+        Some(gid) => format!("/web/{}/guardians/{}", ts.tenant.as_str(), gid),
+        None      => format!("/web/{}/guardians",     ts.tenant.as_str()),
+    };
     let nav = NavContext::new(
         session.display.clone(),
         ts.tenant.as_str().to_string(),
         "guardians", title,
     );
     let nav_items = visible_nav_items(session);
-    render(&FormPage { nav: &nav, nav_items, form, id, error })
+    render(&FormPage { nav: &nav, nav_items, form, action_url, is_edit, error })
 }
 
 fn redirect(to: &str) -> Response {
