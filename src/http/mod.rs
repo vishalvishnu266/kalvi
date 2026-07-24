@@ -4,7 +4,6 @@ pub mod admin;
 pub mod web;
 pub mod portal;
 
-use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use sqlx::SqlitePool;
