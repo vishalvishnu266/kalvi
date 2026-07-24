@@ -59,10 +59,3 @@ pub async fn build_tenant_services(
     Ok(AppServices::from_repos_with_auth(repos, auth))
 }
 
-pub fn tenant_db_path(root: &std::path::Path, tenant: &TenantId) -> PathBuf {
-    root.join(format!("{}.db", tenant.as_str()))
-}
-
-pub fn tenant_db_url(path: &std::path::Path) -> String {
-    format!("sqlite://{}", path.display())
-}

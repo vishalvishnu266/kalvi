@@ -1,6 +1,7 @@
 use std::time::Duration;
 use std::path::PathBuf;
 
+#[derive(Clone, Debug)]
 pub struct Config {
     pub db_dir: PathBuf,
     pub bind_addr: String,
@@ -36,5 +37,13 @@ impl Config {
 
     pub fn tenant_db_root(&self) -> PathBuf {
         self.db_dir.join("tenants")
+    }
+
+    pub fn tenant_db_path(&self, tenant_id: &crate::tenancy::TenantId) -> PathBuf {
+        self.tenant_db_root().join(format!("{}.db", tenant_id.as_str()))
+    }
+
+    pub fn tenant_db_url(&self, tenant_id: &crate::tenancy::TenantId) -> String {
+        format!("sqlite://{}", self.tenant_db_path(tenant_id).display())
     }
 }

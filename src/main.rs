@@ -31,7 +31,7 @@ std::fs::create_dir_all(&config.db_dir).ok();
     let sessions = school_erp::session::SessionStore::open(&session_db_url).await?;
     let session_pool_for_shutdown = sessions.pool_clone();
 
-    let state = AppState::new(system, sessions, config.tenant_db_root());
+    let state = AppState::new(system, sessions, config.clone());
     let state_for_shutdown = state.clone();
 
 tracing::debug!("main: building router");

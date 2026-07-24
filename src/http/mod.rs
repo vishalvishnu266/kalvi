@@ -12,7 +12,7 @@ use sqlx::SqlitePool;
 
 use crate::system::SystemRegistry;
 use crate::session::SessionStore;
-use crate::tenancy::{TenantId, TenantError, build_tenant_services, tenant_db_path, tenant_db_url};
+use crate::tenancy::{TenantId, TenantError, build_tenant_services};
 use crate::services::AppServices;
 use crate::db;
 
@@ -22,31 +22,32 @@ struct TenantEntry {
     services: AppServices,
 }
 
+use crate::Config;
+
 #[derive(Clone)]
 pub struct AppState {
     pub system: SystemRegistry,
     pub sessions: SessionStore,
-    pub tenant_db_root: PathBuf,
+    pub config: Config,
     pub tenants: Arc<RwLock<HashMap<TenantId, TenantEntry>>>,
 }
 
 impl AppState {
-    pub fn new(system: SystemRegistry, sessions: SessionStore, tenant_db_root: PathBuf) -> Self {
+    pub fn new(system: SystemRegistry, sessions: SessionStore, config: Config) -> Self {
         Self {
             system,
             sessions,
-            tenant_db_root,
+            config,
             tenants: Arc::new(RwLock::new(HashMap::new())),
         }
     }
 
     pub async fn services_for(&self, tenant: &TenantId) -> Result<AppServices, TenantError> {
-
         if let Some(entry) = self.tenants.read().await.get(tenant).cloned() {
             return Ok(entry.services);
         }
 
-let path = tenant_db_path(&self.tenant_db_root, tenant);
+        let path = self.config.tenant_db_path(tenant);
         if !path.exists() {
             return Err(TenantError::NotFound(tenant.clone()));
         }
@@ -57,7 +58,7 @@ let path = tenant_db_path(&self.tenant_db_root, tenant);
             return Ok(entry.services);
         }
 
-        let url = tenant_db_url(&path);
+        let url = self.config.tenant_db_url(tenant);
         let pool = db::connect(&url).await.map_err(TenantError::from)?;
 
 db::migrate(&pool).await.map_err(TenantError::from)?;
@@ -80,8 +81,7 @@ db::migrate(&pool).await.map_err(TenantError::from)?;
         if self.tenants.read().await.contains_key(&tenant) {
             return Ok(());
         }
-        let path = tenant_db_path(&self.tenant_db_root, &tenant);
-        let url = tenant_db_url(&path);
+        let url = self.config.tenant_db_url(tenant);
         let pool = db::connect(&url).await?;
         db::migrate(&pool).await?;
         let services = build_tenant_services(&pool, self.sessions.clone()).await?;
