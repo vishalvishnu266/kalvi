@@ -2,6 +2,7 @@ use axum::{
     routing::{delete, get, post, put},
     Router,
 };
+use crate::http::AppState;
 
 use crate::api::{
     academic as ac, admin as adm, attendance as at, audit as au, auth as ath,
@@ -11,7 +12,7 @@ use crate::api::{
     transport as tr,
 };
 
-pub fn admin_api() -> Router {
+pub fn admin_api() -> Router<AppState> {
     Router::new()
         .route("/tenants",                      get(adm::list).post(adm::create))
         .route("/tenants/{tenant_id}",          get(adm::get_one).put(adm::update).delete(adm::soft_delete))
@@ -19,7 +20,7 @@ pub fn admin_api() -> Router {
         .route("/tenants/{tenant_id}/disable",  post(adm::disable))
 }
 
-pub fn tenant_api() -> Router {
+pub fn tenant_api() -> Router<AppState> {
     Router::new()
 
         .route("/auth/register",         post(ath::register))

@@ -15,7 +15,7 @@ use serde::Deserialize;
 use crate::http::{AppState, TenantScope};
 use crate::middleware::auth::{read_cookie_from_headers, SessionUser};
 use crate::repositories::students::Student;
-use crate::services::people::Scope;
+use crate::services::{AppServices, people::Scope};
 use crate::system::{NewPortalMembership, NewPortalUser};
 use crate::tenancy::{tenant_services_for, TenantId};
 use crate::web::error::{render, WebError};
@@ -213,7 +213,7 @@ pub async fn post_link_tenant(
     };
     let tid = TenantId::new(f.tenant.trim().to_string())
         .map_err(|e| WebError::bad(e.to_string()))?;
-    let services = tenant_services_for(&state.tenants, &tid).await
+    let services: AppServices = tenant_services_for(&state.tenants, &tid).await
         .map_err(|e| WebError::bad(format!("tenant unavailable: {e}")))?;
     let user = services.auth.login(&f.identifier, &f.password).await
         .map_err(|_| WebError::forbidden("invalid tenant credentials"))?;
@@ -297,13 +297,14 @@ async fn build_membership_views(state: &AppState, portal_user_id: i64) -> Result
             Ok(v) => v,
             Err(_) => continue,
         };
-        let services = match tenant_services_for(&state.tenants, &tid).await {
+        let services: AppServices = match tenant_services_for(&state.tenants, &tid).await {
             Ok(v) => v,
             Err(_) => continue,
         };
         let students = if m.role == "guardian" {
             let ids = services.repos.guardians.students_of_user(m.tenant_user_id).await?;
-            services.repos.students.list_by_ids(&ids).await?
+            let student_list: Vec<Student> = services.repos.students.list_by_ids(&ids).await?;
+            student_list
                 .into_iter()
                 .map(map_student)
                 .collect::<Vec<_>>()

@@ -27,7 +27,7 @@ pub struct AppState {
     pub system: SystemRegistry,
     pub sessions: SessionStore,
     pub tenant_db_root: PathBuf,
-    tenants: Arc<RwLock<HashMap<TenantId, TenantEntry>>>,
+    pub tenants: Arc<RwLock<HashMap<TenantId, TenantEntry>>>,
 }
 
 impl AppState {
