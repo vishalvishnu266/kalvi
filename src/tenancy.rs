@@ -64,5 +64,5 @@ pub fn tenant_db_path(root: &std::path::Path, tenant: &TenantId) -> PathBuf {
 }
 
 pub fn tenant_db_url(path: &std::path::Path) -> String {
-    format!("sqlite:
+    format!("sqlite://{}", path.display())
 }
