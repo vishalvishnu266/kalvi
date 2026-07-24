@@ -1,5 +1,3 @@
-//! Discipline incidents.
-
 use chrono::{NaiveDate, NaiveDateTime};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, SqlitePool};

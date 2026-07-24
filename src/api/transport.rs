@@ -1,5 +1,3 @@
-//! `/api/{tenant}/transport/*` handlers.
-
 use axum::{extract::Path, http::StatusCode, Json};
 use serde::Deserialize;
 

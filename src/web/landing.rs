@@ -1,9 +1,3 @@
-//! Public marketing / landing page for `/`.
-//!
-//! * If the visitor already has an `erp_tenant` session cookie, we redirect
-//!   them straight into their tenant app shell at `/web/{tenant}/`.
-//! * Otherwise we render a small SaaS landing page with a "Sign in" CTA.
-
 use askama::Template;
 use axum::{
     http::HeaderMap,

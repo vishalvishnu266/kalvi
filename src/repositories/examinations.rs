@@ -1,12 +1,8 @@
-//! Exams, exam schedules, grading scales, and results.
-
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, SqlitePool};
 
 use crate::error::{RepoError, RepoResult};
-
-// ---------- Grading Scale ----------
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct GradingScale {
@@ -65,8 +61,6 @@ impl GradingScaleRepo {
     }
 }
 
-// ---------- Exam ----------
-
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct Exam {
     pub id: i64,
@@ -112,8 +106,6 @@ impl ExamRepo {
         ).bind(term_id).fetch_all(&self.pool).await?)
     }
 }
-
-// ---------- Exam schedule ----------
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct ExamSchedule {
@@ -185,8 +177,6 @@ impl ExamScheduleRepo {
     }
 }
 
-// ---------- Result ----------
-
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct ExamResult {
     pub id: i64,
@@ -254,8 +244,7 @@ impl ExamResultRepo {
         ).bind(exam_schedule_id).fetch_all(&self.pool).await?)
     }
 
-    /// Simple report card: (subject_id, marks, max) for a whole exam.
-    pub async fn report_card(
+pub async fn report_card(
         &self, student_id: i64, exam_id: i64,
     ) -> RepoResult<Vec<(i64, Option<f64>, f64)>> {
         let rows: Vec<(i64, Option<f64>, f64)> = sqlx::query_as(

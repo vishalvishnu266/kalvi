@@ -1,11 +1,7 @@
-//! Reference data: grades, sections, rooms, subjects.
-
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, SqlitePool};
 
 use crate::error::{RepoError, RepoResult};
-
-// ---------- Grade ----------
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct Grade {
@@ -55,8 +51,6 @@ impl GradeRepo {
     }
 }
 
-// ---------- Section ----------
-
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct Section {
     pub id: i64,
@@ -88,8 +82,6 @@ impl SectionRepo {
             .fetch_all(&self.pool).await?)
     }
 }
-
-// ---------- Room ----------
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct Room {
@@ -139,8 +131,6 @@ impl RoomRepo {
         Ok(())
     }
 }
-
-// ---------- Subject ----------
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct Subject {

@@ -1,12 +1,8 @@
-//! Library: books and issues.
-
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, SqlitePool};
 
 use crate::error::{RepoError, RepoResult};
-
-// ---------- Book ----------
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct Book {
@@ -83,8 +79,6 @@ impl BookRepo {
     }
 }
 
-// ---------- Book issue ----------
-
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct BookIssue {
     pub id: i64,
@@ -112,8 +106,7 @@ pub struct BookIssueRepo { pool: SqlitePool }
 impl BookIssueRepo {
     pub fn new(pool: SqlitePool) -> Self { Self { pool } }
 
-    /// Issue a copy of a book, decrementing `book.available`.
-    pub async fn issue(&self, i: &IssueBook) -> RepoResult<BookIssue> {
+pub async fn issue(&self, i: &IssueBook) -> RepoResult<BookIssue> {
         if i.student_id.is_none() && i.staff_id.is_none() {
             return Err(RepoError::validation("student_id or staff_id required"));
         }
@@ -145,8 +138,7 @@ impl BookIssueRepo {
         self.get(id).await
     }
 
-    /// Return an issued book. Optionally apply a fine (cents).
-    pub async fn return_book(
+pub async fn return_book(
         &self, issue_id: i64, returned_on: NaiveDate, fine_cents: i64,
     ) -> RepoResult<()> {
         if fine_cents < 0 {

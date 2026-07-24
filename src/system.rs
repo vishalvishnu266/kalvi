@@ -1,9 +1,3 @@
-//! Control-plane ("system") database + `SystemRegistry`.
-//!
-//! Holds a global list of tenants (name, status, plan) that gate whether a
-//! given `TenantId` is allowed at request time. Kept in its own SQLite file
-//! (default `data/system.db`) with its own migration set under `migrations_system/`.
-
 use std::str::FromStr;
 use std::time::Duration;
 
@@ -14,8 +8,6 @@ use sqlx::{FromRow, SqlitePool};
 
 use crate::error::{RepoError, RepoResult};
 use crate::tenancy::TenantId;
-
-// -------- Pool + migrations --------
 
 pub async fn connect_system(url: &str) -> RepoResult<SqlitePool> {
     tracing::debug!("connect_system: connecting to {}", url);
@@ -39,14 +31,12 @@ pub async fn migrate_system(pool: &SqlitePool) -> RepoResult<()> {
     Ok(())
 }
 
-// -------- Types --------
-
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct Tenant {
     pub id: i64,
     pub tenant_id: String,
     pub name: String,
-    pub status: String,     // active | disabled | deleted
+    pub status: String,
     pub plan: Option<String>,
     pub notes: Option<String>,
     pub created_at: NaiveDateTime,
@@ -105,9 +95,6 @@ pub struct NewPortalMembership {
     pub role: String,
 }
 
-// -------- Registry --------
-
-/// Repository-plus-service for the control-plane tenants table.
 #[derive(Clone)]
 pub struct SystemRegistry {
     pool: SqlitePool,
@@ -120,13 +107,10 @@ impl SystemRegistry {
     }
     pub fn pool(&self) -> &SqlitePool { &self.pool }
 
-    /// Clone the underlying pool handle. Cheap (`Arc` clone) and needed by
-    /// [`crate::shutdown::close_pools`] so the system DB can be closed as
-    /// part of graceful shutdown.
-    pub fn pool_clone(&self) -> SqlitePool { self.pool.clone() }
+pub fn pool_clone(&self) -> SqlitePool { self.pool.clone() }
 
     pub async fn create(&self, t: &NewTenant) -> RepoResult<Tenant> {
-        // Validate tenant_id format up-front.
+
         let _ = TenantId::new(&t.tenant_id)
             .map_err(|e| RepoError::validation(e.to_string()))?;
 
@@ -183,7 +167,7 @@ impl SystemRegistry {
     }
 
     pub async fn delete(&self, id: i64) -> RepoResult<()> {
-        // Soft delete — actual file cleanup is a separate ops task.
+
         self.set_status(id, "deleted").await
     }
 

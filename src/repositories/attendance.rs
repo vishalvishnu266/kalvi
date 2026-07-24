@@ -1,12 +1,8 @@
-//! Attendance and leave requests (student + staff).
-
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, SqlitePool};
 
 use crate::error::{RepoError, RepoResult};
-
-// ---------- Student attendance ----------
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct StudentAttendance {
@@ -36,8 +32,7 @@ pub struct StudentAttendanceRepo { pool: SqlitePool }
 impl StudentAttendanceRepo {
     pub fn new(pool: SqlitePool) -> Self { Self { pool } }
 
-    /// Upsert a single attendance row (student+date is unique).
-    pub async fn mark(&self, m: &MarkStudent) -> RepoResult<StudentAttendance> {
+pub async fn mark(&self, m: &MarkStudent) -> RepoResult<StudentAttendance> {
         let id = sqlx::query_scalar::<_, i64>(
             r#"INSERT INTO student_attendance
                  (student_id, class_section_id, date, status, remarks, marked_by_staff_id)
@@ -58,8 +53,7 @@ impl StudentAttendanceRepo {
             .bind(id).fetch_one(&self.pool).await.map_err(Into::into)
     }
 
-    /// Batch upsert (single transaction).
-    pub async fn mark_bulk(&self, marks: &[MarkStudent]) -> RepoResult<usize> {
+pub async fn mark_bulk(&self, marks: &[MarkStudent]) -> RepoResult<usize> {
         let mut tx = self.pool.begin().await?;
         for m in marks {
             sqlx::query(
@@ -100,8 +94,7 @@ impl StudentAttendanceRepo {
         ).bind(class_section_id).bind(date).fetch_all(&self.pool).await?)
     }
 
-    /// Attendance percentage in a date range: present + late + half_day count as attended.
-    pub async fn percentage(
+pub async fn percentage(
         &self, student_id: i64, from: NaiveDate, to: NaiveDate,
     ) -> RepoResult<f64> {
         let (present, total): (Option<i64>, Option<i64>) = sqlx::query_as(
@@ -117,8 +110,6 @@ impl StudentAttendanceRepo {
         Ok(if t == 0.0 { 0.0 } else { (p / t) * 100.0 })
     }
 }
-
-// ---------- Staff attendance ----------
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct StaffAttendance {
@@ -171,12 +162,10 @@ impl StaffAttendanceRepo {
     }
 }
 
-// ---------- Leave requests ----------
-
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct LeaveRequest {
     pub id: i64,
-    pub subject_id: i64,   // student_id or staff_id, resolved via kind
+    pub subject_id: i64,
     pub from_date: NaiveDate,
     pub to_date: NaiveDate,
     pub reason: Option<String>,

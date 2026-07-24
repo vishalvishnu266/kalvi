@@ -1,6 +1,3 @@
-//! Communication workflows: publish an announcement + fan out notifications
-//! to the recipient audience.
-
 use std::sync::Arc;
 
 use crate::repositories::Repositories;
@@ -15,14 +12,10 @@ pub struct CommunicationService {
 impl CommunicationService {
     pub fn new(repos: Arc<Repositories>) -> Self { Self { repos } }
 
-    /// Publish an announcement and (best-effort) push notifications to matching
-    /// user accounts. Returns the announcement + how many notifications were
-    /// pushed.
-    pub async fn broadcast(&self, a: NewAnnouncement) -> ServiceResult<(Announcement, u64)> {
+pub async fn broadcast(&self, a: NewAnnouncement) -> ServiceResult<(Announcement, u64)> {
         let ann = self.repos.announcements.publish(&a).await?;
 
-        // Fan-out target users depending on audience.
-        let user_ids: Vec<i64> = match ann.audience.as_str() {
+let user_ids: Vec<i64> = match ann.audience.as_str() {
             "all" => sqlx::query_scalar("SELECT id FROM user_account WHERE is_active = 1")
                 .fetch_all(&self.repos.pool).await?,
             "students" => sqlx::query_scalar(

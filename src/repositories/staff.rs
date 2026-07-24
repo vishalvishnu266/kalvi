@@ -1,5 +1,3 @@
-//! Staff (teachers, admin, support) and departments.
-
 use chrono::{NaiveDate, NaiveDateTime};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, SqlitePool};
@@ -138,8 +136,6 @@ impl StaffRepo {
         Ok(())
     }
 }
-
-// ---------- Department ----------
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct Department {

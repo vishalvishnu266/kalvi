@@ -1,6 +1,3 @@
-//! Timetable workflows: upsert a slot with sanity checks
-//! (subject must be taught in the class, teacher must be assigned to the subject).
-
 use std::sync::Arc;
 
 use crate::repositories::Repositories;
@@ -29,9 +26,7 @@ impl TimetableService {
             }
         }
 
-        // The DB already prevents teacher/room double booking via partial unique
-        // indexes; propagate the error naturally on conflict.
-        Ok(self.repos.timetable.upsert(&s).await?)
+Ok(self.repos.timetable.upsert(&s).await?)
     }
 
     pub async fn class_grid(&self, class_section_id: i64) -> ServiceResult<Vec<TimetableSlot>> {

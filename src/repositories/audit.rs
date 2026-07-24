@@ -1,5 +1,3 @@
-//! Audit log: append-only trail of user actions.
-
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, SqlitePool};
@@ -24,7 +22,7 @@ pub struct NewAudit {
     pub user_id: Option<i64>,
     pub entity: String,
     pub entity_id: i64,
-    pub action: String,   // create|update|delete|login|logout|export
+    pub action: String,
     pub diff_json: Option<serde_json::Value>,
     pub ip_address: Option<String>,
     pub user_agent: Option<String>,

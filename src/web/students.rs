@@ -1,12 +1,3 @@
-//! Students list + detail pages: `/web/{tenant}/students[/{id}]`.
-//!
-//! ### RBAC
-//! The route layer already guarantees the caller holds either
-//! `students.view` or `students.view_own`. Here we translate the session
-//! into a [`Scope`] so the list only returns rows the caller is allowed to
-//! see (parents get their own children, students get themselves, admins get
-//! everyone), and the detail handler verifies ownership before rendering.
-
 use askama::Template;
 use axum::{
     extract::{Path, Query},
@@ -23,8 +14,6 @@ use crate::services::perm;
 use crate::web::error::{render, WebError};
 use crate::web::layout::{visible_nav_items, NavContext, NavItem};
 
-// ------------- list -------------
-
 #[derive(Template)]
 #[template(path = "students/list.html")]
 struct StudentsListPage<'a> {
@@ -32,9 +21,8 @@ struct StudentsListPage<'a> {
     nav_items: Vec<&'static NavItem>,
     q: &'a str,
     rows: Vec<StudentRow>,
-    /// Passed through so the template can `{% if can_admit %}...{% endif %}`
-    /// the "Admit student" CTA. Set from the caller's permissions.
-    can_admit: bool,
+
+can_admit: bool,
 }
 
 pub struct StudentRow {
@@ -54,7 +42,7 @@ pub async fn list(
     Query(qp): Query<ListParams>,
     Extension(session): Extension<SessionUser>,
 ) -> Result<Response, WebError> {
-    // Row-level filter driven by the caller's roles/permissions.
+
     let scope = Scope::from_session(&session);
     let students: Vec<Student> = tscope.services.people
         .list_students_for(scope, 50).await?;
@@ -89,8 +77,6 @@ pub async fn list(
     render(&StudentsListPage { nav: &nav, nav_items, q: &q, rows, can_admit })
 }
 
-// ------------- detail -------------
-
 #[derive(Template)]
 #[template(path = "students/show.html")]
 struct StudentShowPage<'a> {
@@ -111,10 +97,8 @@ pub async fn show(
     Path((_tenant, id)): Path<(String, i64)>,
     Extension(session): Extension<SessionUser>,
 ) -> Result<Response, WebError> {
-    // Ownership check: a parent must be linked to this student, a student
-    // user must be viewing their own profile, admins/staff-with-view pass
-    // straight through. Anything else → 403.
-    let scope = Scope::from_session(&session);
+
+let scope = Scope::from_session(&session);
     if !tscope.services.people.can_view_student(&scope, id).await? {
         return Err(WebError::forbidden("not permitted to view this student"));
     }
@@ -146,8 +130,6 @@ pub async fn show(
     let can_edit = session.has(perm::STUDENTS_EDIT);
     render(&StudentShowPage { nav: &nav, nav_items, student, tabs, can_edit })
 }
-
-// ------------- helpers -------------
 
 fn display_name(s: &Student) -> String {
     let mid = s.middle_name.as_deref().map(|m| format!(" {m}")).unwrap_or_default();

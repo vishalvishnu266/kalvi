@@ -10,68 +10,36 @@ use axum::extract::Path;
 use crate::http::AppState;
 use crate::tenancy::{tenant_services_for, TenantId};
 
-/// Cookie names.
-///
-/// * `erp_tenant`  — remembers which tenant the user last signed into so
-///   the landing page can auto-redirect to `/web/{tenant}/`.
-/// * `erp_user`    — display-only cookie (used by the sidebar to render
-///   the user's name without a DB hit). NOT authoritative.
-/// * `erp_session` — opaque server-side session token; the ONLY cookie
-///   the auth gate trusts.
 pub const COOKIE_TENANT: &str = "erp_tenant";
 pub const COOKIE_USER: &str = "erp_user";
 pub const COOKIE_SESSION: &str = "erp_session";
 
-/// Authenticated caller info, attached to the request by [`require_session`]
-/// and read by handlers via `Extension<SessionUser>`.
-///
-/// `roles` and `permissions` are hydrated once per request from the tenant DB
-/// so downstream handlers, templates, and nav filters can call `has(...)`
-/// without additional queries.
 #[derive(Clone, Debug)]
 pub struct SessionUser {
     pub user_id: i64,
     pub username: String,
     pub display: String,
     pub session_id: i64,
-    /// Role names the user holds (e.g. `["admin"]`, `["guardian"]`,
-    /// `["teacher","class_teacher"]`).
-    pub roles: Vec<String>,
-    /// Flattened permission codes granted via all held roles.
+
+pub roles: Vec<String>,
+
     pub permissions: HashSet<String>,
 }
 
 impl SessionUser {
-    /// True if the user has the exact permission code.
+
     pub fn has(&self, code: &str) -> bool {
         self.permissions.contains(code)
     }
 
-    /// True if the user has *any* of the given permission codes. Convenient
-    /// for screens that accept either a "view" or a "view_own" variant.
-    pub fn any_of(&self, codes: &[&str]) -> bool {
+pub fn any_of(&self, codes: &[&str]) -> bool {
         codes.iter().any(|c| self.has(c))
     }
 
-    /// True if the user holds the named role.
-    pub fn is_role(&self, r: &str) -> bool {
+pub fn is_role(&self, r: &str) -> bool {
         self.roles.iter().any(|x| x == r)
     }
 }
-
-/// Auth gate for the tenant-scoped app shell (`/web/{tenant}/…`).
-///
-/// Rules, evaluated top-down:
-/// 1. Pull the `{tenant}` segment from the URL. If absent, we can't scope
-///    the check — redirect to the global login.
-/// 2. Require an `erp_session` cookie. Missing → redirect to
-///    `/web/{tenant}/login`.
-/// 3. Resolve the session against the tenant-scoped session backend.
-///    Unknown / revoked / expired → redirect to login.
-/// 4. Stash the resolved user into the request extensions so downstream
-///    handlers can read it via [`SessionUser`] without a second DB hit.
-// Shell guards moved to src/http/{web,portal}/middleware.rs
-// global check_perm remains for require_perm! macro
 
 pub async fn check_perm(
     codes: &'static [&'static str],
@@ -91,23 +59,6 @@ pub async fn check_perm(
     }
 }
 
-/// Ergonomic wrapper around [`check_perm`] for use with `.route_layer(...)`.
-///
-/// Expands to a fresh `axum::middleware::from_fn(...)` closure per invocation,
-/// which sidesteps the "closure captures a non-'static reference" issue that
-/// pops up when trying to build the same layer through a plain function.
-///
-/// # Example
-/// ```ignore
-/// use crate::{middleware::auth::require_perm, services::perm};
-///
-/// Router::new()
-///     .route("/staff", get(handler))
-///     .route_layer(require_perm!(perm::STAFF_VIEW));
-///
-/// // Multiple codes — passes if session has *any* of them:
-/// .route_layer(require_perm!(perm::FEES_VIEW, perm::FEES_VIEW_OWN))
-/// ```
 #[macro_export]
 macro_rules! require_perm {
     ( $($code:expr),+ $(,)? ) => {{
@@ -163,7 +114,6 @@ fn url_tenant_from_prefix(path: &str, prefix: &str) -> Option<String> {
     Some(seg.to_string())
 }
 
-/// Reads a cookie value from a headermap. Returns `None` if missing.
 pub fn read_cookie_from_headers(headers: &HeaderMap, name: &str) -> Option<String> {
     let raw = headers.get(header::COOKIE)?.to_str().ok()?;
     for kv in raw.split(';') {

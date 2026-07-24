@@ -1,12 +1,8 @@
-//! Communication: announcements, direct messages, notifications.
-
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, SqlitePool};
 
 use crate::error::{RepoError, RepoResult};
-
-// ---------- Announcement ----------
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct Announcement {
@@ -78,8 +74,6 @@ impl AnnouncementRepo {
     }
 }
 
-// ---------- Direct message ----------
-
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct Message {
     pub id: i64,
@@ -129,8 +123,6 @@ impl MessageRepo {
         Ok(())
     }
 }
-
-// ---------- Notification ----------
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct Notification {

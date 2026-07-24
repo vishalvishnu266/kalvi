@@ -1,8 +1,3 @@
-//! `/api/{tenant}/auth/*` — per-tenant authentication handlers.
-//!
-//! Routing lives in [`crate::http::routes`]. This file only holds the
-//! `pub async fn` handlers.
-
 use axum::{http::StatusCode, Json};
 use serde::Deserialize;
 

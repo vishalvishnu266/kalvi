@@ -1,5 +1,3 @@
-//! Hostel workflows: allocate, transfer between rooms, vacate.
-
 use std::sync::Arc;
 
 use chrono::NaiveDate;
@@ -19,7 +17,7 @@ impl HostelService {
     pub async fn allocate(
         &self, student_id: i64, hostel_room_id: i64, from_date: NaiveDate,
     ) -> ServiceResult<HostelAllocation> {
-        // Repo already checks capacity + closes prior allocation.
+
         Ok(self.repos.hostel_allocations
             .allocate(student_id, hostel_room_id, from_date).await?)
     }

@@ -1,5 +1,3 @@
-//! `/api/{tenant}/library/*` handlers.
-
 use axum::{extract::{Path, Query}, http::StatusCode, Json};
 use serde::Deserialize;
 

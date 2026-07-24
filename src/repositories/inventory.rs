@@ -1,12 +1,8 @@
-//! Inventory: vendors, items, stock movements, purchase orders.
-
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, SqlitePool};
 
 use crate::error::{RepoError, RepoResult};
-
-// ---------- Vendor ----------
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct Vendor {
@@ -45,8 +41,6 @@ impl VendorRepo {
             .fetch_all(&self.pool).await?)
     }
 }
-
-// ---------- Item ----------
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct Item {
@@ -95,13 +89,11 @@ impl ItemRepo {
     }
 }
 
-// ---------- Stock movements ----------
-
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct StockMovement {
     pub id: i64,
     pub item_id: i64,
-    pub movement: String,   // in | out | adjust
+    pub movement: String,
     pub quantity: i64,
     pub reason: Option<String>,
     pub ref_type: Option<String>,
@@ -125,8 +117,7 @@ pub struct StockMovementRepo { pool: SqlitePool }
 impl StockMovementRepo {
     pub fn new(pool: SqlitePool) -> Self { Self { pool } }
 
-    /// Record a movement and adjust `item.stock_qty` atomically.
-    pub async fn record(&self, m: &NewMovement) -> RepoResult<StockMovement> {
+pub async fn record(&self, m: &NewMovement) -> RepoResult<StockMovement> {
         if m.quantity == 0 {
             return Err(RepoError::validation("quantity cannot be 0"));
         }
@@ -172,8 +163,6 @@ impl StockMovementRepo {
         ).bind(item_id).bind(limit).fetch_all(&self.pool).await?)
     }
 }
-
-// ---------- Purchase Order ----------
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct PurchaseOrder {
@@ -254,8 +243,7 @@ impl PurchaseOrderRepo {
         Ok(())
     }
 
-    /// When a PO is received, increment stock for each line via stock_movement.
-    pub async fn receive(&self, id: i64) -> RepoResult<()> {
+pub async fn receive(&self, id: i64) -> RepoResult<()> {
         let mut tx = self.pool.begin().await?;
 
         let lines: Vec<(i64, i64)> = sqlx::query_as(

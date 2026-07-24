@@ -1,6 +1,5 @@
 use thiserror::Error;
 
-/// Single error type used across all repositories.
 #[derive(Debug, Error)]
 pub enum RepoError {
     #[error("record not found")]

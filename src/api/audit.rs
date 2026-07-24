@@ -1,5 +1,3 @@
-//! `/api/{tenant}/audit/*` — read-only audit trail queries.
-
 use axum::{extract::{Path, Query}, Json};
 use serde::Deserialize;
 

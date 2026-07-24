@@ -1,28 +1,3 @@
-//! Service layer.
-//!
-//! Services sit on top of the repository layer and encapsulate **business
-//! workflows** — anything that touches more than one repo, needs domain
-//! validation beyond FK/CHECK constraints, or turns raw persistence into a
-//! user-facing operation (e.g. "admit student", "receive payment", "generate
-//! payslip", "receive purchase order").
-//!
-//! Repositories are still exposed via [`AppServices::repos`] so callers can
-//! do simple reads directly.
-//!
-//! ## Request context
-//!
-//! [`AppServices`] is **tenant-scoped and cached** by the tenant registry;
-//! per-request state (current user, roles, request id, trace id, actor kind)
-//! lives in a separate [`RequestCtx`] value that is built per request by
-//! HTTP middleware (or manually by background jobs / CLI / tests) and passed
-//! as a parameter to any service method that needs to know *who* is doing
-//! *what* and *from where*.
-//!
-//! This keeps `AppServices` immutable and shareable across concurrent
-//! requests while still giving service methods a first-class way to see the
-//! caller. Adoption is incremental — start by threading `&RequestCtx` into
-//! new methods and into ones that need auditing, authorization or tracing.
-
 use std::sync::Arc;
 
 use sqlx::SqlitePool;
@@ -53,8 +28,6 @@ pub mod people;
 pub mod timetable;
 pub mod transport;
 
-/// Service-layer error. Wraps [`RepoError`] and adds
-/// service-specific failure modes (auth failed, business rule violated, etc.).
 #[derive(Debug, Error)]
 pub enum ServiceError {
     #[error("not found")]
@@ -90,8 +63,6 @@ impl ServiceError {
 
 pub type ServiceResult<T> = Result<T, ServiceError>;
 
-/// Aggregator that holds every service. Cheap to clone (all state is behind
-/// `Arc`), so wire this into your HTTP/CLI layer as shared state.
 #[derive(Clone)]
 pub struct AppServices {
     pub repos: Arc<Repositories>,
@@ -116,11 +87,8 @@ pub struct AppServices {
 }
 
 impl AppServices {
-    // AppServices::new(pool) removed. 
-    // Use AppServices::from_repos_with_auth(repos, auth) instead, 
-    // ensuring AuthService is initialized with the shared SessionStore.
 
-    pub fn from_repos_with_auth(
+pub fn from_repos_with_auth(
         repos: Arc<Repositories>,
         auth: auth::AuthService,
     ) -> Self {
@@ -147,62 +115,47 @@ impl AppServices {
     }
 }
 
-/// Canonical RBAC permission catalogue.
-///
-/// Every module/screen action that can be authorized has a `pub const` here.
-/// The exact same string values are inserted by
-/// `migrations/20260720120019_seed_rbac.sql`, so this module and that
-/// migration must be kept in lock-step — treat them as one unit.
-///
-/// Convention: `"<module>.<action>"`. Actions ending in `_own` indicate a
-/// row-scoped variant (e.g. a parent seeing only their own child's rows).
-///
-/// Usage:
-/// ```ignore
-/// use crate::services::perm;
-/// if session.has(perm::STUDENTS_EDIT) { … }
-/// ```
 pub mod perm {
-    // ~ students
+
     pub const STUDENTS_VIEW:      &str = "students.view";
     pub const STUDENTS_VIEW_OWN:  &str = "students.view_own";
     pub const STUDENTS_EDIT:      &str = "students.edit";
     pub const STUDENTS_ADMIT:     &str = "students.admit";
-    // ~ staff
+
     pub const STAFF_VIEW:         &str = "staff.view";
     pub const STAFF_EDIT:         &str = "staff.edit";
     pub const STAFF_HIRE:         &str = "staff.hire";
-    // ~ academic
+
     pub const ACADEMIC_VIEW:      &str = "academic.view";
     pub const ACADEMIC_MANAGE:    &str = "academic.manage";
-    // ~ attendance
+
     pub const ATTENDANCE_VIEW:      &str = "attendance.view";
     pub const ATTENDANCE_VIEW_OWN:  &str = "attendance.view_own";
     pub const ATTENDANCE_MARK:      &str = "attendance.mark";
-    // ~ timetable
+
     pub const TIMETABLE_VIEW:     &str = "timetable.view";
     pub const TIMETABLE_MANAGE:   &str = "timetable.manage";
-    // ~ fees
+
     pub const FEES_VIEW:      &str = "fees.view";
     pub const FEES_VIEW_OWN:  &str = "fees.view_own";
     pub const FEES_COLLECT:   &str = "fees.collect";
     pub const FEES_PAY:       &str = "fees.pay";
-    // ~ examinations
+
     pub const EXAMINATIONS_VIEW:         &str = "examinations.view";
     pub const EXAMINATIONS_VIEW_OWN:     &str = "examinations.view_own";
     pub const EXAMINATIONS_MANAGE:       &str = "examinations.manage";
     pub const EXAMINATIONS_ENTER_MARKS:  &str = "examinations.enter_marks";
-    // ~ payroll
+
     pub const PAYROLL_VIEW:      &str = "payroll.view";
     pub const PAYROLL_VIEW_OWN:  &str = "payroll.view_own";
     pub const PAYROLL_RUN:       &str = "payroll.run";
-    // ~ guardians
+
     pub const GUARDIANS_VIEW:    &str = "guardians.view";
     pub const GUARDIANS_MANAGE:  &str = "guardians.manage";
-    // ~ communication
+
     pub const COMMUNICATION_VIEW:      &str = "communication.view";
     pub const COMMUNICATION_BROADCAST: &str = "communication.broadcast";
-    // ~ library / transport / hostel / inventory / health / discipline / documents
+
     pub const LIBRARY_VIEW:       &str = "library.view";
     pub const LIBRARY_MANAGE:     &str = "library.manage";
     pub const TRANSPORT_VIEW:     &str = "transport.view";
@@ -217,14 +170,12 @@ pub mod perm {
     pub const DISCIPLINE_MANAGE:  &str = "discipline.manage";
     pub const DOCUMENTS_VIEW:     &str = "documents.view";
     pub const DOCUMENTS_MANAGE:   &str = "documents.manage";
-    // ~ audit / settings
+
     pub const AUDIT_VIEW:         &str = "audit.view";
     pub const SETTINGS_VIEW:      &str = "settings.view";
     pub const SETTINGS_MANAGE:    &str = "settings.manage";
 }
 
-/// Convention: services that need chart-of-accounts codes look them up by
-/// these constants; they match the seed migration `017_seed_reference_data.sql`.
 pub mod ledger_codes {
     pub const CASH: &str            = "1000";
     pub const BANK: &str            = "1010";

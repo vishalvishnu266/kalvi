@@ -1,12 +1,8 @@
-//! Hostel: buildings, rooms, and student allocations.
-
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, SqlitePool};
 
 use crate::error::{RepoError, RepoResult};
-
-// ---------- Hostel ----------
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct Hostel {
@@ -39,8 +35,6 @@ impl HostelRepo {
             .fetch_all(&self.pool).await?)
     }
 }
-
-// ---------- Hostel room ----------
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct HostelRoom {
@@ -85,8 +79,6 @@ impl HostelRoomRepo {
     }
 }
 
-// ---------- Allocation ----------
-
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct HostelAllocation {
     pub id: i64,
@@ -107,8 +99,7 @@ impl HostelAllocationRepo {
     ) -> RepoResult<HostelAllocation> {
         let mut tx = self.pool.begin().await?;
 
-        // Check room capacity.
-        let (cap, occ): (i64, i64) = sqlx::query_as(
+let (cap, occ): (i64, i64) = sqlx::query_as(
             r#"SELECT hr.capacity,
                       (SELECT COUNT(*) FROM hostel_allocation
                         WHERE hostel_room_id = hr.id AND to_date IS NULL)
@@ -117,8 +108,7 @@ impl HostelAllocationRepo {
          .ok_or(RepoError::NotFound)?;
         if occ >= cap { return Err(RepoError::conflict("room is full")); }
 
-        // Close any existing active allocation for the student.
-        sqlx::query(
+sqlx::query(
             r#"UPDATE hostel_allocation
                  SET to_date = date(?, '-1 day')
                WHERE student_id = ? AND to_date IS NULL"#,

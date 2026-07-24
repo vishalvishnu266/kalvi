@@ -1,21 +1,3 @@
-//! Top-level application router assembly.
-//!
-//! Design rules for this module:
-//!
-//! * **Path-based tenancy.** The tenant id is always a URL path segment
-//!   (`/api/{tenant}/…`, `/web/{tenant}/…`). No headers, no cookies, no
-//!   subdomains are consulted to route to a tenant DB.
-//! * **No middleware in the tenant pipeline.** Handlers get their tenant +
-//!   [`AppServices`] via a single small extractor, [`TenantScope`], that
-//!   validates the `{tenant}` path segment and looks the entry up in the
-//!   [`TenantRegistry`]. That's it — no `tower` middleware, no request
-//!   extensions plumbing.
-//! * **Top-level wiring lives here; API URL wiring lives in**
-//!   [`crate::http::api_routes`]. Handlers remain in their per-domain files
-//!   (`src/api/*.rs`, `src/web/*.rs`).
-//! * **Only one `tower` layer remains** — `NormalizePathLayer` — so `/x/`
-//!   and `/x` both match (works around axum#3233).
-
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
@@ -36,13 +18,6 @@ use crate::middleware::auth as wam;
 use crate::middleware::tracing as wtr;
 pub use crate::middleware::tenant::TenantScope;
 
-// ============================================================================
-// AppState + API error response mapping
-// ============================================================================
-
-// AppState moved to src/http/mod.rs
-
-/// Backward-compatible alias used by API handler signatures.
 pub type ServiceHttpError = ServiceError;
 
 impl IntoResponse for ServiceError {
@@ -65,49 +40,12 @@ impl IntoResponse for ServiceError {
     }
 }
 
-
-// ============================================================================
-// build_router — the single view of every URL in the app.
-// ============================================================================
-
-/// Assemble the whole application router.
-///
-/// Layout (top-down, all in one place):
-///
-/// ```text
-///   /                              → web landing page
-///   /assets/{*path}                → embedded static assets
-///   /api/health                    → { "ok" }
-///   /api/live | /api/ready         → k8s probes
-///
-///   /admin/api/tenants             → control-plane list / create
-///   /admin/api/tenants/{id}        → get / update / delete
-///   /admin/api/tenants/{id}/enable | /disable
-///   /portal/login | /portal/register → global portal auth
-///   /portal                        → cross-tenant portal hub
-///
-///   /api/{tenant}/…                → per-tenant JSON API (19 modules)
-///
-///   /web/login | /web/logout       → global sign-in
-///   /web/{tenant}/login            → tenant-locked sign-in
-///   /web/{tenant}/                 → dashboard launcher (session-gated)
-///   /web/{tenant}/students[/{id}]  → students screen (session-gated)
-///   /web/{tenant}/{module}         → placeholder stub screens (session-gated)
-///
-///   /portal/{tenant}/login         → tenant-locked portal sign-in
-///   /portal/{tenant}/              → parent/student portal home
-///   /portal/{tenant}/students      → parent/student student list
-/// ```
-///
-/// Returns `NormalizePath<Router>` so trailing slashes are trimmed *before*
-/// axum routes.
 pub fn build_router(state: AppState, readiness: Readiness) -> Router {
     tracing::debug!("build_router: assembling application router");
-    
+
     let tenant_api = api_routes::tenant_api();
 
-    // Global public routes: landing, assets.
-    let global = Router::new()
+let global = Router::new()
         .route("/",               get(wl::index))
         .route("/assets/{*path}", get(wa::serve));
 
@@ -117,8 +55,7 @@ pub fn build_router(state: AppState, readiness: Readiness) -> Router {
     let web_tenant = crate::http::web::routes(state.clone());
     let portal_tenant = crate::http::portal::routes(state.clone());
 
-    // ------------------------------------------------------------ assemble
-    tracing::debug!("build_router: finalizing assembly and adding middleware");
+tracing::debug!("build_router: finalizing assembly and adding middleware");
     let router = Router::new()
         .route("/api/health", get(|| async { "ok" }))
         .route("/api/live",   get(probe_live))
@@ -137,8 +74,6 @@ pub fn build_router(state: AppState, readiness: Readiness) -> Router {
     tracing::debug!("build_router: router assembly complete");
     router
 }
-
-// ---------------- probe handlers (kept local to routes.rs) ----------------
 
 async fn probe_live() -> impl IntoResponse {
     (StatusCode::OK, Json(serde_json::json!({ "status": "alive" })))

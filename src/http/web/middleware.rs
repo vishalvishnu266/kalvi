@@ -19,12 +19,12 @@ pub async fn require_session(
 ) -> Response {
     let t_str = params.get("tenant").map(|s| s.as_str())
         .ok_or_else(|| Redirect::to("/web/login").into_response());
-    
+
     let t_str = match t_str {
         Ok(t) => t,
         Err(r) => return r,
     };
-    
+
     let login_url = format!("/web/{}/login", t_str);
 
     let Ok(tenant) = TenantId::new(t_str.to_string()) else {
@@ -70,7 +70,7 @@ pub async fn require_staff_shell(
     next: Next,
 ) -> Response {
     let user = req.extensions().get::<SessionUser>();
-    
+
     if let Some(_) = user {
         return next.run(req).await;
     }

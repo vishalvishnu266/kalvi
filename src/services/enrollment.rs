@@ -1,5 +1,3 @@
-//! Student ↔ class movements: enroll, transfer, close.
-
 use std::sync::Arc;
 
 use chrono::NaiveDate;
@@ -16,9 +14,8 @@ pub struct EnrollmentService {
 impl EnrollmentService {
     pub fn new(repos: Arc<Repositories>) -> Self { Self { repos } }
 
-    /// Enroll a student into a class section, honouring capacity.
-    pub async fn enroll(&self, e: NewEnrollment) -> ServiceResult<Enrollment> {
-        // Capacity guard (unique(student, year) is enforced by DB, but capacity is app-level).
+pub async fn enroll(&self, e: NewEnrollment) -> ServiceResult<Enrollment> {
+
         let cs = self.repos.class_sections.get(e.class_section_id).await?;
         if let Some(cap) = cs.capacity {
             let filled = self.repos.class_sections.student_count(cs.id).await?;
@@ -29,9 +26,7 @@ impl EnrollmentService {
         Ok(self.repos.enrollments.enroll(&e).await?)
     }
 
-    /// Move a student mid-year from one class section to another
-    /// (closes the current enrollment, opens a new one).
-    pub async fn transfer(
+pub async fn transfer(
         &self, student_id: i64, to_class_section_id: i64, effective: NaiveDate,
     ) -> ServiceResult<Enrollment> {
         let year = self.repos.academic_years.current().await?;
@@ -43,11 +38,7 @@ impl EnrollmentService {
             return Err(ServiceError::validation("already in target class"));
         }
 
-        // The DB enforces UNIQUE(student, year), so we cannot open a *second*
-        // row for the same year. Instead we log the transfer via the audit
-        // trail (below) and switch the class on the same enrollment row,
-        // clearing the close we just did.
-        sqlx::query(
+sqlx::query(
             "UPDATE enrollment SET left_on = NULL, result = NULL, class_section_id = ? WHERE id = ?",
         )
         .bind(to_class_section_id).bind(current.id)

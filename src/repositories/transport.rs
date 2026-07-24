@@ -1,12 +1,8 @@
-//! Transport: vehicles, routes, stops, and student assignments.
-
 use chrono::{NaiveDate, NaiveTime};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, SqlitePool};
 
 use crate::error::{RepoError, RepoResult};
-
-// ---------- Vehicle ----------
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct Vehicle {
@@ -50,8 +46,6 @@ impl VehicleRepo {
         Ok(())
     }
 }
-
-// ---------- Route + stops ----------
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct Route {
@@ -124,8 +118,6 @@ impl RouteRepo {
         ).bind(route_id).fetch_all(&self.pool).await?)
     }
 }
-
-// ---------- Student transport ----------
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct StudentTransport {

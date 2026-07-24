@@ -1,31 +1,3 @@
-//! Guardians CRUD screens at `/web/{tenant}/guardians[/...]`.
-//!
-//! This is the reference implementation for a "full CRUD" web module in
-//! this codebase — every new module should follow the same shape:
-//!
-//!   * `list`             — GET  `/guardians`
-//!   * `new_form`         — GET  `/guardians/new`
-//!   * `create`           — POST `/guardians`
-//!   * `show`             — GET  `/guardians/{id}`
-//!   * `edit_form`        — GET  `/guardians/{id}/edit`
-//!   * `update`           — POST `/guardians/{id}` (form uses `_method=put`)
-//!   * `delete`           — POST `/guardians/{id}/delete`
-//!
-//! RBAC:
-//!   * `guardians.view`   — required for list / show.
-//!   * `guardians.manage` — required for new / create / edit / update / delete.
-//!     Route-level `require_perm!` gates enforce this; templates also
-//!     hide the CTAs via `can_manage` for a clean UI.
-//!
-//! Data flow:
-//!   * All reads go through `GuardianRepo` directly (no row scoping for the
-//!     directory view — see `docs/RBAC.md` for the guardian *portal* case,
-//!     which is a separate `Scope::GuardianOfUser` flow on the students
-//!     module).
-//!   * Writes go through `PeopleService` where present, otherwise the repo,
-//!     so validation and audit can be added later without touching the
-//!     handler shape.
-
 use askama::Template;
 use axum::{
     body::Body,
@@ -42,10 +14,6 @@ use crate::repositories::guardians::{Guardian, NewGuardian, UpdateGuardian};
 use crate::services::perm;
 use crate::web::error::{render, WebError};
 use crate::web::layout::{visible_nav_items, NavContext, NavItem};
-
-// =============================================================================
-// Templates
-// =============================================================================
 
 #[derive(Template)]
 #[template(path = "guardians/list.html")]
@@ -64,34 +32,24 @@ struct ShowPage<'a> {
     nav: &'a NavContext,
     nav_items: Vec<&'static NavItem>,
     g: &'a Guardian,
-    /// Students currently linked to this guardian, for the "Linked students"
-    /// panel. Empty when the guardian has no children on file.
-    linked: Vec<crate::repositories::students::Student>,
+
+linked: Vec<crate::repositories::students::Student>,
     can_manage: bool,
 }
 
-/// Single template shared by the "new" and "edit" screens.
-///
-/// `is_edit = true` means we're editing an existing guardian; the template
-/// uses `action_url` (pre-computed in Rust) for the form target and swaps
-/// its heading / submit-button label accordingly.
 #[derive(Template)]
 #[template(path = "guardians/form.html")]
 struct FormPage<'a> {
     nav: &'a NavContext,
     nav_items: Vec<&'static NavItem>,
-    /// Sticky form values so validation errors don't wipe user input.
+
     form: &'a GuardianForm,
-    /// Where the form posts to (list URL for create, item URL for update).
+
     action_url: String,
-    /// True when editing; drives copy on the page.
+
     is_edit: bool,
     error: Option<&'a str>,
 }
-
-// =============================================================================
-// Form model
-// =============================================================================
 
 #[derive(Deserialize, Default, Clone)]
 pub struct GuardianForm {
@@ -115,9 +73,7 @@ impl GuardianForm {
         }
     }
 
-    /// Basic validation — returns the first problem (if any) as a message
-    /// that can be shown inline above the form.
-    fn validate(&self) -> Option<&'static str> {
+fn validate(&self) -> Option<&'static str> {
         if self.first_name.trim().is_empty() { return Some("First name is required"); }
         if self.last_name.trim().is_empty()  { return Some("Last name is required"); }
         None
@@ -136,10 +92,8 @@ impl GuardianForm {
     }
 
     fn to_update(&self) -> UpdateGuardian {
-        // Every field is `Some(_)` because the form always sends every input.
-        // Empty strings for nullable columns are normalized to NULL by the
-        // repo, so submitting "" clears the value.
-        UpdateGuardian {
+
+UpdateGuardian {
             first_name: Some(self.first_name.trim().to_string()),
             last_name:  Some(self.last_name.trim().to_string()),
             phone:      Some(self.phone.trim().to_string()),
@@ -155,14 +109,9 @@ fn opt(s: &str) -> Option<String> {
     if t.is_empty() { None } else { Some(t.to_string()) }
 }
 
-// =============================================================================
-// Handlers
-// =============================================================================
-
 #[derive(Deserialize)]
 pub struct ListQuery { pub q: Option<String>, pub flash: Option<String> }
 
-/// GET `/guardians` — directory view.
 pub async fn list(
     ts: TenantScope,
     axum::extract::Query(qp): axum::extract::Query<ListQuery>,
@@ -193,7 +142,6 @@ pub async fn list(
     })
 }
 
-/// GET `/guardians/{id}` — profile view.
 pub async fn show(
     ts: TenantScope,
     Path((_t, id)): Path<(String, i64)>,
@@ -217,7 +165,6 @@ pub async fn show(
     render(&ShowPage { nav: &nav, nav_items, g: &g, linked, can_manage })
 }
 
-/// GET `/guardians/new` — empty form.
 pub async fn new_form(
     ts: TenantScope,
     Extension(session): Extension<SessionUser>,
@@ -226,7 +173,6 @@ pub async fn new_form(
     render_form(&ts, &session, &form, None, None)
 }
 
-/// POST `/guardians` — create.
 pub async fn create(
     ts: TenantScope,
     Extension(session): Extension<SessionUser>,
@@ -244,7 +190,6 @@ pub async fn create(
     }
 }
 
-/// GET `/guardians/{id}/edit` — form pre-filled with existing data.
 pub async fn edit_form(
     ts: TenantScope,
     Path((_t, id)): Path<(String, i64)>,
@@ -255,7 +200,6 @@ pub async fn edit_form(
     render_form(&ts, &session, &form, Some(id), None)
 }
 
-/// POST `/guardians/{id}` — update.
 pub async fn update(
     ts: TenantScope,
     Path((_t, id)): Path<(String, i64)>,
@@ -274,13 +218,6 @@ pub async fn update(
     }
 }
 
-/// POST `/guardians/{id}/delete` — remove.
-///
-/// A POST endpoint (not DELETE) so it can be triggered by a standard HTML
-/// form without JavaScript. Ownership is enforced by RBAC
-/// (`guardians.manage`); business rules like "can't delete a primary
-/// guardian while children still enrolled" would go in `PeopleService`
-/// when we add them.
 pub async fn delete(
     ts: TenantScope,
     Path((_t, id)): Path<(String, i64)>,
@@ -291,10 +228,6 @@ pub async fn delete(
         ts.tenant.as_str()
     )))
 }
-
-// =============================================================================
-// Helpers
-// =============================================================================
 
 fn render_form(
     ts: &TenantScope,

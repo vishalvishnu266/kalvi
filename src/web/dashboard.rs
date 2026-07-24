@@ -1,8 +1,3 @@
-//! Tenant home: OS-style menu launcher at `/web/{tenant}/`.
-//!
-//! Tiles are RBAC-filtered per request via [`visible_tiles`] so a signed-in
-//! parent or teacher only sees the modules they can actually open.
-
 use askama::Template;
 use axum::{response::Response, Extension};
 
@@ -20,10 +15,6 @@ struct MenuPage<'a> {
     tiles: Vec<&'static Tile>,
 }
 
-/// A single launcher tile on the home screen.
-///
-/// `perm` mirrors the RBAC gate on [`NavItem`]: `None` = always visible,
-/// `Some(codes)` = visible when the current session holds *any* of the codes.
 pub struct Tile {
     pub href: &'static str,
     pub label: &'static str,
@@ -57,7 +48,6 @@ fn tiles() -> &'static [Tile] {
     ]
 }
 
-/// Return the tiles the current session is allowed to launch.
 fn visible_tiles(session: &SessionUser) -> Vec<&'static Tile> {
     tiles()
         .iter()

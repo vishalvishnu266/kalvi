@@ -1,5 +1,3 @@
-//! `/api/{tenant}/fees/*` handlers.
-
 use axum::{extract::{Path, Query}, http::StatusCode, Json};
 use serde::Deserialize;
 
@@ -8,8 +6,6 @@ use crate::repositories::fees::{
     FeeCategory, FeeDiscount, FeeInvoice, FeeInvoiceLine, FeePayment, FeeStructure,
     FeeStructureItem, NewPayment, NewStructureItem,
 };
-
-// -------- categories --------
 
 pub async fn list_categories(scope: TenantScope)
     -> Result<Json<Vec<FeeCategory>>, ServiceHttpError>
@@ -20,8 +16,6 @@ pub async fn list_categories(scope: TenantScope)
 pub async fn create_category(scope: TenantScope, Json(b): Json<NameBody>)
     -> Result<Json<FeeCategory>, ServiceHttpError>
 { Ok(Json(scope.services.repos.fee_categories.create(&b.name).await?)) }
-
-// -------- structures --------
 
 #[derive(Deserialize)] pub struct NewStruct { academic_year_id: i64, grade_id: i64, name: String }
 
@@ -40,8 +34,6 @@ pub async fn add_item(scope: TenantScope, Path((_t, id)): Path<(String, i64)>, J
 pub async fn list_items(scope: TenantScope, Path((_t, id)): Path<(String, i64)>)
     -> Result<Json<Vec<FeeStructureItem>>, ServiceHttpError>
 { Ok(Json(scope.services.repos.fee_structures.items(id).await?)) }
-
-// -------- invoices --------
 
 #[derive(Deserialize)]
 pub struct GenerateInvoice {
@@ -100,8 +92,6 @@ pub async fn aging(scope: TenantScope, Query(q): Query<Today>)
     })))
 }
 
-// -------- payments --------
-
 pub async fn record_payment(scope: TenantScope, Json(b): Json<NewPayment>)
     -> Result<Json<FeePayment>, ServiceHttpError>
 { Ok(Json(scope.services.fees.record_payment(b).await?)) }
@@ -109,8 +99,6 @@ pub async fn record_payment(scope: TenantScope, Json(b): Json<NewPayment>)
 pub async fn payments_for_invoice(scope: TenantScope, Path((_t, id)): Path<(String, i64)>)
     -> Result<Json<Vec<FeePayment>>, ServiceHttpError>
 { Ok(Json(scope.services.repos.payments.for_invoice(id).await?)) }
-
-// -------- discounts --------
 
 pub async fn grant_discount(scope: TenantScope, Json(b): Json<FeeDiscount>)
     -> Result<Json<serde_json::Value>, ServiceHttpError>
@@ -122,8 +110,6 @@ pub async fn grant_discount(scope: TenantScope, Json(b): Json<FeeDiscount>)
 pub async fn discounts_for_student(scope: TenantScope, Path((_t, sid)): Path<(String, i64)>)
     -> Result<Json<Vec<FeeDiscount>>, ServiceHttpError>
 { Ok(Json(scope.services.repos.discounts.for_student(sid).await?)) }
-
-// -------- ledger --------
 
 #[derive(Deserialize)] pub struct AsOf { as_of: chrono::NaiveDate }
 

@@ -1,15 +1,9 @@
-//! `/api/{tenant}/academic/*` handlers.
-//!
-//! Routing lives in [`crate::http::routes`].
-
 use axum::{extract::Path, http::StatusCode, Json};
 
 use crate::http::{ServiceHttpError, TenantScope};
 use crate::repositories::academic_structure::{Grade, NewRoom, NewSubject, Room, Section, Subject};
 use crate::repositories::class_enrollment::{ClassSection, ClassSubject, NewClassSection};
 use crate::repositories::core::{AcademicYear, NewAcademicYear, NewTerm, Term};
-
-// -------- years --------
 
 pub async fn list_years(scope: TenantScope)
     -> Result<Json<Vec<AcademicYear>>, ServiceHttpError>
@@ -43,8 +37,6 @@ pub async fn create_term(
     Ok(Json(scope.services.repos.terms.create(&b).await?))
 }
 
-// -------- reference data --------
-
 pub async fn list_grades(scope: TenantScope)
     -> Result<Json<Vec<Grade>>, ServiceHttpError>
 { Ok(Json(scope.services.repos.grades.list().await?)) }
@@ -68,8 +60,6 @@ pub async fn list_subjects(scope: TenantScope)
 pub async fn create_subject(scope: TenantScope, Json(b): Json<NewSubject>)
     -> Result<Json<Subject>, ServiceHttpError>
 { Ok(Json(scope.services.repos.subjects.create(&b).await?)) }
-
-// -------- class sections --------
 
 pub async fn create_class_section(scope: TenantScope, Json(b): Json<NewClassSection>)
     -> Result<Json<ClassSection>, ServiceHttpError>

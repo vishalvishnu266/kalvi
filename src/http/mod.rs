@@ -1,5 +1,3 @@
-//! Thin HTTP layer.
-
 pub mod api_routes;
 pub mod routes;
 pub mod admin;
@@ -43,32 +41,30 @@ impl AppState {
     }
 
     pub async fn services_for(&self, tenant: &TenantId) -> Result<AppServices, TenantError> {
-        // 1. Fast path: read lock
+
         if let Some(entry) = self.tenants.read().await.get(tenant).cloned() {
             return Ok(entry.services);
         }
 
-        // 2. Slow path: check disk and connect
-        let path = tenant_db_path(&self.tenant_db_root, tenant);
+let path = tenant_db_path(&self.tenant_db_root, tenant);
         if !path.exists() {
             return Err(TenantError::NotFound(tenant.clone()));
         }
 
         let mut guard = self.tenants.write().await;
-        // Double-check
+
         if let Some(entry) = guard.get(tenant).cloned() {
             return Ok(entry.services);
         }
 
         let url = tenant_db_url(&path);
         let pool = db::connect(&url).await.map_err(TenantError::from)?;
-        
-        // Always auto-migrate
-        db::migrate(&pool).await.map_err(TenantError::from)?;
+
+db::migrate(&pool).await.map_err(TenantError::from)?;
 
         let services = build_tenant_services(&pool, self.sessions.clone()).await.map_err(TenantError::from)?;
         let entry = TenantEntry { pool, services: services.clone() };
-        
+
         guard.insert(tenant.clone(), entry);
         Ok(services)
     }

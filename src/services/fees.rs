@@ -1,11 +1,3 @@
-//! Fee workflows:
-//!
-//! * `generate_invoice_for_student` — derives lines from the grade's fee
-//!   structure and applies any student-level discount.
-//! * `record_payment` — records the payment, updates invoice status, AND
-//!   posts a balanced journal entry (Dr Cash, Cr Receivable) to the ledger.
-//! * Aging + collection reports.
-
 use std::sync::Arc;
 
 use chrono::NaiveDate;
@@ -24,9 +16,7 @@ pub struct FeeService {
 impl FeeService {
     pub fn new(repos: Arc<Repositories>) -> Self { Self { repos } }
 
-    /// Build an invoice for a student from the fee structure attached to
-    /// their current class's grade, applying any active discount.
-    pub async fn generate_invoice_for_student(
+pub async fn generate_invoice_for_student(
         &self,
         student_id: i64,
         fee_structure_id: i64,
@@ -41,8 +31,7 @@ impl FeeService {
             return Err(ServiceError::validation("fee structure has no items"));
         }
 
-        // Fetch active discounts for the student (as-of `issue_date`).
-        let discounts = self.repos.discounts.for_student(student_id).await?;
+let discounts = self.repos.discounts.for_student(student_id).await?;
         let today = issue_date;
         let mut percent_off = 0.0_f64;
         let mut flat_off_cents = 0_i64;
@@ -56,8 +45,7 @@ impl FeeService {
         }
         if percent_off > 100.0 { percent_off = 100.0; }
 
-        // Build invoice lines from structure items.
-        let lines: Vec<NewInvoiceLine> = items.into_iter().map(|it| {
+let lines: Vec<NewInvoiceLine> = items.into_iter().map(|it| {
             let pct_cents = ((it.amount_cents as f64) * percent_off / 100.0).round() as i64;
             NewInvoiceLine {
                 fee_category_id: it.fee_category_id,
@@ -78,8 +66,7 @@ impl FeeService {
             lines,
         };
 
-        // Apply flat discount by piling it into the first line's discount.
-        if flat_off_cents > 0 {
+if flat_off_cents > 0 {
             if let Some(l) = invoice.lines.first_mut() {
                 l.discount_cents = l.discount_cents.saturating_add(flat_off_cents);
             }
@@ -88,13 +75,10 @@ impl FeeService {
         Ok(self.repos.invoices.create(&invoice).await?)
     }
 
-    /// Record a payment; also posts a balanced journal to the ledger.
-    /// Journal: Dr Cash/Bank, Cr Accounts Receivable.
-    pub async fn record_payment(&self, p: NewPayment) -> ServiceResult<FeePayment> {
+pub async fn record_payment(&self, p: NewPayment) -> ServiceResult<FeePayment> {
         let payment = self.repos.payments.record(&p).await?;
 
-        // Post ledger entry (best-effort — accounts may not exist in a fresh DB).
-        let accounts = self.repos.ledger.accounts().await?;
+let accounts = self.repos.ledger.accounts().await?;
         let cash = accounts.iter().find(|a| a.code == ledger_codes::CASH);
         let bank = accounts.iter().find(|a| a.code == ledger_codes::BANK);
         let recv = accounts.iter().find(|a| a.code == ledger_codes::RECEIVABLE);
@@ -122,13 +106,11 @@ impl FeeService {
         Ok(payment)
     }
 
-    /// Total outstanding across all invoices for a student.
-    pub async fn outstanding(&self, student_id: i64) -> ServiceResult<i64> {
+pub async fn outstanding(&self, student_id: i64) -> ServiceResult<i64> {
         Ok(self.repos.invoices.outstanding(student_id).await?)
     }
 
-    /// Aging bucket helper (0-30, 31-60, 61-90, 90+).
-    pub async fn aging(&self, today: NaiveDate) -> ServiceResult<(i64,i64,i64,i64)> {
+pub async fn aging(&self, today: NaiveDate) -> ServiceResult<(i64,i64,i64,i64)> {
         let overdue = self.repos.invoices.overdue(today).await?;
         let (mut b0, mut b30, mut b60, mut b90) = (0, 0, 0, 0);
         for inv in overdue {

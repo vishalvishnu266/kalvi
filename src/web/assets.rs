@@ -1,8 +1,3 @@
-//! Embedded static assets served from `/assets/{*path}`.
-//!
-//! Uses `rust-embed` so the binary is single-file. In debug builds the
-//! `debug-embed` feature reads from disk for hot-reload.
-
 use axum::{
     body::Body,
     extract::Path,

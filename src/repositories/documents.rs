@@ -1,8 +1,3 @@
-//! Document attachments (polymorphic owner).
-//!
-//! The `owner_type/owner_id` pair is validated here at the Rust layer since
-//! SQLite cannot express polymorphic foreign keys.
-
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, SqlitePool};
@@ -47,7 +42,7 @@ impl DocumentRepo {
         if !OWNER_TYPES.contains(&d.owner_type.as_str()) {
             return Err(RepoError::validation("invalid owner_type"));
         }
-        // Optional soft-check that the owner row exists (best-effort).
+
         let owner_exists = match d.owner_type.as_str() {
             "student"  => Self::exists(&self.pool, "student", d.owner_id).await?,
             "staff"    => Self::exists(&self.pool, "staff", d.owner_id).await?,

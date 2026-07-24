@@ -1,5 +1,3 @@
-//! `/api/{tenant}/health/*` — student clinic records.
-
 use axum::{extract::Path, Json};
 use serde::Deserialize;
 

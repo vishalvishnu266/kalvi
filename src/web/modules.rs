@@ -1,7 +1,3 @@
-//! Placeholder "Coming soon" screens for ERP modules not yet fully
-//! implemented. One handler per module — routing lives in
-//! [`crate::http::routes`].
-
 use askama::Template;
 use axum::{response::Response, Extension};
 
@@ -94,7 +90,6 @@ async fn render_stub(key: &'static str, scope: TenantScope, session: SessionUser
     render(&StubPage { nav: &nav, nav_items, module })
 }
 
-// One thin handler per stub module. Routes are wired in `http::routes`.
 macro_rules! stub_handler {
     ($name:ident, $key:literal) => {
         pub async fn $name(

@@ -1,7 +1,3 @@
-//! Health workflows: record vitals, vaccinations, clinic visits.
-//!
-//! Also computes a BMI category for convenience.
-
 use std::sync::Arc;
 
 use chrono::NaiveDate;

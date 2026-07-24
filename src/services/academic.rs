@@ -1,6 +1,3 @@
-//! Academic lifecycle: create years/terms, roll the school over to a new year,
-//! promote entire classes.
-
 use std::sync::Arc;
 
 use chrono::NaiveDate;
@@ -17,13 +14,11 @@ pub struct AcademicService {
 impl AcademicService {
     pub fn new(repos: Arc<Repositories>) -> Self { Self { repos } }
 
-    /// Create a new academic year and, optionally, mark it current.
-    pub async fn create_year(&self, y: NewAcademicYear) -> ServiceResult<AcademicYear> {
+pub async fn create_year(&self, y: NewAcademicYear) -> ServiceResult<AcademicYear> {
         Ok(self.repos.academic_years.create(&y).await?)
     }
 
-    /// Roll over: mark the new year current AND create the standard terms.
-    pub async fn rollover(
+pub async fn rollover(
         &self, new_year: NewAcademicYear, terms: Vec<NewTerm>,
     ) -> ServiceResult<AcademicYear> {
         let year = self.repos.academic_years.create(&new_year).await?;
@@ -35,8 +30,7 @@ impl AcademicService {
         Ok(year)
     }
 
-    /// Convenience: current academic year or error.
-    pub async fn current_year(&self) -> ServiceResult<AcademicYear> {
+pub async fn current_year(&self) -> ServiceResult<AcademicYear> {
         Ok(self.repos.academic_years.current().await?)
     }
 
@@ -44,10 +38,7 @@ impl AcademicService {
         Ok(self.repos.terms.list_for_year(year_id).await?)
     }
 
-    /// Bulk promote all "promoted" enrollments in the given class to the
-    /// corresponding class in the target year. Returns the number of students
-    /// promoted.
-    pub async fn promote_class(
+pub async fn promote_class(
         &self, from_class_id: i64, to_class_id: i64, to_year_id: i64, enrolled_on: NaiveDate,
     ) -> ServiceResult<u64> {
         if from_class_id == to_class_id {

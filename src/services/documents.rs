@@ -1,5 +1,3 @@
-//! Document attachments: thin wrapper that also records an audit entry.
-
 use std::sync::Arc;
 
 use crate::repositories::Repositories;

@@ -1,5 +1,3 @@
-//! `/api/{tenant}/timetable/*` handlers.
-
 use axum::{extract::Path, http::StatusCode, Json};
 
 use crate::http::{ServiceHttpError, TenantScope};

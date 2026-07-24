@@ -1,11 +1,3 @@
-//! Control-plane handlers: `/admin/api/tenants/*`.
-//!
-//! These operate on the **system DB** only, and also provision the per-tenant
-//! DB (create + migrate) via [`crate::tenancy::TenantRegistry`].
-//!
-//! Routing lives in [`crate::http::routes`] — this file only contains the
-//! handler functions.
-
 use axum::{extract::{Path, State}, http::StatusCode, Json};
 
 use crate::http::AppState;

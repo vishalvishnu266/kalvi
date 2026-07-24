@@ -1,12 +1,9 @@
-//! Error → HTML response mapping for the web layer.
-
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 
 use crate::error::RepoError;
 use crate::services::ServiceError;
 
-/// A minimal wrapper so `?` works in web handlers.
 pub struct WebError(pub StatusCode, pub String);
 
 impl WebError {
@@ -48,7 +45,7 @@ impl From<askama::Error> for WebError {
 impl IntoResponse for WebError {
     fn into_response(self) -> Response {
         let WebError(sc, msg) = self;
-        // For the SPA-style shell we render a small HTML error page.
+
         let body = format!(
             "<div style=\"font-family:-apple-system,BlinkMacSystemFont,sans-serif;\
                         padding:40px;max-width:600px;margin:auto;color:#111\">\
@@ -64,7 +61,6 @@ fn html_escape(s: &str) -> String {
     s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
 }
 
-/// Render an askama template into an `axum` HTML response.
 pub fn render<T: askama::Template>(t: &T) -> Result<Response, WebError> {
     let html = t.render()?;
     Ok((

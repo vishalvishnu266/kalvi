@@ -1,21 +1,3 @@
-//! Web authentication: login form, logout, and a minimal cookie session.
-//!
-//! **Intentionally simple** — the cookie stores only the tenant id and
-//! username so we can render the shell. Password check goes through
-//! [`crate::services::auth`]. Swap for signed sessions / OIDC / etc. later.
-//!
-//! Tenancy is path-based (`/web/{tenant}/…`). The session cookie is an
-//! auth gate only — [`require_session`] verifies the caller is signed in
-//! for the tenant that appears in the URL to stop cross-tenant snooping.
-//!
-//! URL map (routes wired in [`crate::http::routes`]):
-//! * `GET  /web/login`              — global login form.
-//! * `POST /web/login`              — submit login.
-//! * `GET  /web/{tenant}/login`     — tenant-specific login form.
-//! * `GET  /portal/{tenant}/login`  — portal tenant login form.
-//! * `POST /portal/{tenant}/login`  — submit portal login.
-//! * `POST /web/logout`             — clear the session cookies.
-
 use askama::Template;
 use axum::{
     body::Body,
@@ -34,8 +16,6 @@ pub const COOKIE_TENANT: &str = crate::middleware::auth::COOKIE_TENANT;
 pub const COOKIE_USER: &str = crate::middleware::auth::COOKIE_USER;
 pub const COOKIE_SESSION: &str = crate::middleware::auth::COOKIE_SESSION;
 
-// ---------------------------------------------------------------- template
-
 #[derive(Template)]
 #[template(path = "login.html")]
 struct LoginPage<'a> {
@@ -44,8 +24,6 @@ struct LoginPage<'a> {
     identifier: &'a str,
     tenant_locked: bool,
 }
-
-// ---------------------------------------------------------------- handlers
 
 pub async fn get_login() -> Result<Response, WebError> {
     render(&LoginPage { error: None, tenant: "", identifier: "", tenant_locked: false })
@@ -108,7 +86,7 @@ async fn post_login_with_redirect(
 
     match services.auth.login(&f.identifier, &f.password).await {
         Ok(user) => {
-            // Issue a server-side session in the configured tenant session backend.
+
             let session = match services.auth.issue_session(user.id, None, None).await {
                 Ok(s) => s,
                 Err(e) => {
@@ -155,15 +133,11 @@ async fn post_login_with_redirect(
     }
 }
 
-/// Sign out: revoke the current session (server-side) and clear cookies.
-///
-/// Best-effort — if we can't reach the tenant DB (e.g. tenant disabled),
-/// we still clear the cookies client-side and redirect to the login page.
 pub async fn post_logout(
     State(state): State<AppState>,
     headers: HeaderMap,
 ) -> Response {
-    // Try to revoke the session server-side.
+
     let cookie_tenant  = read_cookie_from_headers(&headers, crate::middleware::auth::COOKIE_TENANT);
     let cookie_session = read_cookie_from_headers(&headers, crate::middleware::auth::COOKIE_SESSION);
     if let (Some(tid), Some(token)) = (cookie_tenant, cookie_session) {

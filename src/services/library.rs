@@ -1,6 +1,3 @@
-//! Library workflows: issue with default loan period, return with fine
-//! auto-computed from days overdue and configurable rate.
-
 use std::sync::Arc;
 
 use chrono::NaiveDate;
@@ -9,7 +6,6 @@ use crate::repositories::Repositories;
 use crate::repositories::library::{BookIssue, IssueBook};
 use crate::services::{ServiceError, ServiceResult};
 
-/// Default policy: 14 days loan, ₹5 (=500 cents) per day overdue.
 pub const DEFAULT_LOAN_DAYS: i64 = 14;
 pub const DEFAULT_FINE_PER_DAY_CENTS: i64 = 500;
 
@@ -35,8 +31,7 @@ impl LibraryService {
         self
     }
 
-    /// Issue a book with the default loan period.
-    pub async fn issue_to_student(
+pub async fn issue_to_student(
         &self, book_id: i64, student_id: i64, on: NaiveDate,
     ) -> ServiceResult<BookIssue> {
         let due = on + chrono::Duration::days(self.loan_days);
@@ -56,8 +51,7 @@ impl LibraryService {
         }).await?)
     }
 
-    /// Return a book. Fine = max(0, days_late) * fine_per_day.
-    pub async fn return_book(&self, issue_id: i64, returned_on: NaiveDate) -> ServiceResult<i64> {
+pub async fn return_book(&self, issue_id: i64, returned_on: NaiveDate) -> ServiceResult<i64> {
         let issue = self.repos.book_issues.get(issue_id).await?;
         if issue.returned_on.is_some() {
             return Err(ServiceError::conflict("book already returned"));

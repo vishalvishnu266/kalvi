@@ -7,7 +7,7 @@ use crate::web::admin as wad;
 
 pub fn routes() -> Router<AppState> {
     let admin_api = api_routes::admin_api();
-    
+
     Router::new()
         .route("/",                              get(wad::index))
         .route("/tenants",                       get(wad::list_tenants).post(wad::create_tenant))

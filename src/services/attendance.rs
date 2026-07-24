@@ -1,6 +1,3 @@
-//! Attendance workflows: mark a whole class in one call, compute % for a
-//! student or class.
-
 use std::sync::Arc;
 
 use chrono::NaiveDate;
@@ -25,10 +22,7 @@ pub struct AttendanceService {
 impl AttendanceService {
     pub fn new(repos: Arc<Repositories>) -> Self { Self { repos } }
 
-    /// Mark attendance for a whole class in one transaction.
-    /// Any student in `marks` not in the class roster is rejected up-front
-    /// (so partial data doesn't slip in).
-    pub async fn mark_class(
+pub async fn mark_class(
         &self, class_section_id: i64, date: NaiveDate,
         marks: Vec<BulkMark>, marked_by_staff_id: Option<i64>,
     ) -> ServiceResult<usize> {
@@ -59,8 +53,7 @@ impl AttendanceService {
         Ok(self.repos.student_attendance.mark_bulk(&payload).await?)
     }
 
-    /// Single-student mark (upsert).
-    pub async fn mark_one(&self, m: MarkStudent) -> ServiceResult<StudentAttendance> {
+pub async fn mark_one(&self, m: MarkStudent) -> ServiceResult<StudentAttendance> {
         Ok(self.repos.student_attendance.mark(&m).await?)
     }
 

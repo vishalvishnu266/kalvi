@@ -1,18 +1,4 @@
-//! Repository layer.
-//!
-//! Each submodule exposes typed models and a repository struct that owns a
-//! `SqlitePool` handle. All fallible calls return [`crate::error::RepoResult`].
-//!
-//! Guidelines:
-//! * Money is `i64` cents.
-//! * Dates are `chrono::NaiveDate`; timestamps are `chrono::NaiveDateTime`.
-//! * Enums are exposed as strongly-typed Rust enums with `From/TryFrom<&str>`
-//!   conversions and stored as `TEXT` (matches migration `CHECK` constraints).
-
 use sqlx::SqlitePool;
-
-// Re-exported so services can borrow the underlying pool for cross-cutting SQL.
-
 
 pub mod academic_structure;
 pub mod attendance;
@@ -36,10 +22,9 @@ pub mod students;
 pub mod timetable;
 pub mod transport;
 
-/// A single aggregator you can pass around to your service layer.
 #[derive(Clone)]
 pub struct Repositories {
-    /// Underlying pool, exposed for services that need ad-hoc SQL or transactions.
+
     pub pool: SqlitePool,
 
     pub school: core::SchoolRepo,

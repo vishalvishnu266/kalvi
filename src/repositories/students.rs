@@ -1,5 +1,3 @@
-//! Students.
-
 use chrono::{NaiveDate, NaiveDateTime};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, SqlitePool};
@@ -115,17 +113,10 @@ impl StudentRepo {
         ).bind(limit).bind(offset).fetch_all(&self.pool).await?)
     }
 
-    /// Return the students whose ids appear in `ids`, in a stable
-    /// (last_name, first_name) order. Used by row-scoped screens that have
-    /// already resolved the allowed set (e.g. a parent's own children).
-    ///
-    /// An empty `ids` returns an empty vec without hitting the DB.
-    pub async fn list_by_ids(&self, ids: &[i64]) -> RepoResult<Vec<Student>> {
+pub async fn list_by_ids(&self, ids: &[i64]) -> RepoResult<Vec<Student>> {
         if ids.is_empty() { return Ok(Vec::new()); }
-        // Build `?, ?, ?, …` for the IN clause. `ids` is bounded by the
-        // caller (guardian children / teacher-section rosters), so this is
-        // fine to keep in-line.
-        let placeholders = std::iter::repeat("?").take(ids.len()).collect::<Vec<_>>().join(",");
+
+let placeholders = std::iter::repeat("?").take(ids.len()).collect::<Vec<_>>().join(",");
         let sql = format!(
             "SELECT * FROM student WHERE id IN ({placeholders})
              ORDER BY last_name, first_name",
@@ -135,10 +126,7 @@ impl StudentRepo {
         Ok(q.fetch_all(&self.pool).await?)
     }
 
-    /// Look up a student by the login user id linked in `student.user_id`.
-    /// Used by the student self-service portal to resolve "which student
-    /// row does this signed-in student user own?".
-    pub async fn find_by_user_id(&self, user_id: i64) -> RepoResult<Option<Student>> {
+pub async fn find_by_user_id(&self, user_id: i64) -> RepoResult<Option<Student>> {
         Ok(sqlx::query_as::<_, Student>(
             "SELECT * FROM student WHERE user_id = ? LIMIT 1",
         ).bind(user_id).fetch_optional(&self.pool).await?)

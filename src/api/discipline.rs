@@ -1,5 +1,3 @@
-//! `/api/{tenant}/discipline/*` handlers.
-
 use axum::{extract::{Path, Query}, Json};
 use serde::Deserialize;
 

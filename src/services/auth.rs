@@ -1,10 +1,3 @@
-//! Authentication + authorization:
-//!
-//! * `register` — creates a user with an Argon2-hashed password
-//! * `login`    — verifies a password, touches `last_login_at`, returns the user
-//! * `change_password` — verifies the old password before updating
-//! * `assign_role` / `has_permission` — thin RBAC helpers
-
 use std::sync::Arc;
 
 use argon2::{
@@ -19,7 +12,6 @@ use crate::repositories::auth::{NewSession, NewUser, Session, User};
 use crate::session::SessionStore;
 use crate::services::{ServiceError, ServiceResult};
 
-/// Default web session lifetime. Fine as a starting point; move to config later.
 pub const DEFAULT_SESSION_TTL_DAYS: i64 = 14;
 
 #[derive(Clone)]
@@ -82,8 +74,7 @@ impl AuthService {
         Ok(user)
     }
 
-    /// Login by username-or-email + password. Returns the user on success.
-    pub async fn login(&self, identifier: &str, password: &str) -> ServiceResult<User> {
+pub async fn login(&self, identifier: &str, password: &str) -> ServiceResult<User> {
         let user = if identifier.contains('@') {
             self.repos.users.find_by_email(identifier).await?
         } else {
@@ -113,8 +104,7 @@ impl AuthService {
         Ok(())
     }
 
-    /// Admin-driven password reset (no old-password check).
-    pub async fn reset_password(&self, user_id: i64, new_password: &str) -> ServiceResult<()> {
+pub async fn reset_password(&self, user_id: i64, new_password: &str) -> ServiceResult<()> {
         if new_password.len() < 8 {
             return Err(ServiceError::validation("password must be >= 8 chars"));
         }
@@ -135,8 +125,7 @@ impl AuthService {
         Ok(perms.iter().any(|p| p.code == code))
     }
 
-    /// Convenience gate: returns `Forbidden(code)` if the user lacks the permission.
-    pub async fn require_permission(&self, user_id: i64, code: &str) -> ServiceResult<()> {
+pub async fn require_permission(&self, user_id: i64, code: &str) -> ServiceResult<()> {
         if self.has_permission(user_id, code).await? {
             Ok(())
         } else {
@@ -144,19 +133,14 @@ impl AuthService {
         }
     }
 
-    // ---------------------------------------------------------- sessions
-
-    /// Generate a cryptographically random opaque session token.
-    fn mint_token() -> String {
+fn mint_token() -> String {
         let mut bytes = [0u8; 32];
         OsRng.fill_bytes(&mut bytes);
-        // URL-safe hex; 64 chars, ~256 bits of entropy.
+
         bytes.iter().map(|b| format!("{:02x}", b)).collect()
     }
 
-    /// Issue a new session for `user_id` in the configured tenant session backend.
-    /// Returns the created row so callers can grab the token to set as a cookie.
-    pub async fn issue_session(
+pub async fn issue_session(
         &self,
         user_id: i64,
         user_agent: Option<String>,
@@ -180,29 +164,24 @@ impl AuthService {
         Ok(s)
     }
 
-    /// Resolve a session cookie value into `(session, user)`. Returns
-    /// `Unauthorized` if the token is unknown, revoked, or expired, or
-    /// if the user has been disabled since sign-in.
-    pub async fn resolve_session(&self, token: &str) -> ServiceResult<(Session, User)> {
+pub async fn resolve_session(&self, token: &str) -> ServiceResult<(Session, User)> {
         let session = self.sessions.find_active_by_token(token).await?
             .ok_or(ServiceError::Unauthorized)?;
         let user = self.repos.users.get(session.user_id).await?;
         if !user.is_active {
             return Err(ServiceError::Unauthorized);
         }
-        // Best-effort refresh of last_seen_at; failures shouldn't block the request.
+
         let _ = self.sessions.touch(session.id).await;
         Ok((session, user))
     }
 
-    /// Revoke a specific session (used on logout).
-    pub async fn revoke_session(&self, token: &str) -> ServiceResult<()> {
+pub async fn revoke_session(&self, token: &str) -> ServiceResult<()> {
         self.sessions.revoke_by_token(token).await?;
         Ok(())
     }
 
-    /// Persist session backend state (no-op for tenant-db sessions).
-    pub async fn checkpoint_sessions(&self) -> ServiceResult<()> {
+pub async fn checkpoint_sessions(&self) -> ServiceResult<()> {
         self.sessions.checkpoint().await?;
         Ok(())
     }

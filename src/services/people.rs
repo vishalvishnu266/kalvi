@@ -1,15 +1,3 @@
-//! People workflows: admit a student (optionally in one call with guardian +
-//! current-year enrollment), hire staff, link a login user.
-//!
-//! ## Row-level scoping ([`Scope`])
-//!
-//! RBAC decides *which screens* a caller can visit. `Scope` decides *which
-//! rows* those screens are allowed to return. Handlers derive a `Scope` from
-//! the caller's [`crate::middleware::auth::SessionUser`] (via
-//! [`Scope::from_session`]) and hand it to service methods like
-//! [`PeopleService::list_students_for`]. This keeps the router thin and lets
-//! us evolve the scoping rules in one place per resource.
-
 use std::sync::Arc;
 
 use chrono::NaiveDate;
@@ -23,32 +11,19 @@ use crate::repositories::staff::{NewStaff, Staff};
 use crate::repositories::students::{NewStudent, Student};
 use crate::services::{ServiceError, ServiceResult};
 
-/// Row-level visibility for people-related list/get calls.
-///
-/// The variants are intentionally coarse — one per real-world "who is asking"
-/// pattern — and each one maps to a well-defined DB query. Add new variants
-/// (e.g. `Teacher { class_section_ids }`) as we build out more portals.
 #[derive(Debug, Clone)]
 pub enum Scope {
-    /// See every row (admin / principal / staff with full read).
+
     Global,
-    /// See only students linked to the given guardian *user_id* (parent portal).
+
     GuardianOfUser(i64),
-    /// See only the student row linked to the given login *user_id* (student
-    /// self-service portal).
-    SelfStudent(i64),
+
+SelfStudent(i64),
 }
 
 impl Scope {
-    /// Derive the appropriate scope from a session.
-    ///
-    /// Precedence (widest wins): if a caller has the plain `students.view`
-    /// permission they're `Global`. Otherwise, if they're a `guardian`, they
-    /// get `GuardianOfUser`. Otherwise, if they're a `student`, they get
-    /// `SelfStudent`. Anything else falls through to `GuardianOfUser` with
-    /// their user_id (which will resolve to an empty list) — safer than
-    /// defaulting to `Global`.
-    pub fn from_session(session: &SessionUser) -> Self {
+
+pub fn from_session(session: &SessionUser) -> Self {
         use crate::services::perm::STUDENTS_VIEW;
         if session.has(STUDENTS_VIEW) {
             Scope::Global
@@ -62,14 +37,12 @@ impl Scope {
     }
 }
 
-/// One-shot student admission input.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Admission {
     pub student: NewStudent,
-    pub guardian: Option<(NewGuardian, String /* relationship */, bool /* primary */)>,
-    /// If set, immediately enroll the student in this class section for the
-    /// current academic year.
-    pub enroll_into_class_section: Option<i64>,
+    pub guardian: Option<(NewGuardian, String , bool )>,
+
+pub enroll_into_class_section: Option<i64>,
     pub roll_no: Option<i64>,
     pub enrolled_on: Option<NaiveDate>,
 }
@@ -90,7 +63,7 @@ impl PeopleService {
     pub fn new(repos: Arc<Repositories>) -> Self { Self { repos } }
 
     pub async fn admit(&self, a: Admission) -> ServiceResult<AdmissionResult> {
-        // Reject duplicate admission_no early.
+
         if self.repos.students.find_by_admission_no(&a.student.admission_no).await?.is_some() {
             return Err(ServiceError::conflict("admission_no already exists"));
         }
@@ -153,14 +126,7 @@ impl PeopleService {
         Ok(())
     }
 
-    // -----------------------------------------------------------------
-    // Row-scoped reads
-    // -----------------------------------------------------------------
-
-    /// Return the students the caller is allowed to see, according to
-    /// `scope`. `limit` is applied only to the `Global` case — the scoped
-    /// variants are naturally bounded by the caller's own relationships.
-    pub async fn list_students_for(
+pub async fn list_students_for(
         &self,
         scope: Scope,
         limit: i64,
@@ -180,10 +146,7 @@ impl PeopleService {
         }
     }
 
-    /// True if `scope` is allowed to open the profile of `student_id`.
-    /// Detail-page handlers call this before rendering so a parent can't
-    /// deep-link to another family's child.
-    pub async fn can_view_student(
+pub async fn can_view_student(
         &self,
         scope: &Scope,
         student_id: i64,

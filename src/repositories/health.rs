@@ -1,12 +1,8 @@
-//! Health: health records, vaccinations, clinic visits.
-
 use chrono::{NaiveDate, NaiveDateTime};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, SqlitePool};
 
 use crate::error::{RepoError, RepoResult};
-
-// ---------- Health record ----------
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct HealthRecord {
@@ -55,8 +51,6 @@ impl HealthRecordRepo {
     }
 }
 
-// ---------- Vaccination ----------
-
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct Vaccination {
     pub id: i64,
@@ -90,8 +84,6 @@ impl VaccinationRepo {
         ).bind(student_id).fetch_all(&self.pool).await?)
     }
 }
-
-// ---------- Clinic visit ----------
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct ClinicVisit {

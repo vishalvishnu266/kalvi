@@ -7,15 +7,6 @@ use crate::http::AppState;
 use crate::tenancy::{TenantError, TenantId};
 use crate::services::{AppServices, RequestCtx, Actor};
 
-/// Everything a tenant-scoped handler needs, obtained in one extractor call:
-/// the validated tenant id, the per-tenant [`AppServices`] bundle, and a
-/// fresh [`RequestCtx`].
-///
-/// The extractor:
-/// 1. Pulls the `{tenant}` path segment via `axum::extract::Path`.
-/// 2. Validates it with [`TenantId::new`] (charset + length).
-/// 3. Asks the [`TenantRegistry`] for the cached `AppServices` (or lazily
-///    builds the connection pool + runs migrations on first access).
 pub struct TenantScope {
     pub tenant: TenantId,
     pub services: AppServices,

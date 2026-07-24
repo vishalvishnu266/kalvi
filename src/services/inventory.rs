@@ -1,6 +1,3 @@
-//! Inventory workflows: receive a purchase order (updates stock and posts an
-//! expense/payable journal), notify when items drop below reorder level.
-
 use std::sync::Arc;
 
 use chrono::NaiveDate;
@@ -17,9 +14,7 @@ pub struct InventoryService {
 impl InventoryService {
     pub fn new(repos: Arc<Repositories>) -> Self { Self { repos } }
 
-    /// Move a PO through its lifecycle. Only `draft -> ordered -> received`
-    /// (or `-> cancelled` from anywhere non-received) are allowed.
-    pub async fn set_po_status(&self, id: i64, target: &str) -> ServiceResult<()> {
+pub async fn set_po_status(&self, id: i64, target: &str) -> ServiceResult<()> {
         let po = self.repos.purchase_orders.get(id).await?;
         let ok = matches!(
             (po.status.as_str(), target),
@@ -38,16 +33,13 @@ impl InventoryService {
         Ok(())
     }
 
-    /// Receive a PO: increment stock (via stock_movement) AND post
-    /// Dr Supplies Expense, Cr Accounts Payable.
-    pub async fn receive_po(&self, id: i64, on: NaiveDate) -> ServiceResult<()> {
+pub async fn receive_po(&self, id: i64, on: NaiveDate) -> ServiceResult<()> {
         let po = self.repos.purchase_orders.get(id).await?;
         if po.status == "received" {
             return Err(ServiceError::conflict("already received"));
         }
 
-        // Repo handles stock movement + status.
-        self.repos.purchase_orders.receive(id).await?;
+self.repos.purchase_orders.receive(id).await?;
 
         let accounts = self.repos.ledger.accounts().await?;
         let expense = accounts.iter().find(|a| a.code == ledger_codes::SUPPLIES_EXPENSE);
@@ -68,9 +60,7 @@ impl InventoryService {
         Ok(())
     }
 
-    /// Items whose stock has dropped at/under `reorder_level`. Useful for a
-    /// scheduled job that pushes notifications.
-    pub async fn low_stock_alert_ids(&self) -> ServiceResult<Vec<i64>> {
+pub async fn low_stock_alert_ids(&self) -> ServiceResult<Vec<i64>> {
         Ok(self.repos.items.below_reorder().await?
             .into_iter().map(|i| i.id).collect())
     }

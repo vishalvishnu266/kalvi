@@ -1,12 +1,8 @@
-//! Core reference data: [`School`], [`AcademicYear`], [`Term`].
-
 use chrono::{NaiveDate, NaiveDateTime};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, SqlitePool};
 
 use crate::error::{RepoError, RepoResult};
-
-// ---------- School ----------
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct School {
@@ -45,16 +41,14 @@ impl SchoolRepo {
         Self { pool }
     }
 
-    /// Fetch the single-tenant school profile (row `id = 1`).
-    pub async fn get(&self) -> RepoResult<School> {
+pub async fn get(&self) -> RepoResult<School> {
         sqlx::query_as::<_, School>("SELECT * FROM school WHERE id = 1")
             .fetch_optional(&self.pool)
             .await?
             .ok_or(RepoError::NotFound)
     }
 
-    /// Upsert the single school row.
-    pub async fn upsert(&self, s: &UpdateSchool) -> RepoResult<School> {
+pub async fn upsert(&self, s: &UpdateSchool) -> RepoResult<School> {
         let existing = sqlx::query_scalar::<_, i64>("SELECT id FROM school WHERE id = 1")
             .fetch_optional(&self.pool)
             .await?;
@@ -106,8 +100,6 @@ impl SchoolRepo {
         self.get().await
     }
 }
-
-// ---------- Academic Year ----------
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct AcademicYear {
@@ -214,8 +206,6 @@ impl AcademicYearRepo {
         Ok(())
     }
 }
-
-// ---------- Term ----------
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct Term {

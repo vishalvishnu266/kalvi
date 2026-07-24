@@ -1,16 +1,8 @@
-//! Fees and finance: categories, structures, invoices, payments, discounts, ledger.
-//!
-//! Money is stored and passed as `i64` cents everywhere.
-
 use chrono::{NaiveDate, NaiveDateTime};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, SqlitePool};
 
 use crate::error::{RepoError, RepoResult};
-
-// =====================================================================
-// Categories
-// =====================================================================
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct FeeCategory {
@@ -37,10 +29,6 @@ impl FeeCategoryRepo {
     }
 }
 
-// =====================================================================
-// Fee structures (per grade per year)
-// =====================================================================
-
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct FeeStructure {
     pub id: i64,
@@ -55,7 +43,7 @@ pub struct FeeStructureItem {
     pub fee_structure_id: i64,
     pub fee_category_id: i64,
     pub amount_cents: i64,
-    pub frequency: String,   // one_time|monthly|quarterly|termly|annually
+    pub frequency: String,
     pub due_day: Option<i64>,
 }
 
@@ -120,10 +108,6 @@ impl FeeStructureRepo {
     }
 }
 
-// =====================================================================
-// Invoices + lines
-// =====================================================================
-
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct FeeInvoice {
     pub id: i64,
@@ -178,8 +162,7 @@ pub struct InvoiceRepo { pool: SqlitePool }
 impl InvoiceRepo {
     pub fn new(pool: SqlitePool) -> Self { Self { pool } }
 
-    /// Create invoice + lines and compute the totals atomically.
-    pub async fn create(&self, inv: &NewInvoice) -> RepoResult<FeeInvoice> {
+pub async fn create(&self, inv: &NewInvoice) -> RepoResult<FeeInvoice> {
         if inv.lines.is_empty() {
             return Err(RepoError::validation("invoice must have at least one line"));
         }
@@ -265,10 +248,6 @@ impl InvoiceRepo {
     }
 }
 
-// =====================================================================
-// Payments
-// =====================================================================
-
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct FeePayment {
     pub id: i64,
@@ -299,16 +278,14 @@ pub struct PaymentRepo { pool: SqlitePool }
 impl PaymentRepo {
     pub fn new(pool: SqlitePool) -> Self { Self { pool } }
 
-    /// Record a payment and update invoice status/paid_cents atomically.
-    pub async fn record(&self, p: &NewPayment) -> RepoResult<FeePayment> {
+pub async fn record(&self, p: &NewPayment) -> RepoResult<FeePayment> {
         if p.amount_cents <= 0 {
             return Err(RepoError::validation("amount_cents must be > 0"));
         }
 
         let mut tx = self.pool.begin().await?;
 
-        // Lock-like read (SQLite is single-writer via WAL; the transaction is enough).
-        let (total, paid): (i64, i64) = sqlx::query_as(
+let (total, paid): (i64, i64) = sqlx::query_as(
             "SELECT total_cents, paid_cents FROM fee_invoice WHERE id = ?",
         ).bind(p.invoice_id).fetch_optional(&mut *tx).await?
          .ok_or(RepoError::NotFound)?;
@@ -355,10 +332,6 @@ impl PaymentRepo {
     }
 }
 
-// =====================================================================
-// Discounts
-// =====================================================================
-
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct FeeDiscount {
     pub id: i64,
@@ -396,10 +369,6 @@ impl DiscountRepo {
         ).bind(student_id).fetch_all(&self.pool).await?)
     }
 }
-
-// =====================================================================
-// Ledger (double-entry-ish)
-// =====================================================================
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct LedgerAccount {
@@ -440,8 +409,7 @@ impl LedgerRepo {
             .fetch_all(&self.pool).await?)
     }
 
-    /// Post a balanced journal entry (sum(debits) must equal sum(credits)).
-    pub async fn post_journal(
+pub async fn post_journal(
         &self,
         entry_date: NaiveDate,
         ref_type: Option<&str>,
@@ -482,8 +450,7 @@ impl LedgerRepo {
         Ok(())
     }
 
-    /// Trial balance snapshot.
-    pub async fn trial_balance(&self, as_of: NaiveDate) -> RepoResult<Vec<(String, i64, i64)>> {
+pub async fn trial_balance(&self, as_of: NaiveDate) -> RepoResult<Vec<(String, i64, i64)>> {
         Ok(sqlx::query_as::<_, (String, i64, i64)>(
             r#"SELECT a.code,
                       COALESCE(SUM(e.debit_cents), 0)  AS debit_cents,

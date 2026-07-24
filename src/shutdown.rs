@@ -1,25 +1,7 @@
-//! Graceful shutdown primitives.
-//!
-//! Provides a cross-platform "wait for termination signal" future and an
-//! ordered pool-cleanup helper. Used by `main.rs` and by any custom binary
-//! that wants the same shutdown semantics.
-//!
-//! Order of operations we implement:
-//!
-//! 1. Wait for SIGINT or SIGTERM.
-//! 2. Return from the future so `axum::serve(...).with_graceful_shutdown(...)`
-//!    stops accepting new connections and drains in-flight requests.
-//! 3. Close every per-tenant pool (checkpoints each tenant's WAL).
-//! 4. Close the system pool (checkpoints `system.db`'s WAL).
-
 use std::time::Duration;
 
 use sqlx::SqlitePool;
 
-/// Resolve when the process receives a termination signal.
-///
-/// * Unix: `SIGINT` (Ctrl+C) **or** `SIGTERM` (Docker/K8s stop).
-/// * Windows: Ctrl+C.
 pub async fn wait_for_signal() {
     #[cfg(unix)]
     {
@@ -38,16 +20,13 @@ pub async fn wait_for_signal() {
     }
 }
 
-/// Close database pools with a per-step timeout so a stuck pool cannot hang
-/// shutdown forever.
 pub async fn close_pools(
     system_pool: &SqlitePool,
     step_timeout: Duration,
 ) {
     tracing::debug!("close_pools: starting shutdown sequence");
 
-    // Close system pool.
-    tracing::debug!("close_pools: closing system pool");
+tracing::debug!("close_pools: closing system pool");
     let system_close = system_pool.close();
     if tokio::time::timeout(step_timeout, system_close).await.is_err() {
         tracing::warn!("system pool did not close within {:?}", step_timeout);

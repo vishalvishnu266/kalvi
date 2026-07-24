@@ -6,11 +6,6 @@ use sqlx::SqlitePool;
 
 use crate::error::{RepoError, RepoResult};
 
-/// Build a connection pool with sane SQLite defaults for a single-tenant ERP.
-///
-/// * `foreign_keys = ON`
-/// * WAL journal mode + `synchronous = NORMAL` for good write throughput
-/// * 5s busy timeout so short lock contention doesn't fail immediately
 pub async fn connect(url: &str) -> RepoResult<SqlitePool> {
     tracing::debug!("db::connect: connecting to {}", url);
     let opts = SqliteConnectOptions::from_str(url)
@@ -29,7 +24,6 @@ pub async fn connect(url: &str) -> RepoResult<SqlitePool> {
     Ok(pool)
 }
 
-/// Run all embedded migrations from `./migrations`.
 pub async fn migrate(pool: &SqlitePool) -> RepoResult<()> {
     tracing::debug!("db::migrate: running migrations");
     sqlx::migrate!("./migrations").run(pool).await?;

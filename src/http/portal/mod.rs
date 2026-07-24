@@ -14,7 +14,7 @@ use crate::require_perm;
 pub fn routes(state: AppState) -> Router<AppState> {
     let portal_tenant_public = Router::new()
         .route("/login", get(wau::get_portal_tenant_login).post(wau::post_portal_login));
-        
+
     let portal_tenant_shell = Router::new()
         .route("/", get(wp::index))
         .route("/students", get(wp::students)
@@ -25,7 +25,7 @@ pub fn routes(state: AppState) -> Router<AppState> {
         .layer(axum::middleware::from_fn_with_state(
             state.clone(), middleware::require_session,
         ));
-        
+
     Router::new()
         .merge(portal_tenant_public)
         .merge(portal_tenant_shell)

@@ -1,18 +1,14 @@
-//! Payroll: salary components, structures, and payslips.
-
 use chrono::{NaiveDate, NaiveDateTime};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, SqlitePool};
 
 use crate::error::{RepoError, RepoResult};
 
-// ---------- Salary component ----------
-
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct SalaryComponent {
     pub id: i64,
     pub name: String,
-    pub kind: String,   // 'earning' | 'deduction'
+    pub kind: String,
 }
 
 #[derive(Clone)]
@@ -37,8 +33,6 @@ impl SalaryComponentRepo {
         ).fetch_all(&self.pool).await?)
     }
 }
-
-// ---------- Salary structure ----------
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct SalaryStructure {
@@ -74,8 +68,7 @@ impl SalaryStructureRepo {
     ) -> RepoResult<SalaryStructure> {
         let mut tx = self.pool.begin().await?;
 
-        // Close any prior open structure.
-        sqlx::query(
+sqlx::query(
             r#"UPDATE salary_structure
                  SET effective_to = date(?, '-1 day')
                WHERE staff_id = ? AND effective_to IS NULL"#,
@@ -115,8 +108,6 @@ impl SalaryStructureRepo {
     }
 }
 
-// ---------- Payslip ----------
-
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct Payslip {
     pub id: i64,
@@ -135,7 +126,7 @@ pub struct Payslip {
 pub struct PayslipLine {
     pub component_id: i64,
     pub amount_cents: i64,
-    pub kind: String,   // 'earning' | 'deduction'
+    pub kind: String,
 }
 
 #[derive(Clone)]
@@ -144,8 +135,7 @@ pub struct PayslipRepo { pool: SqlitePool }
 impl PayslipRepo {
     pub fn new(pool: SqlitePool) -> Self { Self { pool } }
 
-    /// Generate a payslip from the staff member's current salary structure.
-    pub async fn generate(
+pub async fn generate(
         &self, staff_id: i64, month: i64, year: i64,
     ) -> RepoResult<Payslip> {
         if !(1..=12).contains(&month) {
@@ -153,8 +143,7 @@ impl PayslipRepo {
         }
         let mut tx = self.pool.begin().await?;
 
-        // Fetch current structure + its items joined with component kind.
-        let rows: Vec<(i64, i64, String)> = sqlx::query_as(
+let rows: Vec<(i64, i64, String)> = sqlx::query_as(
             r#"SELECT ssi.component_id, ssi.amount_cents, sc.kind
                  FROM salary_structure ss
                  JOIN salary_structure_item ssi ON ssi.salary_structure_id = ss.id

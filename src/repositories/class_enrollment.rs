@@ -1,12 +1,8 @@
-//! Class sections, class-subject assignments, and student enrollment.
-
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, SqlitePool};
 
 use crate::error::{RepoError, RepoResult};
-
-// ---------- class_section ----------
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct ClassSection {
@@ -79,8 +75,6 @@ impl ClassSectionRepo {
     }
 }
 
-// ---------- class_subject ----------
-
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct ClassSubject {
     pub id: i64,
@@ -134,8 +128,6 @@ impl ClassSubjectRepo {
         Ok(())
     }
 }
-
-// ---------- enrollment ----------
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct Enrollment {
@@ -211,16 +203,13 @@ impl EnrollmentRepo {
         Ok(())
     }
 
-    /// Close an enrollment (student left / transferred / graduated).
-    pub async fn close(&self, id: i64, left_on: NaiveDate, result: Option<&str>) -> RepoResult<()> {
+pub async fn close(&self, id: i64, left_on: NaiveDate, result: Option<&str>) -> RepoResult<()> {
         sqlx::query("UPDATE enrollment SET left_on = ?, result = COALESCE(?, result) WHERE id = ?")
             .bind(left_on).bind(result).bind(id).execute(&self.pool).await?;
         Ok(())
     }
 
-    /// Promote all "promoted" enrollments in `from_class` to `to_class`
-    /// (creates fresh enrollments in `to_year`).
-    pub async fn promote_class(
+pub async fn promote_class(
         &self,
         from_class_id: i64,
         to_class_id: i64,

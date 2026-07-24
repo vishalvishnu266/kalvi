@@ -1,6 +1,3 @@
-//! Examination workflows: schedule exams, record results (with automatic
-//! grade-letter lookup from the exam's grading scale), and compile report cards.
-
 use std::sync::Arc;
 
 use crate::repositories::Repositories;
@@ -48,9 +45,7 @@ impl ExaminationService {
         Ok(self.repos.exam_schedules.create(&s).await?)
     }
 
-    /// Enter a result. Grade letter is auto-derived from the exam's scale
-    /// unless the caller supplies one explicitly.
-    pub async fn enter_result(&self, mut r: EnterResult) -> ServiceResult<ExamResult> {
+pub async fn enter_result(&self, mut r: EnterResult) -> ServiceResult<ExamResult> {
         let sched = self.repos.exam_schedules.get(r.exam_schedule_id).await?;
         let exam  = self.repos.exams.get(sched.exam_id).await?;
 
@@ -66,8 +61,7 @@ impl ExaminationService {
         Ok(self.repos.exam_results.upsert(&r).await?)
     }
 
-    /// Compile a report card for one student for one exam.
-    pub async fn report_card(&self, student_id: i64, exam_id: i64) -> ServiceResult<ReportCard> {
+pub async fn report_card(&self, student_id: i64, exam_id: i64) -> ServiceResult<ReportCard> {
         let raw = self.repos.exam_results.report_card(student_id, exam_id).await?;
         let exam = self.repos.exams.get(exam_id).await?;
 

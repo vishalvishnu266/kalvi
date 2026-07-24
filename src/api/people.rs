@@ -1,5 +1,3 @@
-//! `/api/{tenant}/people/*` handlers — students and staff.
-
 use axum::{extract::{Path, Query}, http::StatusCode, Json};
 use serde::Deserialize;
 
@@ -7,8 +5,6 @@ use crate::http::{ServiceHttpError, TenantScope};
 use crate::repositories::staff::{NewStaff, Staff, UpdateStaff};
 use crate::repositories::students::{Student, UpdateStudent};
 use crate::services::people::{Admission, AdmissionResult};
-
-// -------- students --------
 
 #[derive(Deserialize)] pub struct Page { #[serde(default = "d50")] pub limit: i64, #[serde(default)] pub offset: i64 }
 fn d50() -> i64 { 50 }
@@ -50,8 +46,6 @@ pub async fn withdraw(scope: TenantScope, Path((_t, id)): Path<(String, i64)>)
 pub async fn graduate(scope: TenantScope, Path((_t, id)): Path<(String, i64)>)
     -> Result<StatusCode, ServiceHttpError>
 { scope.services.people.graduate(id).await?; Ok(StatusCode::NO_CONTENT) }
-
-// -------- staff --------
 
 pub async fn list_staff(scope: TenantScope, Query(p): Query<Page>)
     -> Result<Json<Vec<Staff>>, ServiceHttpError>

@@ -1,6 +1,3 @@
-//! Transport workflows: assign a student to a stop for the current year,
-//! list students on a route.
-
 use std::sync::Arc;
 
 use chrono::NaiveDate;
@@ -17,11 +14,10 @@ pub struct TransportService {
 impl TransportService {
     pub fn new(repos: Arc<Repositories>) -> Self { Self { repos } }
 
-    /// Assign a student to a stop for the current academic year.
-    pub async fn assign_to_stop(
+pub async fn assign_to_stop(
         &self, student_id: i64, route_stop_id: i64, valid_from: NaiveDate,
     ) -> ServiceResult<StudentTransport> {
-        // Guard: vehicle capacity vs. active riders on the route.
+
         let stop = sqlx::query_as::<_, (i64,)>(
             "SELECT route_id FROM route_stop WHERE id = ?",
         )

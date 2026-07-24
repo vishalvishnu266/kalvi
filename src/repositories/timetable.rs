@@ -1,12 +1,8 @@
-//! Timetable: periods + timetable slots.
-
 use chrono::NaiveTime;
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, SqlitePool};
 
 use crate::error::{RepoError, RepoResult};
-
-// ---------- Period ----------
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct Period {
@@ -55,8 +51,6 @@ impl PeriodRepo {
     }
 }
 
-// ---------- Timetable slot ----------
-
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct TimetableSlot {
     pub id: i64,
@@ -74,7 +68,7 @@ pub struct NewSlot {
     pub subject_id: Option<i64>,
     pub teacher_id: Option<i64>,
     pub room_id: Option<i64>,
-    pub day_of_week: i64,   // 1..7
+    pub day_of_week: i64,
     pub period_id: i64,
 }
 
@@ -88,7 +82,7 @@ impl TimetableRepo {
         if !(1..=7).contains(&s.day_of_week) {
             return Err(RepoError::validation("day_of_week must be 1..7"));
         }
-        // Unique on (class_section_id, day_of_week, period_id)
+
         let id = sqlx::query_scalar::<_, i64>(
             r#"INSERT INTO timetable_slot
                  (class_section_id, subject_id, teacher_id, room_id, day_of_week, period_id)

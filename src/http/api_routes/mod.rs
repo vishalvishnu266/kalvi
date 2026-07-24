@@ -1,8 +1,3 @@
-//! API route wiring split out of `http/routes.rs`.
-//!
-//! This keeps the high-level app assembly readable while grouping all
-//! `/api/*` URL mappings in one place.
-
 use axum::{
     routing::{delete, get, post, put},
     Router,
@@ -26,14 +21,13 @@ pub fn admin_api() -> Router {
 
 pub fn tenant_api() -> Router {
     Router::new()
-        // auth
+
         .route("/auth/register",         post(ath::register))
         .route("/auth/login",            post(ath::login))
         .route("/auth/change-password",  post(ath::change_password))
         .route("/auth/whoami",           get(ath::whoami))
 
-        // academic
-        .route("/academic/years",                          get(ac::list_years).post(ac::create_year))
+.route("/academic/years",                          get(ac::list_years).post(ac::create_year))
         .route("/academic/years/current",                  get(ac::current_year))
         .route("/academic/years/{id}/activate",            post(ac::activate_year))
         .route("/academic/years/{id}/terms",               get(ac::list_terms).post(ac::create_term))
@@ -45,8 +39,7 @@ pub fn tenant_api() -> Router {
         .route("/academic/class-sections/{year_id}",       get(ac::list_class_sections))
         .route("/academic/class-sections/{id}/subjects",   get(ac::list_class_subjects).post(ac::assign_class_subject))
 
-        // people (students + staff)
-        .route("/people/students",                   get(pp::list_students))
+.route("/people/students",                   get(pp::list_students))
         .route("/people/students/search",            get(pp::search_students))
         .route("/people/students/{id}",              get(pp::get_student).put(pp::update_student).delete(pp::delete_student))
         .route("/people/students/admit",             post(pp::admit))
@@ -56,23 +49,20 @@ pub fn tenant_api() -> Router {
         .route("/people/staff/{id}",                 get(pp::get_staff).put(pp::update_staff))
         .route("/people/staff/{id}/terminate",       post(pp::terminate))
 
-        // guardians
-        .route("/guardians",                    get(gd::list).post(gd::create))
+.route("/guardians",                    get(gd::list).post(gd::create))
         .route("/guardians/{id}",               get(gd::get_one).delete(gd::remove))
         .route("/guardians/link",               post(gd::link))
         .route("/guardians/link/{sid}/{gid}",   delete(gd::unlink))
         .route("/guardians/of-student/{sid}",   get(gd::of_student))
 
-        // enrollment
-        .route("/enrollment",                              post(en::enroll))
+.route("/enrollment",                              post(en::enroll))
         .route("/enrollment/transfer",                     post(en::transfer))
         .route("/enrollment/close-current",                post(en::close_current))
         .route("/enrollment/roster/{class_section_id}",    get(en::roster))
         .route("/enrollment/history/{student_id}",         get(en::history))
         .route("/enrollment/promote",                      post(en::promote_class))
 
-        // attendance
-        .route("/attendance/students/mark",         post(at::mark_one))
+.route("/attendance/students/mark",         post(at::mark_one))
         .route("/attendance/students/mark-class",   post(at::mark_class))
         .route("/attendance/students/for/{sid}",    get(at::for_student))
         .route("/attendance/students/percentage",   get(at::percentage))
@@ -80,16 +70,14 @@ pub fn tenant_api() -> Router {
         .route("/attendance/staff/mark",            post(at::mark_staff))
         .route("/attendance/staff/for/{sid}",       get(at::for_staff))
 
-        // timetable
-        .route("/timetable/periods",       get(tt::list_periods).post(tt::create_period))
+.route("/timetable/periods",       get(tt::list_periods).post(tt::create_period))
         .route("/timetable/slots",         post(tt::set_slot))
         .route("/timetable/slots/{id}",    delete(tt::remove_slot))
         .route("/timetable/class/{id}",    get(tt::class_grid))
         .route("/timetable/teacher/{id}",  get(tt::teacher_grid))
         .route("/timetable/room/{id}",     get(tt::room_grid))
 
-        // examinations
-        .route("/examinations/grading-scales",              post(ex::create_scale))
+.route("/examinations/grading-scales",              post(ex::create_scale))
         .route("/examinations/grading-scales/{id}/bands",   post(ex::add_band).get(ex::list_bands))
         .route("/examinations/exams",                       post(ex::create_exam))
         .route("/examinations/exams/term/{tid}",            get(ex::list_by_term))
@@ -98,8 +86,7 @@ pub fn tenant_api() -> Router {
         .route("/examinations/results/student/{sid}",       get(ex::for_student))
         .route("/examinations/report-cards/{sid}/{eid}",    get(ex::report_card))
 
-        // fees
-        .route("/fees/categories",              get(fe::list_categories).post(fe::create_category))
+.route("/fees/categories",              get(fe::list_categories).post(fe::create_category))
         .route("/fees/structures",              post(fe::create_structure))
         .route("/fees/structures/year/{yid}",   get(fe::list_structures))
         .route("/fees/structures/{id}/items",   post(fe::add_item).get(fe::list_items))
@@ -117,8 +104,7 @@ pub fn tenant_api() -> Router {
         .route("/fees/discounts/student/{sid}", get(fe::discounts_for_student))
         .route("/fees/ledger/trial-balance",    get(fe::trial_balance))
 
-        // payroll
-        .route("/payroll/components",                    get(pr::list_components))
+.route("/payroll/components",                    get(pr::list_components))
         .route("/payroll/structures/set",                post(pr::set_salary))
         .route("/payroll/payslips/generate",             post(pr::generate))
         .route("/payroll/payslips/month",                post(pr::generate_month))
@@ -126,8 +112,7 @@ pub fn tenant_api() -> Router {
         .route("/payroll/payslips/{id}/pay",             post(pr::pay))
         .route("/payroll/payslips/staff/{sid}/{year}",   get(pr::list_for_staff))
 
-        // library
-        .route("/library/books",               get(lb::list_books).post(lb::create_book))
+.route("/library/books",               get(lb::list_books).post(lb::create_book))
         .route("/library/books/search",        get(lb::search))
         .route("/library/books/{id}",          get(lb::get_book))
         .route("/library/books/{id}/adjust",   post(lb::adjust))
@@ -136,24 +121,21 @@ pub fn tenant_api() -> Router {
         .route("/library/issues/{id}/return",  post(lb::return_book))
         .route("/library/issues/overdue",      get(lb::overdue))
 
-        // transport
-        .route("/transport/vehicles",              get(tr::list_vehicles).post(tr::create_vehicle))
+.route("/transport/vehicles",              get(tr::list_vehicles).post(tr::create_vehicle))
         .route("/transport/routes",                get(tr::list_routes).post(tr::create_route))
         .route("/transport/routes/{id}/stops",     get(tr::list_stops).post(tr::add_stop))
         .route("/transport/routes/{id}/students",  get(tr::students_on_route))
         .route("/transport/assignments",           post(tr::assign))
         .route("/transport/assignments/{id}/end",  post(tr::end_assignment))
 
-        // hostel
-        .route("/hostel/hostels",                     get(ho::list_hostels).post(ho::create_hostel))
+.route("/hostel/hostels",                     get(ho::list_hostels).post(ho::create_hostel))
         .route("/hostel/hostels/{id}/rooms",          get(ho::list_rooms).post(ho::create_room))
         .route("/hostel/allocations",                 post(ho::allocate))
         .route("/hostel/allocations/transfer",        post(ho::transfer))
         .route("/hostel/allocations/{sid}/vacate",    post(ho::vacate))
         .route("/hostel/allocations/active/{sid}",    get(ho::active_for))
 
-        // inventory
-        .route("/inventory/vendors",                     get(iv::list_vendors).post(iv::create_vendor))
+.route("/inventory/vendors",                     get(iv::list_vendors).post(iv::create_vendor))
         .route("/inventory/items",                       get(iv::list_items).post(iv::create_item))
         .route("/inventory/items/low-stock",             get(iv::low_stock))
         .route("/inventory/items/{id}",                  get(iv::get_item))
@@ -163,8 +145,7 @@ pub fn tenant_api() -> Router {
         .route("/inventory/purchase-orders/{id}",        get(iv::get_po))
         .route("/inventory/purchase-orders/{id}/status", post(iv::set_po_status))
 
-        // communication
-        .route("/communication/announcements",                     get(cm::active).post(cm::broadcast))
+.route("/communication/announcements",                     get(cm::active).post(cm::broadcast))
         .route("/communication/announcements/class/{cid}",         get(cm::for_class))
         .route("/communication/announcements/{id}",                delete(cm::delete_ann))
         .route("/communication/messages",                          post(cm::send))
@@ -176,23 +157,19 @@ pub fn tenant_api() -> Router {
         .route("/communication/notifications/{id}/read",           post(cm::mark_read))
         .route("/communication/notifications/user/{uid}/read-all", post(cm::read_all))
 
-        // health (student clinic records)
-        .route("/health/records/{sid}",      get(hl::get_record).post(hl::upsert))
+.route("/health/records/{sid}",      get(hl::get_record).post(hl::upsert))
         .route("/health/records/{sid}/bmi",  get(hl::bmi))
         .route("/health/vaccinations/{sid}", get(hl::list_vacc).post(hl::add_vacc))
         .route("/health/visits/{sid}",       get(hl::list_visits).post(hl::add_visit))
 
-        // discipline
-        .route("/discipline",                post(di::report))
+.route("/discipline",                post(di::report))
         .route("/discipline/student/{sid}",  get(di::history))
         .route("/discipline/between",        get(di::between))
 
-        // documents
-        .route("/documents",                                post(dc::attach))
+.route("/documents",                                post(dc::attach))
         .route("/documents/{id}",                           delete(dc::remove))
         .route("/documents/owner/{owner_type}/{owner_id}", get(dc::for_owner))
 
-        // audit
-        .route("/audit/entity/{entity}/{id}", get(au::for_entity))
+.route("/audit/entity/{entity}/{id}", get(au::for_entity))
         .route("/audit/user/{uid}",           get(au::for_user))
 }

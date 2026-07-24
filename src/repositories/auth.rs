@@ -1,15 +1,8 @@
-//! Users, roles, and permissions.
-//!
-//! Note: this repo takes an already-hashed `password_hash` — hashing (Argon2)
-//! belongs in the service/application layer.
-
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, SqlitePool};
 
 use crate::error::{RepoError, RepoResult};
-
-// ---------- User ----------
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct User {
@@ -88,9 +81,7 @@ impl UserRepo {
         Ok(())
     }
 
-    // ------- role assignments -------
-
-    pub async fn assign_role(&self, user_id: i64, role_id: i64) -> RepoResult<()> {
+pub async fn assign_role(&self, user_id: i64, role_id: i64) -> RepoResult<()> {
         sqlx::query("INSERT OR IGNORE INTO user_role (user_id, role_id) VALUES (?, ?)")
             .bind(user_id).bind(role_id).execute(&self.pool).await?;
         Ok(())
@@ -121,8 +112,6 @@ impl UserRepo {
         .bind(user_id).fetch_all(&self.pool).await?)
     }
 }
-
-// ---------- Role ----------
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct Role {
@@ -172,8 +161,6 @@ impl RoleRepo {
     }
 }
 
-// ---------- Permission ----------
-
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct Permission {
     pub id: i64,
@@ -205,15 +192,6 @@ impl PermissionRepo {
     }
 }
 
-// ---------- Session ----------
-
-/// Server-side web session model.
-///
-/// Storage backend is configurable at runtime:
-/// * tenant DB table (`user_session`) — legacy/default mode
-/// * tenant-scoped in-memory SQLite with snapshot checkpointing
-///
-/// The row shape stays the same regardless of backend.
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 pub struct Session {
     pub id: i64,
@@ -237,5 +215,3 @@ pub struct NewSession {
     pub user_agent: Option<String>,
     pub remote_ip: Option<String>,
 }
-
-// SessionRepo removed; using centralized src/session/mod.rs SessionStore instead.

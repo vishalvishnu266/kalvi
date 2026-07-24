@@ -1,6 +1,3 @@
-//! Payroll workflows: generate → approve → pay a payslip, posting to the
-//! ledger when it's paid (Dr Salary Expense, Cr Cash/Bank).
-
 use std::sync::Arc;
 
 use chrono::NaiveDate;
@@ -18,9 +15,7 @@ pub struct PayrollService {
 impl PayrollService {
     pub fn new(repos: Arc<Repositories>) -> Self { Self { repos } }
 
-    /// Activate a new salary structure for a staff member from a given date.
-    /// Closes any currently-open structure.
-    pub async fn set_salary(
+pub async fn set_salary(
         &self, staff_id: i64, effective_from: NaiveDate,
         items: Vec<NewStructureItem>,
     ) -> ServiceResult<i64> {
@@ -31,8 +26,7 @@ impl PayrollService {
         Ok(s.id)
     }
 
-    /// Generate a draft payslip from the staff member's active structure.
-    pub async fn generate_payslip(
+pub async fn generate_payslip(
         &self, staff_id: i64, month: i64, year: i64,
     ) -> ServiceResult<Payslip> {
         Ok(self.repos.payslips.generate(staff_id, month, year).await?)
@@ -47,8 +41,7 @@ impl PayrollService {
         Ok(())
     }
 
-    /// Mark payslip paid AND post to the ledger.
-    pub async fn pay(
+pub async fn pay(
         &self, payslip_id: i64, paid_on: NaiveDate, from_bank: bool,
     ) -> ServiceResult<()> {
         let p = self.repos.payslips.get(payslip_id).await?;
@@ -78,18 +71,17 @@ impl PayrollService {
         Ok(())
     }
 
-    /// Bulk-generate draft payslips for every active staff member.
-    pub async fn generate_month(&self, month: i64, year: i64) -> ServiceResult<u64> {
+pub async fn generate_month(&self, month: i64, year: i64) -> ServiceResult<u64> {
         let staff = self.repos.staff.list_active().await?;
         let mut count = 0_u64;
         for s in staff {
-            // Skip staff without a current salary structure quietly.
+
             if self.repos.salary_structures.current_for_staff(s.id).await?.is_some() {
                 match self.repos.payslips.generate(s.id, month, year).await {
                     Ok(_) => count += 1,
                     Err(crate::error::RepoError::Sqlx(sqlx::Error::Database(db)))
                         if db.message().contains("UNIQUE") => {
-                        // already generated this month; ignore
+
                     }
                     Err(e) => return Err(e.into()),
                 }

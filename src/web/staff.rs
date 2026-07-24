@@ -1,10 +1,3 @@
-//! Staff list + detail pages: `/web/{tenant}/staff[/{id}]`.
-//!
-//! Mirrors the students module in structure and styling: a table-based
-//! list with a search box, and a per-employee profile page with header,
-//! tabs, and a two-column overview body. Data is always read from the
-//! tenant DB — seeding is a separate concern (see `scripts/`).
-
 use askama::Template;
 use axum::{
     extract::{Path, Query},
@@ -19,8 +12,6 @@ use crate::middleware::auth::SessionUser;
 use crate::repositories::staff::Staff;
 use crate::web::error::{render, WebError};
 use crate::web::layout::{visible_nav_items, NavContext, NavItem};
-
-// ---------------------------- list ----------------------------
 
 #[derive(Template)]
 #[template(path = "staff/list.html")]
@@ -81,8 +72,6 @@ pub async fn list(
     render(&StaffListPage { nav: &nav, nav_items, q: &q, rows })
 }
 
-// --------------------------- detail ---------------------------
-
 #[derive(Template)]
 #[template(path = "staff/show.html")]
 struct StaffShowPage<'a> {
@@ -122,8 +111,6 @@ pub async fn show(
     let nav_items = visible_nav_items(&session);
     render(&StaffShowPage { nav: &nav, nav_items, staff, tabs })
 }
-
-// -------------------------- helpers --------------------------
 
 fn display_name(s: &Staff) -> String {
     format!("{} {}", s.first_name, s.last_name)

@@ -1,5 +1,3 @@
-//! Guardians and student ↔ guardian links.
-
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, SqlitePool};
@@ -30,11 +28,6 @@ pub struct NewGuardian {
     pub address: Option<String>,
 }
 
-/// Partial update — `None` = leave column unchanged.
-///
-/// For nullable text columns (`phone`, `email`, `occupation`, `address`)
-/// callers who want to *clear* the value should pass `Some(String::new())`;
-/// the repo maps empty strings to SQL `NULL` before applying the update.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct UpdateGuardian {
     pub first_name: Option<String>,
@@ -92,13 +85,9 @@ impl GuardianRepo {
         Ok(())
     }
 
-    /// Partial update. `Some(_)` overwrites the column, `None` leaves it
-    /// alone. For nullable text columns an empty string is treated as
-    /// "explicit clear" and stored as SQL `NULL`.
-    pub async fn update(&self, id: i64, u: &UpdateGuardian) -> RepoResult<Guardian> {
-        // Normalize empty strings on nullable columns to NULL so the web
-        // form can "clear" them by submitting an empty input.
-        let phone      = u.phone.as_ref()     .map(|v| if v.is_empty() { None } else { Some(v.clone()) });
+pub async fn update(&self, id: i64, u: &UpdateGuardian) -> RepoResult<Guardian> {
+
+let phone      = u.phone.as_ref()     .map(|v| if v.is_empty() { None } else { Some(v.clone()) });
         let email      = u.email.as_ref()     .map(|v| if v.is_empty() { None } else { Some(v.clone()) });
         let occupation = u.occupation.as_ref().map(|v| if v.is_empty() { None } else { Some(v.clone()) });
         let address    = u.address.as_ref()   .map(|v| if v.is_empty() { None } else { Some(v.clone()) });
@@ -120,9 +109,7 @@ impl GuardianRepo {
         self.get(id).await
     }
 
-    // ---- Linking ----
-
-    pub async fn link(&self, link: &StudentGuardianLink) -> RepoResult<()> {
+pub async fn link(&self, link: &StudentGuardianLink) -> RepoResult<()> {
         sqlx::query(
             r#"INSERT INTO student_guardian
                  (student_id, guardian_id, relationship, is_primary, is_emergency, can_pickup)
@@ -160,26 +147,20 @@ impl GuardianRepo {
         ).bind(guardian_id).fetch_all(&self.pool).await?)
     }
 
-    /// Resolve a login user id to its guardian row (if the user is linked as
-    /// a guardian). Returns `None` if the user isn't associated with a
-    /// guardian record — e.g. staff or admin accounts.
-    pub async fn find_by_user_id(&self, user_id: i64) -> RepoResult<Option<Guardian>> {
+pub async fn find_by_user_id(&self, user_id: i64) -> RepoResult<Option<Guardian>> {
         Ok(sqlx::query_as::<_, Guardian>(
             "SELECT * FROM guardian WHERE user_id = ? LIMIT 1",
         ).bind(user_id).fetch_optional(&self.pool).await?)
     }
 
-    /// Convenience: return the ids of all students linked to the guardian
-    /// row that owns `user_id`. Empty vec if there is no such link.
-    pub async fn students_of_user(&self, user_id: i64) -> RepoResult<Vec<i64>> {
+pub async fn students_of_user(&self, user_id: i64) -> RepoResult<Vec<i64>> {
         match self.find_by_user_id(user_id).await? {
             Some(g) => self.students_of_guardian(g.id).await,
             None    => Ok(Vec::new()),
         }
     }
 
-    /// Fast "is this user allowed to see this student's data?" check.
-    pub async fn is_guardian_of(&self, user_id: i64, student_id: i64) -> RepoResult<bool> {
+pub async fn is_guardian_of(&self, user_id: i64, student_id: i64) -> RepoResult<bool> {
         Ok(sqlx::query_scalar::<_, i64>(
             r#"SELECT COUNT(*) FROM student_guardian sg
                  INNER JOIN guardian g ON g.id = sg.guardian_id

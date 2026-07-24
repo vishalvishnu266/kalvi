@@ -1,5 +1,3 @@
-//! `/api/{tenant}/examinations/*` handlers.
-
 use axum::{extract::Path, Json};
 
 use crate::http::{ServiceHttpError, TenantScope};

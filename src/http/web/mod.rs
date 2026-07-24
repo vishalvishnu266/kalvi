@@ -23,7 +23,7 @@ pub fn routes(state: AppState) -> Router<AppState> {
             .route_layer(require_perm!(perm::STAFF_VIEW)))
         .route("/staff/{id}",    get(wsf::show)
             .route_layer(require_perm!(perm::STAFF_VIEW)))
-        // ---- Guardians (staff view only) ---------------------------------------
+
         .route("/guardians",              get(wgd::list)
             .post(wgd::create)
             .route_layer(require_perm!(perm::GUARDIANS_VIEW, perm::GUARDIANS_MANAGE)))
@@ -36,7 +36,7 @@ pub fn routes(state: AppState) -> Router<AppState> {
             .route_layer(require_perm!(perm::GUARDIANS_MANAGE)))
         .route("/guardians/{id}/delete",  post(wgd::delete)
             .route_layer(require_perm!(perm::GUARDIANS_MANAGE)))
-        // module stub screens
+
         .route("/attendance",    get(wm::attendance)
             .route_layer(require_perm!(perm::ATTENDANCE_VIEW, perm::ATTENDANCE_VIEW_OWN, perm::ATTENDANCE_MARK)))
         .route("/timetable",     get(wm::timetable)
