@@ -13,6 +13,7 @@ use crate::session::SessionStore;
 use crate::tenancy::{TenantId, TenantError, build_tenant_services};
 use crate::services::AppServices;
 use crate::db;
+use crate::system::SystemRegistry;
 
 #[derive(Clone)]
 struct TenantEntry {
@@ -57,7 +58,7 @@ impl AppState {
         }
 
         let url = self.config.tenant_db_url(&tenant);
-        let pool = db::connect(&url).await.map_err(TenantError::from)?;
+        let pool = db::connect(&url).await?;
 
 db::migrate(&pool).await.map_err(TenantError::from)?;
 
