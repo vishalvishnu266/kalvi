@@ -1,10 +1,8 @@
-use std::time::Duration;
 use tower::Layer;
 
 use school_erp::health_probes::Readiness;
 use school_erp::shutdown::{close_pools, wait_for_signal};
 use school_erp::system::{connect_system, migrate_system};
-use school_erp::tenancy::new_tenant_registry;
 use school_erp::{build_router, AppState, Config, SystemRegistry};
 
 #[tokio::main]
@@ -29,7 +27,8 @@ std::fs::create_dir_all(&config.db_dir).ok();
     let session_db_url = config.session_db_url();
     tracing::debug!("main: initializing session store at {}", session_db_url);
     let sessions = school_erp::session::SessionStore::open(&session_db_url).await?;
-    let session_pool_for_shutdown = sessions.pool_clone();
+    let sessions_for_shutdown = sessions.clone();
+    let session_pool_for_shutdown = sessions_for_shutdown.pool_clone();
 
     let state = AppState::new(system, sessions, config.clone());
     let state_for_shutdown = state.clone();
@@ -66,7 +65,7 @@ for (tid, pool) in state_for_shutdown.active_tenant_pools().await {
     }
 
 close_pools(&system_pool_for_shutdown, config.shutdown_timeout).await;
-    session_pool_for_shutdown.close().await;
+    session_pool_for_shutdown.await.close().await;
 
     tracing::info!("shutdown complete");
     Ok(())
