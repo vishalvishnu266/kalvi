@@ -5,7 +5,8 @@ use chrono::NaiveDate;
 use crate::repositories::Repositories;
 use crate::repositories::fees::JournalLine;
 use crate::repositories::payroll::{NewStructureItem, Payslip};
-use crate::services::{ledger_codes, ServiceError, ServiceResult};
+use crate::services::{ledger_codes, RequestCtx, ServiceError, ServiceResult};
+use crate::services::perm;
 
 #[derive(Clone)]
 pub struct PayrollService {
@@ -16,9 +17,10 @@ impl PayrollService {
     pub fn new(repos: Arc<Repositories>) -> Self { Self { repos } }
 
 pub async fn set_salary(
-        &self, staff_id: i64, effective_from: NaiveDate,
+        &self, ctx: &RequestCtx, staff_id: i64, effective_from: NaiveDate,
         items: Vec<NewStructureItem>,
     ) -> ServiceResult<i64> {
+        ctx.require(perm::PAYROLL_RUN)?;
         if items.is_empty() {
             return Err(ServiceError::validation("salary structure needs items"));
         }
@@ -27,12 +29,14 @@ pub async fn set_salary(
     }
 
 pub async fn generate_payslip(
-        &self, staff_id: i64, month: i64, year: i64,
+        &self, ctx: &RequestCtx, staff_id: i64, month: i64, year: i64,
     ) -> ServiceResult<Payslip> {
+        ctx.require(perm::PAYROLL_RUN)?;
         Ok(self.repos.payslips.generate(staff_id, month, year).await?)
     }
 
-    pub async fn approve(&self, payslip_id: i64) -> ServiceResult<()> {
+    pub async fn approve(&self, ctx: &RequestCtx, payslip_id: i64) -> ServiceResult<()> {
+        ctx.require(perm::PAYROLL_RUN)?;
         let p = self.repos.payslips.get(payslip_id).await?;
         if p.status != "draft" {
             return Err(ServiceError::conflict("only draft payslips can be approved"));
@@ -42,8 +46,9 @@ pub async fn generate_payslip(
     }
 
 pub async fn pay(
-        &self, payslip_id: i64, paid_on: NaiveDate, from_bank: bool,
+        &self, ctx: &RequestCtx, payslip_id: i64, paid_on: NaiveDate, from_bank: bool,
     ) -> ServiceResult<()> {
+        ctx.require(perm::PAYROLL_RUN)?;
         let p = self.repos.payslips.get(payslip_id).await?;
         if p.status != "approved" {
             return Err(ServiceError::conflict("payslip must be approved before paying"));
@@ -71,7 +76,8 @@ pub async fn pay(
         Ok(())
     }
 
-pub async fn generate_month(&self, month: i64, year: i64) -> ServiceResult<u64> {
+pub async fn generate_month(&self, ctx: &RequestCtx, month: i64, year: i64) -> ServiceResult<u64> {
+        ctx.require(perm::PAYROLL_RUN)?;
         let staff = self.repos.staff.list_active().await?;
         let mut count = 0_u64;
         for s in staff {

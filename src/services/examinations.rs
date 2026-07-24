@@ -4,7 +4,8 @@ use crate::repositories::Repositories;
 use crate::repositories::examinations::{
     EnterResult, ExamResult, ExamSchedule, NewExam, NewSchedule,
 };
-use crate::services::{ServiceError, ServiceResult};
+use crate::services::{RequestCtx, ServiceError, ServiceResult};
+use crate::services::perm;
 
 #[derive(Debug, Clone)]
 pub struct ReportCardRow {
@@ -34,18 +35,21 @@ pub struct ExaminationService {
 impl ExaminationService {
     pub fn new(repos: Arc<Repositories>) -> Self { Self { repos } }
 
-    pub async fn create_exam(&self, e: NewExam) -> ServiceResult<crate::repositories::examinations::Exam> {
+    pub async fn create_exam(&self, ctx: &RequestCtx, e: NewExam) -> ServiceResult<crate::repositories::examinations::Exam> {
+        ctx.require(perm::EXAMINATIONS_MANAGE)?;
         if e.weightage <= 0.0 {
             return Err(ServiceError::validation("weightage must be > 0"));
         }
         Ok(self.repos.exams.create(&e).await?)
     }
 
-    pub async fn schedule(&self, s: NewSchedule) -> ServiceResult<ExamSchedule> {
+    pub async fn schedule(&self, ctx: &RequestCtx, s: NewSchedule) -> ServiceResult<ExamSchedule> {
+        ctx.require(perm::EXAMINATIONS_MANAGE)?;
         Ok(self.repos.exam_schedules.create(&s).await?)
     }
 
-pub async fn enter_result(&self, mut r: EnterResult) -> ServiceResult<ExamResult> {
+pub async fn enter_result(&self, ctx: &RequestCtx, mut r: EnterResult) -> ServiceResult<ExamResult> {
+        ctx.require(perm::EXAMINATIONS_ENTER_MARKS)?;
         let sched = self.repos.exam_schedules.get(r.exam_schedule_id).await?;
         let exam  = self.repos.exams.get(sched.exam_id).await?;
 
@@ -61,7 +65,8 @@ pub async fn enter_result(&self, mut r: EnterResult) -> ServiceResult<ExamResult
         Ok(self.repos.exam_results.upsert(&r).await?)
     }
 
-pub async fn report_card(&self, student_id: i64, exam_id: i64) -> ServiceResult<ReportCard> {
+pub async fn report_card(&self, ctx: &RequestCtx, student_id: i64, exam_id: i64) -> ServiceResult<ReportCard> {
+        ctx.require_any(&[perm::EXAMINATIONS_VIEW, perm::EXAMINATIONS_VIEW_OWN])?;
         let raw = self.repos.exam_results.report_card(student_id, exam_id).await?;
         let exam = self.repos.exams.get(exam_id).await?;
 

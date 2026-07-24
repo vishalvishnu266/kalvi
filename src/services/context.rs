@@ -107,6 +107,26 @@ pub fn with_trace_id(mut self, trace_id: impl Into<String>) -> Self {
 pub fn user_id(&self) -> Option<i64> { self.actor.user_id() }
 
 pub fn has_permission(&self, code: &str) -> bool {
-        self.permissions.iter().any(|p| p == code)
+        matches!(self.actor, Actor::System { .. })
+            || self.permissions.iter().any(|p| p == code)
+    }
+
+    /// Returns `Ok(())` if the actor has the required permission, otherwise
+    /// `Err(ServiceError::Forbidden)`. System actors always pass.
+    pub fn require(&self, perm: &str) -> crate::services::ServiceResult<()> {
+        if self.has_permission(perm) {
+            Ok(())
+        } else {
+            Err(crate::services::ServiceError::forbidden(perm))
+        }
+    }
+
+    /// Returns `Ok(())` if the actor has *any* of the supplied permissions.
+    pub fn require_any(&self, perms: &[&str]) -> crate::services::ServiceResult<()> {
+        if matches!(self.actor, Actor::System { .. }) || perms.iter().any(|p| self.has_permission(p)) {
+            Ok(())
+        } else {
+            Err(crate::services::ServiceError::forbidden(&perms.join(" | ")))
+        }
     }
 }

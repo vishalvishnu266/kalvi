@@ -3,10 +3,14 @@ use serde::Deserialize;
 
 use crate::http::{ServiceHttpError, TenantScope};
 use crate::repositories::health::{ClinicVisit, HealthRecord, Vaccination};
+use crate::services::perm;
 
 pub async fn get_record(scope: TenantScope, Path((_t, sid)): Path<(String, i64)>)
     -> Result<Json<Option<HealthRecord>>, ServiceHttpError>
-{ Ok(Json(scope.services.repos.health_records.for_student(sid).await?)) }
+{
+    scope.ctx.require_any(&[perm::HEALTH_VIEW, perm::HEALTH_MANAGE])?;
+    Ok(Json(scope.services.repos.health_records.for_student(sid).await?))
+}
 
 #[derive(Deserialize)]
 pub struct Vitals {
@@ -17,14 +21,14 @@ pub struct Vitals {
 pub async fn upsert(scope: TenantScope, Path((_t, sid)): Path<(String, i64)>, Json(b): Json<Vitals>)
     -> Result<Json<HealthRecord>, ServiceHttpError>
 {
-    Ok(Json(scope.services.health.upsert_vitals(sid, b.height_cm, b.weight_kg,
+    Ok(Json(scope.services.health.upsert_vitals(&scope.ctx, sid, b.height_cm, b.weight_kg,
         b.allergies.as_deref(), b.conditions.as_deref()).await?))
 }
 
 pub async fn bmi(scope: TenantScope, Path((_t, sid)): Path<(String, i64)>)
     -> Result<Json<serde_json::Value>, ServiceHttpError>
 {
-    Ok(Json(match scope.services.health.bmi_for(sid).await? {
+    Ok(Json(match scope.services.health.bmi_for(&scope.ctx, sid).await? {
         Some(b) => serde_json::json!({ "bmi": b.bmi, "category": b.category }),
         None    => serde_json::json!({ "bmi": null }),
     }))
@@ -32,7 +36,10 @@ pub async fn bmi(scope: TenantScope, Path((_t, sid)): Path<(String, i64)>)
 
 pub async fn list_vacc(scope: TenantScope, Path((_t, sid)): Path<(String, i64)>)
     -> Result<Json<Vec<Vaccination>>, ServiceHttpError>
-{ Ok(Json(scope.services.repos.vaccinations.for_student(sid).await?)) }
+{
+    scope.ctx.require_any(&[perm::HEALTH_VIEW, perm::HEALTH_MANAGE])?;
+    Ok(Json(scope.services.repos.vaccinations.for_student(sid).await?))
+}
 
 #[derive(Deserialize)]
 pub struct AddVacc { vaccine_name: String, dose: Option<String>, given_on: chrono::NaiveDate }
@@ -40,13 +47,16 @@ pub struct AddVacc { vaccine_name: String, dose: Option<String>, given_on: chron
 pub async fn add_vacc(scope: TenantScope, Path((_t, sid)): Path<(String, i64)>, Json(b): Json<AddVacc>)
     -> Result<Json<serde_json::Value>, ServiceHttpError>
 {
-    let id = scope.services.health.record_vaccination(sid, &b.vaccine_name, b.dose.as_deref(), b.given_on).await?;
+    let id = scope.services.health.record_vaccination(&scope.ctx, sid, &b.vaccine_name, b.dose.as_deref(), b.given_on).await?;
     Ok(Json(serde_json::json!({ "id": id })))
 }
 
 pub async fn list_visits(scope: TenantScope, Path((_t, sid)): Path<(String, i64)>)
     -> Result<Json<Vec<ClinicVisit>>, ServiceHttpError>
-{ Ok(Json(scope.services.repos.clinic_visits.for_student(sid).await?)) }
+{
+    scope.ctx.require_any(&[perm::HEALTH_VIEW, perm::HEALTH_MANAGE])?;
+    Ok(Json(scope.services.repos.clinic_visits.for_student(sid).await?))
+}
 
 #[derive(Deserialize)]
 pub struct AddVisit { complaint: Option<String>, treatment: Option<String>, attended_by_staff_id: Option<i64> }
@@ -54,6 +64,6 @@ pub struct AddVisit { complaint: Option<String>, treatment: Option<String>, atte
 pub async fn add_visit(scope: TenantScope, Path((_t, sid)): Path<(String, i64)>, Json(b): Json<AddVisit>)
     -> Result<Json<serde_json::Value>, ServiceHttpError>
 {
-    let id = scope.services.health.clinic_visit(sid, b.complaint.as_deref(), b.treatment.as_deref(), b.attended_by_staff_id).await?;
+    let id = scope.services.health.clinic_visit(&scope.ctx, sid, b.complaint.as_deref(), b.treatment.as_deref(), b.attended_by_staff_id).await?;
     Ok(Json(serde_json::json!({ "id": id })))
 }

@@ -4,7 +4,8 @@ use chrono::NaiveDate;
 
 use crate::repositories::Repositories;
 use crate::repositories::library::{BookIssue, IssueBook};
-use crate::services::{ServiceError, ServiceResult};
+use crate::services::{RequestCtx, ServiceError, ServiceResult};
+use crate::services::perm;
 
 pub const DEFAULT_LOAN_DAYS: i64 = 14;
 pub const DEFAULT_FINE_PER_DAY_CENTS: i64 = 500;
@@ -32,8 +33,9 @@ impl LibraryService {
     }
 
 pub async fn issue_to_student(
-        &self, book_id: i64, student_id: i64, on: NaiveDate,
+        &self, ctx: &RequestCtx, book_id: i64, student_id: i64, on: NaiveDate,
     ) -> ServiceResult<BookIssue> {
+        ctx.require(perm::LIBRARY_MANAGE)?;
         let due = on + chrono::Duration::days(self.loan_days);
         Ok(self.repos.book_issues.issue(&IssueBook {
             book_id, student_id: Some(student_id), staff_id: None,
@@ -42,8 +44,9 @@ pub async fn issue_to_student(
     }
 
     pub async fn issue_to_staff(
-        &self, book_id: i64, staff_id: i64, on: NaiveDate,
+        &self, ctx: &RequestCtx, book_id: i64, staff_id: i64, on: NaiveDate,
     ) -> ServiceResult<BookIssue> {
+        ctx.require(perm::LIBRARY_MANAGE)?;
         let due = on + chrono::Duration::days(self.loan_days);
         Ok(self.repos.book_issues.issue(&IssueBook {
             book_id, student_id: None, staff_id: Some(staff_id),
@@ -51,7 +54,8 @@ pub async fn issue_to_student(
         }).await?)
     }
 
-pub async fn return_book(&self, issue_id: i64, returned_on: NaiveDate) -> ServiceResult<i64> {
+pub async fn return_book(&self, ctx: &RequestCtx, issue_id: i64, returned_on: NaiveDate) -> ServiceResult<i64> {
+        ctx.require(perm::LIBRARY_MANAGE)?;
         let issue = self.repos.book_issues.get(issue_id).await?;
         if issue.returned_on.is_some() {
             return Err(ServiceError::conflict("book already returned"));
@@ -62,7 +66,8 @@ pub async fn return_book(&self, issue_id: i64, returned_on: NaiveDate) -> Servic
         Ok(fine)
     }
 
-    pub async fn overdue(&self, today: NaiveDate) -> ServiceResult<Vec<BookIssue>> {
+    pub async fn overdue(&self, ctx: &RequestCtx, today: NaiveDate) -> ServiceResult<Vec<BookIssue>> {
+        ctx.require(perm::LIBRARY_VIEW)?;
         Ok(self.repos.book_issues.overdue(today).await?)
     }
 }

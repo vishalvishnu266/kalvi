@@ -4,7 +4,8 @@ use chrono::NaiveDate;
 
 use crate::repositories::Repositories;
 use crate::repositories::transport::StudentTransport;
-use crate::services::{ServiceError, ServiceResult};
+use crate::services::{RequestCtx, ServiceError, ServiceResult};
+use crate::services::perm;
 
 #[derive(Clone)]
 pub struct TransportService {
@@ -15,8 +16,9 @@ impl TransportService {
     pub fn new(repos: Arc<Repositories>) -> Self { Self { repos } }
 
 pub async fn assign_to_stop(
-        &self, student_id: i64, route_stop_id: i64, valid_from: NaiveDate,
+        &self, ctx: &RequestCtx, student_id: i64, route_stop_id: i64, valid_from: NaiveDate,
     ) -> ServiceResult<StudentTransport> {
+        ctx.require(perm::TRANSPORT_MANAGE)?;
 
         let stop = sqlx::query_as::<_, (i64,)>(
             "SELECT route_id FROM route_stop WHERE id = ?",
@@ -43,7 +45,8 @@ pub async fn assign_to_stop(
             .assign(student_id, route_stop_id, year.id, valid_from).await?)
     }
 
-    pub async fn end_assignment(&self, id: i64, on: NaiveDate) -> ServiceResult<()> {
+    pub async fn end_assignment(&self, ctx: &RequestCtx, id: i64, on: NaiveDate) -> ServiceResult<()> {
+        ctx.require(perm::TRANSPORT_MANAGE)?;
         self.repos.student_transport.end_assignment(id, on).await?;
         Ok(())
     }

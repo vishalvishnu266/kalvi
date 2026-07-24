@@ -4,7 +4,8 @@ use chrono::NaiveDate;
 
 use crate::repositories::Repositories;
 use crate::repositories::class_enrollment::{Enrollment, NewEnrollment};
-use crate::services::{ServiceError, ServiceResult};
+use crate::services::{RequestCtx, ServiceError, ServiceResult};
+use crate::services::perm;
 
 #[derive(Clone)]
 pub struct EnrollmentService {
@@ -14,8 +15,8 @@ pub struct EnrollmentService {
 impl EnrollmentService {
     pub fn new(repos: Arc<Repositories>) -> Self { Self { repos } }
 
-pub async fn enroll(&self, e: NewEnrollment) -> ServiceResult<Enrollment> {
-
+pub async fn enroll(&self, ctx: &RequestCtx, e: NewEnrollment) -> ServiceResult<Enrollment> {
+        ctx.require(perm::ACADEMIC_MANAGE)?;
         let cs = self.repos.class_sections.get(e.class_section_id).await?;
         if let Some(cap) = cs.capacity {
             let filled = self.repos.class_sections.student_count(cs.id).await?;
@@ -27,8 +28,9 @@ pub async fn enroll(&self, e: NewEnrollment) -> ServiceResult<Enrollment> {
     }
 
 pub async fn transfer(
-        &self, student_id: i64, to_class_section_id: i64, effective: NaiveDate,
+        &self, ctx: &RequestCtx, student_id: i64, to_class_section_id: i64, effective: NaiveDate,
     ) -> ServiceResult<Enrollment> {
+        ctx.require(perm::ACADEMIC_MANAGE)?;
         let year = self.repos.academic_years.current().await?;
         let current = self.repos.enrollments
             .current_for_student(student_id, year.id).await?
@@ -64,8 +66,9 @@ sqlx::query(
     }
 
     pub async fn close_current(
-        &self, student_id: i64, on: NaiveDate, result: &str,
+        &self, ctx: &RequestCtx, student_id: i64, on: NaiveDate, result: &str,
     ) -> ServiceResult<()> {
+        ctx.require(perm::ACADEMIC_MANAGE)?;
         let year = self.repos.academic_years.current().await?;
         let current = self.repos.enrollments
             .current_for_student(student_id, year.id).await?
@@ -74,7 +77,8 @@ sqlx::query(
         Ok(())
     }
 
-    pub async fn roster(&self, class_section_id: i64) -> ServiceResult<Vec<Enrollment>> {
+    pub async fn roster(&self, ctx: &RequestCtx, class_section_id: i64) -> ServiceResult<Vec<Enrollment>> {
+        ctx.require(perm::ACADEMIC_VIEW)?;
         Ok(self.repos.enrollments.roster(class_section_id).await?)
     }
 }

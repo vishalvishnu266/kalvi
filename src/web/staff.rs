@@ -10,6 +10,7 @@ use tracing::log::info;
 use crate::http::TenantScope;
 use crate::middleware::auth::SessionUser;
 use crate::repositories::staff::Staff;
+use crate::services::perm;
 use crate::web::error::{render, WebError};
 use crate::web::layout::{visible_nav_items, NavContext, NavItem};
 
@@ -44,6 +45,7 @@ pub async fn list(
     Query(qp): Query<ListParams>,
     Extension(session): Extension<SessionUser>,
 ) -> Result<Response, WebError> {
+    scope.ctx.require(perm::STAFF_VIEW)?;
     let staff: Vec<Staff> = scope.services.repos.staff.list(50, 0).await
         .unwrap_or_default();
     info!("staff list");
@@ -91,6 +93,7 @@ pub async fn show(
     Path((_tenant, id)): Path<(String, i64)>,
     Extension(session): Extension<SessionUser>,
 ) -> Result<Response, WebError> {
+    scope.ctx.require(perm::STAFF_VIEW)?;
     let s = scope.services.repos.staff.get(id).await?;
     let name = display_name(&s);
     let staff = row_from(&s, name);

@@ -4,7 +4,8 @@ use chrono::NaiveDate;
 
 use crate::repositories::Repositories;
 use crate::repositories::fees::JournalLine;
-use crate::services::{ledger_codes, ServiceError, ServiceResult};
+use crate::services::{ledger_codes, RequestCtx, ServiceError, ServiceResult};
+use crate::services::perm;
 
 #[derive(Clone)]
 pub struct InventoryService {
@@ -14,7 +15,8 @@ pub struct InventoryService {
 impl InventoryService {
     pub fn new(repos: Arc<Repositories>) -> Self { Self { repos } }
 
-pub async fn set_po_status(&self, id: i64, target: &str) -> ServiceResult<()> {
+pub async fn set_po_status(&self, ctx: &RequestCtx, id: i64, target: &str) -> ServiceResult<()> {
+        ctx.require(perm::INVENTORY_MANAGE)?;
         let po = self.repos.purchase_orders.get(id).await?;
         let ok = matches!(
             (po.status.as_str(), target),
@@ -27,13 +29,14 @@ pub async fn set_po_status(&self, id: i64, target: &str) -> ServiceResult<()> {
             )));
         }
         if target == "received" {
-            return self.receive_po(id, po.order_date).await;
+            return self.receive_po(ctx, id, po.order_date).await;
         }
         self.repos.purchase_orders.set_status(id, target).await?;
         Ok(())
     }
 
-pub async fn receive_po(&self, id: i64, on: NaiveDate) -> ServiceResult<()> {
+pub async fn receive_po(&self, ctx: &RequestCtx, id: i64, on: NaiveDate) -> ServiceResult<()> {
+        ctx.require(perm::INVENTORY_MANAGE)?;
         let po = self.repos.purchase_orders.get(id).await?;
         if po.status == "received" {
             return Err(ServiceError::conflict("already received"));
@@ -60,7 +63,8 @@ self.repos.purchase_orders.receive(id).await?;
         Ok(())
     }
 
-pub async fn low_stock_alert_ids(&self) -> ServiceResult<Vec<i64>> {
+pub async fn low_stock_alert_ids(&self, ctx: &RequestCtx) -> ServiceResult<Vec<i64>> {
+        ctx.require_any(&[perm::INVENTORY_VIEW, perm::INVENTORY_MANAGE])?;
         Ok(self.repos.items.below_reorder().await?
             .into_iter().map(|i| i.id).collect())
     }

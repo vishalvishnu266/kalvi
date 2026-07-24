@@ -3,6 +3,7 @@ use axum::{response::Response, Extension};
 
 use crate::http::TenantScope;
 use crate::middleware::auth::SessionUser;
+use crate::services::perm;
 use crate::web::error::{render, WebError};
 use crate::web::layout::{visible_nav_items, NavContext, NavItem};
 
@@ -91,28 +92,31 @@ async fn render_stub(key: &'static str, scope: TenantScope, session: SessionUser
 }
 
 macro_rules! stub_handler {
-    ($name:ident, $key:literal) => {
+    ($name:ident, $key:literal, $($p:expr),+) => {
         pub async fn $name(
             scope: TenantScope,
             Extension(session): Extension<SessionUser>,
         ) -> Result<Response, WebError>
-        { render_stub($key, scope, session).await }
+        {
+            scope.ctx.require_any(&[$($p),+])?;
+            render_stub($key, scope, session).await
+        }
     };
 }
 
-stub_handler!(attendance,    "attendance");
-stub_handler!(timetable,     "timetable");
-stub_handler!(fees,          "fees");
-stub_handler!(examinations,  "examinations");
-stub_handler!(academic,      "academic");
-stub_handler!(payroll,       "payroll");
-stub_handler!(communication, "communication");
-stub_handler!(library,       "library");
-stub_handler!(transport,     "transport");
-stub_handler!(hostel,        "hostel");
-stub_handler!(inventory,     "inventory");
-stub_handler!(health,        "health");
-stub_handler!(discipline,    "discipline");
-stub_handler!(documents,     "documents");
-stub_handler!(audit,         "audit");
-stub_handler!(settings,      "settings");
+stub_handler!(attendance,    "attendance",   perm::ATTENDANCE_VIEW, perm::ATTENDANCE_VIEW_OWN, perm::ATTENDANCE_MARK);
+stub_handler!(timetable,     "timetable",    perm::TIMETABLE_VIEW, perm::TIMETABLE_MANAGE);
+stub_handler!(fees,          "fees",         perm::FEES_VIEW, perm::FEES_COLLECT);
+stub_handler!(examinations,  "examinations", perm::EXAMINATIONS_VIEW, perm::EXAMINATIONS_ENTER_MARKS);
+stub_handler!(academic,      "academic",     perm::ACADEMIC_VIEW);
+stub_handler!(payroll,       "payroll",      perm::PAYROLL_VIEW, perm::PAYROLL_RUN);
+stub_handler!(communication, "communication",perm::COMMUNICATION_VIEW, perm::COMMUNICATION_BROADCAST);
+stub_handler!(library,       "library",      perm::LIBRARY_VIEW);
+stub_handler!(transport,     "transport",    perm::TRANSPORT_VIEW);
+stub_handler!(hostel,        "hostel",       perm::HOSTEL_VIEW);
+stub_handler!(inventory,     "inventory",    perm::INVENTORY_VIEW);
+stub_handler!(health,        "health",       perm::HEALTH_VIEW);
+stub_handler!(discipline,    "discipline",   perm::DISCIPLINE_VIEW);
+stub_handler!(documents,     "documents",    perm::DOCUMENTS_VIEW);
+stub_handler!(audit,         "audit",        perm::AUDIT_VIEW);
+stub_handler!(settings,      "settings",     perm::SETTINGS_VIEW, perm::SETTINGS_MANAGE);

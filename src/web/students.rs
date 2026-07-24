@@ -9,7 +9,6 @@ use tracing::log::info;
 use crate::http::TenantScope;
 use crate::repositories::students::Student;
 use crate::middleware::auth::SessionUser;
-use crate::services::people::Scope;
 use crate::services::perm;
 use crate::web::error::{render, WebError};
 use crate::web::layout::{visible_nav_items, NavContext, NavItem};
@@ -43,9 +42,8 @@ pub async fn list(
     Extension(session): Extension<SessionUser>,
 ) -> Result<Response, WebError> {
 
-    let scope = Scope::from_session(&session);
     let students: Vec<Student> = tscope.services.people
-        .list_students_for(scope, 50).await?;
+        .list_students_for(&tscope.ctx, 50, 0).await?;
     info!("student list: {} rows", students.len());
 
     let q = qp.q.unwrap_or_default();
@@ -98,8 +96,8 @@ pub async fn show(
     Extension(session): Extension<SessionUser>,
 ) -> Result<Response, WebError> {
 
-let scope = Scope::from_session(&session);
-    if !tscope.services.people.can_view_student(&scope, id).await? {
+let scope_check = tscope.services.people.can_view_student(&tscope.ctx, id).await?;
+    if !scope_check {
         return Err(WebError::forbidden("not permitted to view this student"));
     }
 

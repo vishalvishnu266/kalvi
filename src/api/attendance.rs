@@ -4,10 +4,11 @@ use serde::Deserialize;
 use crate::http::{ServiceHttpError, TenantScope};
 use crate::repositories::attendance::{MarkStaff, MarkStudent, StaffAttendance, StudentAttendance};
 use crate::services::attendance::BulkMark;
+use crate::services::perm;
 
 pub async fn mark_one(scope: TenantScope, Json(b): Json<MarkStudent>)
     -> Result<Json<StudentAttendance>, ServiceHttpError>
-{ Ok(Json(scope.services.attendance.mark_one(b).await?)) }
+{ Ok(Json(scope.services.attendance.mark_one(&scope.ctx, b).await?)) }
 
 #[derive(Deserialize)]
 pub struct MarkClassBody {
@@ -21,7 +22,7 @@ pub async fn mark_class(scope: TenantScope, Json(b): Json<MarkClassBody>)
     -> Result<Json<serde_json::Value>, ServiceHttpError>
 {
     let n = scope.services.attendance
-        .mark_class(b.class_section_id, b.date, b.marks, b.marked_by_staff_id).await?;
+        .mark_class(&scope.ctx, b.class_section_id, b.date, b.marks, b.marked_by_staff_id).await?;
     Ok(Json(serde_json::json!({ "marked": n })))
 }
 
@@ -30,6 +31,7 @@ pub async fn mark_class(scope: TenantScope, Json(b): Json<MarkClassBody>)
 pub async fn for_student(
     scope: TenantScope, Path((_t, sid)): Path<(String, i64)>, Query(r): Query<Range>,
 ) -> Result<Json<Vec<StudentAttendance>>, ServiceHttpError> {
+    scope.ctx.require_any(&[perm::ATTENDANCE_VIEW, perm::ATTENDANCE_VIEW_OWN])?;
     Ok(Json(scope.services.repos.student_attendance
         .for_student_between(sid, r.from, r.to).await?))
 }
@@ -39,7 +41,7 @@ pub async fn for_student(
 pub async fn percentage(scope: TenantScope, Query(q): Query<PctQ>)
     -> Result<Json<serde_json::Value>, ServiceHttpError>
 {
-    let p = scope.services.attendance.percentage(q.student_id, q.from, q.to).await?;
+    let p = scope.services.attendance.percentage(&scope.ctx, q.student_id, q.from, q.to).await?;
     Ok(Json(serde_json::json!({ "percentage": p })))
 }
 
@@ -48,16 +50,21 @@ pub async fn percentage(scope: TenantScope, Query(q): Query<PctQ>)
 pub async fn for_class_on(
     scope: TenantScope, Path((_t, id)): Path<(String, i64)>, Query(q): Query<DateOnly>,
 ) -> Result<Json<Vec<StudentAttendance>>, ServiceHttpError> {
+    scope.ctx.require(perm::ATTENDANCE_VIEW)?;
     Ok(Json(scope.services.repos.student_attendance.for_class_on(id, q.date).await?))
 }
 
 pub async fn mark_staff(scope: TenantScope, Json(b): Json<MarkStaff>)
     -> Result<Json<StaffAttendance>, ServiceHttpError>
-{ Ok(Json(scope.services.repos.staff_attendance.mark(&b).await?)) }
+{
+    scope.ctx.require(perm::ATTENDANCE_MARK)?;
+    Ok(Json(scope.services.repos.staff_attendance.mark(&b).await?))
+}
 
 pub async fn for_staff(
     scope: TenantScope, Path((_t, sid)): Path<(String, i64)>, Query(r): Query<Range>,
 ) -> Result<Json<Vec<StaffAttendance>>, ServiceHttpError> {
+    scope.ctx.require(perm::ATTENDANCE_VIEW)?;
     Ok(Json(scope.services.repos.staff_attendance
         .for_staff_between(sid, r.from, r.to).await?))
 }

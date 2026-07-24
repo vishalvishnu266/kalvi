@@ -4,6 +4,7 @@ use crate::repositories::Repositories;
 use crate::repositories::communication::NewNotification;
 use crate::repositories::discipline::{DisciplineIncident, NewIncident};
 use crate::services::{Actor, RequestCtx, ServiceError, ServiceResult};
+use crate::services::perm;
 
 #[derive(Clone)]
 pub struct DisciplineService {
@@ -16,6 +17,7 @@ impl DisciplineService {
 pub async fn report(
         &self, ctx: &RequestCtx, i: NewIncident, notify_guardians: bool,
     ) -> ServiceResult<DisciplineIncident> {
+        ctx.require(perm::DISCIPLINE_MANAGE)?;
         let incident = self.repos.discipline.report(&i).await?;
 
 tracing::info!(
@@ -58,7 +60,8 @@ tracing::info!(
         Ok(incident)
     }
 
-    pub async fn history(&self, student_id: i64) -> ServiceResult<Vec<DisciplineIncident>> {
+    pub async fn history(&self, ctx: &RequestCtx, student_id: i64) -> ServiceResult<Vec<DisciplineIncident>> {
+        ctx.require_any(&[perm::DISCIPLINE_VIEW, perm::DISCIPLINE_MANAGE])?;
         Ok(self.repos.discipline.for_student(student_id).await?)
     }
 

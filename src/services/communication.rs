@@ -2,7 +2,8 @@ use std::sync::Arc;
 
 use crate::repositories::Repositories;
 use crate::repositories::communication::{Announcement, NewAnnouncement, NewNotification};
-use crate::services::{ServiceError, ServiceResult};
+use crate::services::{RequestCtx, ServiceError, ServiceResult};
+use crate::services::perm;
 
 #[derive(Clone)]
 pub struct CommunicationService {
@@ -12,7 +13,8 @@ pub struct CommunicationService {
 impl CommunicationService {
     pub fn new(repos: Arc<Repositories>) -> Self { Self { repos } }
 
-pub async fn broadcast(&self, a: NewAnnouncement) -> ServiceResult<(Announcement, u64)> {
+pub async fn broadcast(&self, ctx: &RequestCtx, a: NewAnnouncement) -> ServiceResult<(Announcement, u64)> {
+        ctx.require(perm::COMMUNICATION_BROADCAST)?;
         let ann = self.repos.announcements.publish(&a).await?;
 
 let user_ids: Vec<i64> = match ann.audience.as_str() {

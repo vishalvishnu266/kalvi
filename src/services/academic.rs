@@ -4,7 +4,8 @@ use chrono::NaiveDate;
 
 use crate::repositories::Repositories;
 use crate::repositories::core::{AcademicYear, NewAcademicYear, NewTerm, Term};
-use crate::services::{ServiceError, ServiceResult};
+use crate::services::{RequestCtx, ServiceError, ServiceResult};
+use crate::services::perm;
 
 #[derive(Clone)]
 pub struct AcademicService {
@@ -14,13 +15,15 @@ pub struct AcademicService {
 impl AcademicService {
     pub fn new(repos: Arc<Repositories>) -> Self { Self { repos } }
 
-pub async fn create_year(&self, y: NewAcademicYear) -> ServiceResult<AcademicYear> {
+pub async fn create_year(&self, ctx: &RequestCtx, y: NewAcademicYear) -> ServiceResult<AcademicYear> {
+        ctx.require(perm::ACADEMIC_MANAGE)?;
         Ok(self.repos.academic_years.create(&y).await?)
     }
 
 pub async fn rollover(
-        &self, new_year: NewAcademicYear, terms: Vec<NewTerm>,
+        &self, ctx: &RequestCtx, new_year: NewAcademicYear, terms: Vec<NewTerm>,
     ) -> ServiceResult<AcademicYear> {
+        ctx.require(perm::ACADEMIC_MANAGE)?;
         let year = self.repos.academic_years.create(&new_year).await?;
         self.repos.academic_years.set_current(year.id).await?;
         for mut t in terms {
@@ -34,13 +37,15 @@ pub async fn current_year(&self) -> ServiceResult<AcademicYear> {
         Ok(self.repos.academic_years.current().await?)
     }
 
-    pub async fn list_terms(&self, year_id: i64) -> ServiceResult<Vec<Term>> {
+    pub async fn list_terms(&self, ctx: &RequestCtx, year_id: i64) -> ServiceResult<Vec<Term>> {
+        ctx.require(perm::ACADEMIC_VIEW)?;
         Ok(self.repos.terms.list_for_year(year_id).await?)
     }
 
 pub async fn promote_class(
-        &self, from_class_id: i64, to_class_id: i64, to_year_id: i64, enrolled_on: NaiveDate,
+        &self, ctx: &RequestCtx, from_class_id: i64, to_class_id: i64, to_year_id: i64, enrolled_on: NaiveDate,
     ) -> ServiceResult<u64> {
+        ctx.require(perm::ACADEMIC_MANAGE)?;
         if from_class_id == to_class_id {
             return Err(ServiceError::validation("from and to class must differ"));
         }

@@ -117,6 +117,7 @@ pub async fn list(
     axum::extract::Query(qp): axum::extract::Query<ListQuery>,
     Extension(session): Extension<SessionUser>,
 ) -> Result<Response, WebError> {
+    ts.ctx.require_any(&[perm::GUARDIANS_VIEW, perm::GUARDIANS_MANAGE])?;
     let all = ts.services.repos.guardians.list(200, 0).await.unwrap_or_default();
     let q = qp.q.unwrap_or_default();
     let ql = q.to_lowercase();
@@ -147,6 +148,7 @@ pub async fn show(
     Path((_t, id)): Path<(String, i64)>,
     Extension(session): Extension<SessionUser>,
 ) -> Result<Response, WebError> {
+    ts.ctx.require_any(&[perm::GUARDIANS_VIEW, perm::GUARDIANS_MANAGE])?;
     let g = ts.services.repos.guardians.get(id).await?;
     let student_ids = ts.services.repos.guardians.students_of_guardian(id).await
         .unwrap_or_default();
@@ -169,6 +171,7 @@ pub async fn new_form(
     ts: TenantScope,
     Extension(session): Extension<SessionUser>,
 ) -> Result<Response, WebError> {
+    ts.ctx.require(perm::GUARDIANS_MANAGE)?;
     let form = GuardianForm::default();
     render_form(&ts, &session, &form, None, None)
 }
@@ -178,6 +181,7 @@ pub async fn create(
     Extension(session): Extension<SessionUser>,
     Form(f): Form<GuardianForm>,
 ) -> Result<Response, WebError> {
+    ts.ctx.require(perm::GUARDIANS_MANAGE)?;
     if let Some(err) = f.validate() {
         return render_form(&ts, &session, &f, None, Some(err));
     }
@@ -195,6 +199,7 @@ pub async fn edit_form(
     Path((_t, id)): Path<(String, i64)>,
     Extension(session): Extension<SessionUser>,
 ) -> Result<Response, WebError> {
+    ts.ctx.require(perm::GUARDIANS_MANAGE)?;
     let g = ts.services.repos.guardians.get(id).await?;
     let form = GuardianForm::from_guardian(&g);
     render_form(&ts, &session, &form, Some(id), None)
@@ -206,6 +211,7 @@ pub async fn update(
     Extension(session): Extension<SessionUser>,
     Form(f): Form<GuardianForm>,
 ) -> Result<Response, WebError> {
+    ts.ctx.require(perm::GUARDIANS_MANAGE)?;
     if let Some(err) = f.validate() {
         return render_form(&ts, &session, &f, Some(id), Some(err));
     }
@@ -222,6 +228,7 @@ pub async fn delete(
     ts: TenantScope,
     Path((_t, id)): Path<(String, i64)>,
 ) -> Result<Response, WebError> {
+    ts.ctx.require(perm::GUARDIANS_MANAGE)?;
     ts.services.repos.guardians.delete(id).await?;
     Ok(redirect(&format!(
         "/web/{}/guardians?flash=Guardian+deleted",

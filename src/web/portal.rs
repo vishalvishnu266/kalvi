@@ -16,7 +16,7 @@ use crate::http::{AppState, TenantScope};
 use crate::middleware::auth::{read_cookie_from_headers, SessionUser};
 use crate::repositories::students::Student;
 use crate::repositories::auth::{User, Role};
-use crate::services::{AppServices, people::Scope};
+use crate::services::AppServices;
 use crate::system::{NewPortalMembership, NewPortalUser};
 use crate::tenancy::TenantId;
 use crate::web::error::{render, WebError};
@@ -252,7 +252,7 @@ pub async fn students(
     Extension(session): Extension<SessionUser>,
 ) -> Result<Response, WebError> {
     let rows = scope.services.people
-        .list_students_for(Scope::from_session(&session), 100)
+        .list_students_for(&scope.ctx, 100, 0)
         .await?
         .into_iter()
         .map(map_student)
@@ -269,8 +269,7 @@ pub async fn student_show(
     Path((_tenant, id)): Path<(String, i64)>,
     Extension(session): Extension<SessionUser>,
 ) -> Result<Response, WebError> {
-    let visibility = Scope::from_session(&session);
-    if !scope.services.people.can_view_student(&visibility, id).await? {
+    if !scope.services.people.can_view_student(&scope.ctx, id).await? {
         return Err(WebError::forbidden("not permitted to view this student"));
     }
     let s = scope.services.repos.students.get(id).await?;

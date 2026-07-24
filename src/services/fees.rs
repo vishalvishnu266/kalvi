@@ -6,7 +6,8 @@ use crate::repositories::Repositories;
 use crate::repositories::fees::{
     FeeInvoice, FeePayment, JournalLine, NewInvoice, NewInvoiceLine, NewPayment,
 };
-use crate::services::{ledger_codes, ServiceError, ServiceResult};
+use crate::services::{ledger_codes, RequestCtx, ServiceError, ServiceResult};
+use crate::services::perm;
 
 #[derive(Clone)]
 pub struct FeeService {
@@ -18,6 +19,7 @@ impl FeeService {
 
 pub async fn generate_invoice_for_student(
         &self,
+        ctx: &RequestCtx,
         student_id: i64,
         fee_structure_id: i64,
         invoice_no: String,
@@ -25,6 +27,7 @@ pub async fn generate_invoice_for_student(
         due_date: NaiveDate,
         tax_cents: i64,
     ) -> ServiceResult<FeeInvoice> {
+        ctx.require(perm::FEES_COLLECT)?;
         let structure = self.repos.fee_structures.get(fee_structure_id).await?;
         let items = self.repos.fee_structures.items(fee_structure_id).await?;
         if items.is_empty() {
@@ -75,7 +78,8 @@ if flat_off_cents > 0 {
         Ok(self.repos.invoices.create(&invoice).await?)
     }
 
-pub async fn record_payment(&self, p: NewPayment) -> ServiceResult<FeePayment> {
+pub async fn record_payment(&self, ctx: &RequestCtx, p: NewPayment) -> ServiceResult<FeePayment> {
+        ctx.require(perm::FEES_COLLECT)?;
         let payment = self.repos.payments.record(&p).await?;
 
 let accounts = self.repos.ledger.accounts().await?;
@@ -106,11 +110,13 @@ let accounts = self.repos.ledger.accounts().await?;
         Ok(payment)
     }
 
-pub async fn outstanding(&self, student_id: i64) -> ServiceResult<i64> {
+pub async fn outstanding(&self, ctx: &RequestCtx, student_id: i64) -> ServiceResult<i64> {
+        ctx.require_any(&[perm::FEES_VIEW, perm::FEES_VIEW_OWN])?;
         Ok(self.repos.invoices.outstanding(student_id).await?)
     }
 
-pub async fn aging(&self, today: NaiveDate) -> ServiceResult<(i64,i64,i64,i64)> {
+pub async fn aging(&self, ctx: &RequestCtx, today: NaiveDate) -> ServiceResult<(i64,i64,i64,i64)> {
+        ctx.require(perm::FEES_VIEW)?;
         let overdue = self.repos.invoices.overdue(today).await?;
         let (mut b0, mut b30, mut b60, mut b90) = (0, 0, 0, 0);
         for inv in overdue {
@@ -126,7 +132,8 @@ pub async fn aging(&self, today: NaiveDate) -> ServiceResult<(i64,i64,i64,i64)> 
         Ok((b0, b30, b60, b90))
     }
 
-    pub async fn cancel_invoice(&self, id: i64) -> ServiceResult<()> {
+    pub async fn cancel_invoice(&self, ctx: &RequestCtx, id: i64) -> ServiceResult<()> {
+        ctx.require(perm::FEES_COLLECT)?;
         let inv = self.repos.invoices.get(id).await?;
         if inv.paid_cents > 0 {
             return Err(ServiceError::conflict("cannot cancel an invoice with payments"));

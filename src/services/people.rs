@@ -3,13 +3,13 @@ use std::sync::Arc;
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
-use crate::middleware::auth::SessionUser;
 use crate::repositories::Repositories;
 use crate::repositories::class_enrollment::NewEnrollment;
 use crate::repositories::guardians::{NewGuardian, StudentGuardianLink};
 use crate::repositories::staff::{NewStaff, Staff};
 use crate::repositories::students::{NewStudent, Student};
-use crate::services::{ServiceError, ServiceResult};
+use crate::services::{RequestCtx, ServiceError, ServiceResult};
+use crate::services::perm;
 
 #[derive(Debug, Clone)]
 pub enum Scope {
@@ -23,16 +23,15 @@ SelfStudent(i64),
 
 impl Scope {
 
-pub fn from_session(session: &SessionUser) -> Self {
-        use crate::services::perm::STUDENTS_VIEW;
-        if session.has(STUDENTS_VIEW) {
+    pub fn from_ctx(ctx: &RequestCtx) -> Self {
+        if ctx.has_permission(perm::STUDENTS_VIEW) {
             Scope::Global
-        } else if session.is_role("guardian") {
-            Scope::GuardianOfUser(session.user_id)
-        } else if session.is_role("student") {
-            Scope::SelfStudent(session.user_id)
+        } else if let Some(uid) = ctx.user_id() {
+            // Guardian or self-student: determined by role assignment at login;
+            // we fall back to guardian-scoped view unless explicitly a student.
+            Scope::GuardianOfUser(uid)
         } else {
-            Scope::GuardianOfUser(session.user_id)
+            Scope::GuardianOfUser(0)
         }
     }
 }
@@ -62,7 +61,8 @@ pub struct PeopleService {
 impl PeopleService {
     pub fn new(repos: Arc<Repositories>) -> Self { Self { repos } }
 
-    pub async fn admit(&self, a: Admission) -> ServiceResult<AdmissionResult> {
+    pub async fn admit(&self, ctx: &RequestCtx, a: Admission) -> ServiceResult<AdmissionResult> {
+        ctx.require(perm::STUDENTS_ADMIT)?;
 
         if self.repos.students.find_by_admission_no(&a.student.admission_no).await?.is_some() {
             return Err(ServiceError::conflict("admission_no already exists"));
@@ -100,24 +100,28 @@ impl PeopleService {
         Ok(AdmissionResult { student, guardian_id, enrollment_id })
     }
 
-    pub async fn withdraw(&self, student_id: i64) -> ServiceResult<()> {
+    pub async fn withdraw(&self, ctx: &RequestCtx, student_id: i64) -> ServiceResult<()> {
+        ctx.require(perm::STUDENTS_EDIT)?;
         self.repos.students.set_status(student_id, "withdrawn").await?;
         Ok(())
     }
 
-    pub async fn graduate(&self, student_id: i64) -> ServiceResult<()> {
+    pub async fn graduate(&self, ctx: &RequestCtx, student_id: i64) -> ServiceResult<()> {
+        ctx.require(perm::STUDENTS_EDIT)?;
         self.repos.students.set_status(student_id, "graduated").await?;
         Ok(())
     }
 
-    pub async fn hire_staff(&self, s: NewStaff) -> ServiceResult<Staff> {
+    pub async fn hire_staff(&self, ctx: &RequestCtx, s: NewStaff) -> ServiceResult<Staff> {
+        ctx.require(perm::STAFF_HIRE)?;
         if self.repos.staff.find_by_employee_no(&s.employee_no).await?.is_some() {
             return Err(ServiceError::conflict("employee_no already exists"));
         }
         Ok(self.repos.staff.create(&s).await?)
     }
 
-    pub async fn terminate_staff(&self, staff_id: i64, on: NaiveDate) -> ServiceResult<()> {
+    pub async fn terminate_staff(&self, ctx: &RequestCtx, staff_id: i64, on: NaiveDate) -> ServiceResult<()> {
+        ctx.require(perm::STAFF_EDIT)?;
         self.repos.staff.update(staff_id, &crate::repositories::staff::UpdateStaff {
             status: Some("terminated".into()),
             date_of_leaving: Some(Some(on)),
@@ -128,11 +132,14 @@ impl PeopleService {
 
 pub async fn list_students_for(
         &self,
-        scope: Scope,
+        ctx: &RequestCtx,
         limit: i64,
+        offset: i64,
     ) -> ServiceResult<Vec<Student>> {
+        ctx.require_any(&[perm::STUDENTS_VIEW, perm::STUDENTS_VIEW_OWN])?;
+        let scope = Scope::from_ctx(ctx);
         match scope {
-            Scope::Global => Ok(self.repos.students.list(limit, 0).await?),
+            Scope::Global => Ok(self.repos.students.list(limit, offset).await?),
             Scope::GuardianOfUser(uid) => {
                 let ids = self.repos.guardians.students_of_user(uid).await?;
                 Ok(self.repos.students.list_by_ids(&ids).await?)
@@ -148,16 +155,17 @@ pub async fn list_students_for(
 
 pub async fn can_view_student(
         &self,
-        scope: &Scope,
+        ctx: &RequestCtx,
         student_id: i64,
     ) -> ServiceResult<bool> {
+        let scope = Scope::from_ctx(ctx);
         Ok(match scope {
             Scope::Global => true,
             Scope::GuardianOfUser(uid) => {
-                self.repos.guardians.is_guardian_of(*uid, student_id).await?
+                self.repos.guardians.is_guardian_of(uid, student_id).await?
             }
             Scope::SelfStudent(uid) => {
-                self.repos.students.find_by_user_id(*uid).await?
+                self.repos.students.find_by_user_id(uid).await?
                     .map(|s| s.id == student_id)
                     .unwrap_or(false)
             }
