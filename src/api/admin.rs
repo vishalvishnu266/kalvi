@@ -10,7 +10,7 @@ use axum::{extract::{Path, State}, http::StatusCode, Json};
 
 use crate::http::AppState;
 use crate::system::{NewTenant, Tenant, UpdateTenant};
-use crate::tenancy::{tenant_evict, tenant_provision, TenantId};
+use crate::tenancy::TenantId;
 
 fn err_500<E: std::fmt::Display>(e: E) -> (StatusCode, String) {
     (StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
@@ -30,7 +30,7 @@ pub async fn create(
     let tenant = s.system.create(&body).await.map_err(err_400)?;
     let tid = TenantId::new(&tenant.tenant_id)
         .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
-    tenant_provision(&s.tenants, tid).await.map_err(err_500)?;
+    s.provision(tid).await.map_err(err_500)?;
     Ok(Json(tenant))
 }
 
@@ -54,7 +54,7 @@ pub async fn update(
     let updated = s.system.update(existing.id, &body).await.map_err(err_400)?;
     if matches!(updated.status.as_str(), "disabled" | "deleted") {
         if let Ok(t) = TenantId::new(&updated.tenant_id) {
-            tenant_evict(&s.tenants, &t).await;
+            s.evict(&t).await;
         }
     }
     Ok(Json(updated))
@@ -68,7 +68,7 @@ pub async fn soft_delete(
         .ok_or((StatusCode::NOT_FOUND, "tenant not found".into()))?;
     s.system.delete(existing.id).await.map_err(err_500)?;
     if let Ok(t) = TenantId::new(&existing.tenant_id) {
-        tenant_evict(&s.tenants, &t).await;
+        s.evict(&t).await;
     }
     Ok(StatusCode::NO_CONTENT)
 }
@@ -91,7 +91,7 @@ pub async fn disable(
         .ok_or((StatusCode::NOT_FOUND, "tenant not found".into()))?;
     s.system.set_status(existing.id, "disabled").await.map_err(err_500)?;
     if let Ok(t) = TenantId::new(&existing.tenant_id) {
-        tenant_evict(&s.tenants, &t).await;
+        s.evict(&t).await;
     }
     Ok(Json(s.system.get(existing.id).await.map_err(err_500)?))
 }

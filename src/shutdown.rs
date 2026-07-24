@@ -16,8 +16,6 @@ use std::time::Duration;
 
 use sqlx::SqlitePool;
 
-use crate::tenancy::{tenant_shutdown, TenantRegistry};
-
 /// Resolve when the process receives a termination signal.
 ///
 /// * Unix: `SIGINT` (Ctrl+C) **or** `SIGTERM` (Docker/K8s stop).
@@ -40,24 +38,15 @@ pub async fn wait_for_signal() {
     }
 }
 
-/// Close per-tenant pools first, then the system pool, with a per-step
-/// timeout so a stuck pool cannot hang shutdown forever.
+/// Close database pools with a per-step timeout so a stuck pool cannot hang
+/// shutdown forever.
 pub async fn close_pools(
-    tenants: &TenantRegistry,
     system_pool: &SqlitePool,
     step_timeout: Duration,
 ) {
     tracing::debug!("close_pools: starting shutdown sequence");
-    // 1. Tenants — checkpoints each tenant's WAL.
-    tracing::debug!("close_pools: closing tenant pools");
-    let tenants_shutdown = tenant_shutdown(tenants);
-    if tokio::time::timeout(step_timeout, tenants_shutdown).await.is_err() {
-        tracing::warn!("tenant pools did not close within {:?}", step_timeout);
-    } else {
-        tracing::info!("tenant pools closed");
-    }
 
-    // 2. System pool.
+    // Close system pool.
     tracing::debug!("close_pools: closing system pool");
     let system_close = system_pool.close();
     if tokio::time::timeout(step_timeout, system_close).await.is_err() {

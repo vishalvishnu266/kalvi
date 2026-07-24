@@ -116,11 +116,9 @@ pub struct AppServices {
 }
 
 impl AppServices {
-    pub fn new(pool: SqlitePool) -> Self {
-        let repos = Arc::new(Repositories::new(pool));
-        let auth = auth::AuthService::new(repos.clone());
-        Self::from_repos_with_auth(repos, auth)
-    }
+    // AppServices::new(pool) removed. 
+    // Use AppServices::from_repos_with_auth(repos, auth) instead, 
+    // ensuring AuthService is initialized with the shared SessionStore.
 
     pub fn from_repos_with_auth(
         repos: Arc<Repositories>,

@@ -7,7 +7,7 @@
 //!
 //! ## Why a separate value, not a field on `AppServices`?
 //!
-//! `AppServices` is cached per-tenant by the [`crate::tenancy::TenantRegistry`]
+//! `AppServices` is cached per-tenant by [`crate::http::AppState`]
 //! and shared across concurrent requests. Baking mutable per-request state
 //! into it would either force us to reconstruct the whole services bundle
 //! per request (defeating the cache) or introduce cross-request contamination.

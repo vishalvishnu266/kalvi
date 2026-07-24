@@ -29,9 +29,8 @@ pub struct AuthService {
 }
 
 impl AuthService {
-    pub fn new(repos: Arc<Repositories>) -> Self {
-        let sessions = SessionStore::TenantDb(repos.sessions.clone());
-        Self { repos, sessions }
+    pub fn new(_repos: Arc<Repositories>) -> Self {
+        panic!("AuthService must be initialized with with_session_store or a shared SessionStore");
     }
 
     pub fn with_session_store(
@@ -176,7 +175,7 @@ impl AuthService {
         let expires_at = chrono::Utc::now().naive_utc() + Duration::days(ttl_days);
         let token = Self::mint_token();
         let s = self.sessions.create(&NewSession {
-            token, user_id, expires_at, user_agent, remote_ip,
+            token, user_id, tenant_id: None, expires_at, user_agent, remote_ip,
         }).await?;
         Ok(s)
     }

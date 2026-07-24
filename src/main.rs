@@ -15,77 +15,49 @@ use tower::Layer;
 use school_erp::health_probes::Readiness;
 use school_erp::shutdown::{close_pools, wait_for_signal};
 use school_erp::system::{connect_system, migrate_system};
-use school_erp::tenancy::{new_tenant_registry, TenantAdmissionMode};
-use school_erp::{build_router, AppState, SystemRegistry};
+use school_erp::tenancy::new_tenant_registry;
+use school_erp::{build_router, AppState, Config, SystemRegistry};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let _ = dotenvy::dotenv();
+    let config = Config::from_env();
+
     init_tracing();
     tracing::debug!("main: application starting");
 
-    // --- Config ---
-    let system_url = std::env::var("SYSTEM_DB_URL")
-        .unwrap_or_else(|_| "sqlite://data/system.db?mode=rwc".to_string());
-    let tenant_root = std::env::var("TENANT_DB_ROOT")
-        .unwrap_or_else(|_| "data/tenants".to_string());
-    let session_backend_raw = std::env::var("SESSION_BACKEND")
-        .unwrap_or_else(|_| "tenant_db".to_string());
-    let session_snapshot_root = std::env::var("SESSION_SNAPSHOT_ROOT")
-        .unwrap_or_else(|_| "data/sessions".to_string());
-    let bind = std::env::var("BIND").unwrap_or_else(|_| "0.0.0.0:3000".to_string());
-    let shutdown_timeout = std::env::var("SHUTDOWN_TIMEOUT_S")
-        .ok().and_then(|v| v.parse::<u64>().ok())
-        .map(Duration::from_secs)
-        .unwrap_or_else(|| Duration::from_secs(30));
-
     // Ensure data directories exist.
     std::fs::create_dir_all("data").ok();
-    std::fs::create_dir_all(&tenant_root).ok();
-
-    let session_snapshot_root = match session_backend_raw.as_str() {
-        "tenant_db" => None,
-        "memory_sqlite" => {
-            std::fs::create_dir_all(&session_snapshot_root).ok();
-            Some(std::path::PathBuf::from(&session_snapshot_root))
-        }
-        other => {
-            return Err(format!(
-                "unsupported SESSION_BACKEND='{other}', use tenant_db or memory_sqlite"
-            ).into());
-        }
-    };
+    std::fs::create_dir_all(&config.tenant_db_root).ok();
 
     // --- 1. Central DB ---
-    tracing::debug!("main: connecting to system db at {}", system_url);
-    let sys_pool = connect_system(&system_url).await?;
+    tracing::debug!("main: connecting to system db at {}", config.system_db_url);
+    let sys_pool = connect_system(&config.system_db_url).await?;
     tracing::debug!("main: running system migrations");
     migrate_system(&sys_pool).await?;
     let system = SystemRegistry::new(sys_pool);
     let system_pool_for_shutdown = system.pool_clone();
 
-    // --- 2. Tenant registry ---
-    tracing::debug!("main: initializing tenant registry with root: {}", tenant_root);
-    let tenants = new_tenant_registry(
-        std::path::PathBuf::from(&tenant_root),
-        TenantAdmissionMode::SystemDb(system.clone()),
-        true,
-        session_snapshot_root,
-    );
-    let tenants_for_shutdown = tenants.clone();
+    // --- 2. Session Store ---
+    tracing::debug!("main: initializing session store at {}", config.session_db_url);
+    let sessions = school_erp::session::SessionStore::open(&config.session_db_url).await?;
+    let session_pool_for_shutdown = sessions.pool_clone();
 
-    // --- 3. Router (all routes live in src/http/routes.rs) ---
+    // --- 3. App State (including Tenant Registry) ---
+    let state = AppState::new(system, sessions, config.tenant_db_root.clone());
+    let state_for_shutdown = state.clone();
+
+    // --- 4. Router (all routes live in src/http/routes.rs) ---
     tracing::debug!("main: building router");
     let readiness = Readiness::new_ready();
     let readiness_for_shutdown = readiness.clone();
-    let state = AppState { system, tenants };
     let app = build_router(state, readiness);
     let app = tower_http::normalize_path::NormalizePathLayer::trim_trailing_slash().layer(app);
 
     // --- 4. Serve with graceful shutdown ---
-    let listener = tokio::net::TcpListener::bind(&bind).await?;
-    tracing::info!(addr = %bind, "listening");
-    println!("listening on {bind}");
+    let listener = tokio::net::TcpListener::bind(&config.bind_addr).await?;
+    tracing::info!(addr = %config.bind_addr, "listening");
+    println!("listening on {}", config.bind_addr);
 
     let shutdown_signal = async move {
         tracing::debug!("shutdown_signal: waiting for signal");
@@ -103,7 +75,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // --- 5. Requests drained; close pools in order ---
     tracing::info!("HTTP server stopped, closing pools");
     tracing::debug!("main: closing database pools");
-    close_pools(&tenants_for_shutdown, &system_pool_for_shutdown, shutdown_timeout).await;
+    
+    // Close tenant pools
+    for (tid, pool) in state_for_shutdown.active_tenant_pools().await {
+        tracing::debug!("closing pool for tenant={}", tid);
+        pool.close().await;
+    }
+
+    // Close system and session pools
+    close_pools(&system_pool_for_shutdown, config.shutdown_timeout).await;
+    session_pool_for_shutdown.close().await;
 
     tracing::info!("shutdown complete");
     Ok(())

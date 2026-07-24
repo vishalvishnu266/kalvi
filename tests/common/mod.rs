@@ -13,7 +13,6 @@
 use axum_test::TestServer;
 use school_erp::health_probes::Readiness;
 use school_erp::system::{connect_system, migrate_system};
-use school_erp::tenancy::{new_tenant_registry, TenantAdmissionMode};
 use school_erp::{build_router, AppState, SystemRegistry};
 use tempfile::TempDir;
 use tower_http::normalize_path::NormalizePathLayer;
@@ -60,13 +59,10 @@ pub async fn boot_with_personas() -> TestApp {
     migrate_system(&sys_pool).await.expect("system migrations");
     let system = SystemRegistry::new(sys_pool);
 
-    let tenants = new_tenant_registry(
-        tenant_root.clone(),
-        TenantAdmissionMode::SystemDb(system.clone()),
-        true,
-        None,
-    );
-    let state = AppState { system, tenants };
+    let sessions_url = format!("sqlite://{}/sessions.db?mode=rwc", tmp.path().display());
+    let sessions = school_erp::session::SessionStore::open(&sessions_url).await.expect("session store");
+
+    let state = AppState::new(system, sessions, tenant_root);
     let readiness = Readiness::new_ready();
 
     let router = build_router(state, readiness);

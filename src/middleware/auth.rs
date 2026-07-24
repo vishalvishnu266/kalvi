@@ -70,83 +70,9 @@ impl SessionUser {
 ///    Unknown / revoked / expired → redirect to login.
 /// 4. Stash the resolved user into the request extensions so downstream
 ///    handlers can read it via [`SessionUser`] without a second DB hit.
-pub async fn require_session(
-    State(state): State<AppState>,
-    Path(params): Path<HashMap<String, String>>, // 1. Moved Path BEFORE `req`
-    mut req: AxumRequest<Body>,
-    next: Next,                                  // 2. Next is last
-) -> Response {
-    // 3. Extract the tenant directly from path parameters
-    let tenant_param = params.get("tenant").map(|s| s.as_str());
+// Shell guards moved to src/http/{web,portal}/middleware.rs
+// global check_perm remains for require_perm! macro
 
-    // Construct the redirect URL based on whether a tenant was found
-    let login_url = match tenant_param {
-        Some(t) => format!("/web/{}/login", t),
-        None    => "/web/login".to_string(),
-    };
-
-    // Need a tenant in the URL to know which DB to check the session against.
-    let Some(t_str) = tenant_param else {
-        return Redirect::to(&login_url).into_response();
-    };
-
-    let Ok(tenant) = TenantId::new(t_str.to_string()) else {
-        return Redirect::to(&login_url).into_response();
-    };
-
-    let Some(token) = read_cookie_from_headers(req.headers(), COOKIE_SESSION) else {
-        return Redirect::to(&login_url).into_response();
-    };
-
-    let Ok(services) = tenant_services_for(&state.tenants, &tenant).await else {
-        return Redirect::to(&login_url).into_response();
-    };
-
-    let (session, user) = match services.auth.resolve_session(&token).await {
-        Ok(pair) => pair,
-        Err(_)   => return Redirect::to(&login_url).into_response(),
-    };
-
-    // Hydrate roles + permissions once per request. Failures here are
-    // non-fatal — we degrade to "no roles/perms" rather than crashing the
-    // request; the nav filter will collapse to only always-visible items,
-    // and any perm-guarded route will return 403.
-    let roles: Vec<String> = services.repos.users
-        .roles_of(user.id).await
-        .map(|rs| rs.into_iter().map(|r| r.name).collect())
-        .unwrap_or_default();
-    let permissions: HashSet<String> = services.repos.users
-        .permissions_of(user.id).await
-        .map(|ps| ps.into_iter().map(|p| p.code).collect())
-        .unwrap_or_default();
-
-    // Make the authenticated user available to handlers without re-reading
-    // cookies / re-hitting the DB.
-    req.extensions_mut().insert(SessionUser {
-        user_id: user.id,
-        username: user.username.clone(),
-        display: user.email.clone().unwrap_or_else(|| user.username.clone()),
-        session_id: session.id,
-        roles,
-        permissions,
-    });
-
-    next.run(req).await
-}
-
-// ---------------------------------------------------------------------------
-// RBAC enforcement middleware.
-// ---------------------------------------------------------------------------
-
-/// Route-level RBAC guard: pure function that checks a `SessionUser` against
-/// a required-any-of permission list, returning either `Ok(next.run(req))`
-/// or a 403 response (JSON for `/api/*`, HTML for `/web/*`).
-///
-/// It's called from the [`require_perm!`] macro rather than being wrapped in
-/// its own `FromFnLayer<…>` because axum's `from_fn` closure needs
-/// `'static + Clone` — a plain macro that expands to a fresh `from_fn`
-/// per route is the cleanest way to plumb a compile-time constant list of
-/// permission codes without wrestling with the closure's captured lifetimes.
 pub async fn check_perm(
     codes: &'static [&'static str],
     req: AxumRequest<Body>,
@@ -163,46 +89,6 @@ pub async fn check_perm(
         let path = req.uri().path().to_string();
         forbidden_response(&path, codes)
     }
-}
-
-/// Gate `/web/{tenant}/...` to staff-facing roles.
-///
-/// Assumes [`require_session`] has already run and attached [`SessionUser`].
-pub async fn require_staff_shell(
-    req: AxumRequest<Body>,
-    next: Next,
-) -> Response {
-    let path = req.uri().path().to_string();
-    let Some(session) = req.extensions().get::<SessionUser>() else {
-        return Redirect::to("/web/login").into_response();
-    };
-    if session.is_role("guardian") || session.is_role("student") {
-        if let Some(t) = url_tenant_from_prefix(&path, "/web/") {
-            return Redirect::to(&format!("/portal/{t}/")).into_response();
-        }
-        return Redirect::to("/web/login").into_response();
-    }
-    next.run(req).await
-}
-
-/// Gate `/portal/{tenant}/...` to parent/student roles.
-///
-/// Assumes [`require_session`] has already run and attached [`SessionUser`].
-pub async fn require_portal_shell(
-    req: AxumRequest<Body>,
-    next: Next,
-) -> Response {
-    let path = req.uri().path().to_string();
-    let Some(session) = req.extensions().get::<SessionUser>() else {
-        return Redirect::to("/web/login").into_response();
-    };
-    if session.is_role("guardian") || session.is_role("student") {
-        return next.run(req).await;
-    }
-    if let Some(t) = url_tenant_from_prefix(&path, "/portal/") {
-        return Redirect::to(&format!("/web/{t}/")).into_response();
-    }
-    Redirect::to("/web/login").into_response()
 }
 
 /// Ergonomic wrapper around [`check_perm`] for use with `.route_layer(...)`.

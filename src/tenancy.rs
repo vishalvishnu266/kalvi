@@ -1,64 +1,17 @@
-//! Multi-tenant support with **one SQLite database per tenant**.
-//!
-//! ## Design
-//!
-//! * A [`TenantId`] is a short opaque string extracted from the request
-//!   (subdomain, header, JWT claim — your choice at the HTTP layer).
-//! * Tenant DB location is file-per-tenant under a configured root dir.
-//! * A tenant runtime container lazily builds a [`sqlx::SqlitePool`] the first time
-//!   a tenant is seen, runs migrations if configured to, and caches it for
-//!   the lifetime of the process.
-//! * Alongside the pool, the registry also caches a fully-wired
-//!   [`AppServices`] per tenant. The `AppServices` bundle (all repositories +
-//!   17 domain services) is therefore built **exactly once per tenant**, not
-//!   once per request. Cache hits cost a `HashMap` lookup plus a handful of
-//!   `Arc::clone`s.
-//!
-//! ## Concurrency
-//!
-//! The cache is guarded by a [`tokio::sync::RwLock`]:
-//!
-//! * Steady-state (tenant already provisioned) requests take only the **read
-//!   lock**, so many concurrent requests for the same tenant can resolve
-//!   their `AppServices` in parallel without contention.
-//! * The write lock is taken only on the first cache miss for a tenant,
-//!   with a double-checked insert to keep concurrent misses safe.
-//! * Multiple concurrent requests for the same tenant share the same
-//!   `SqlitePool` (bounded by `max_connections`) and the same
-//!   `AppServices` instance.
-//!
-//! Repos and services remain **completely unaware** of tenancy — the tenant
-//! is resolved once per request by middleware, which pulls the cached
-//! [`AppServices`] out of the registry and stores it in the request
-//! extensions for extractors to read.
-//!
-//! [`AppServices`]: crate::services::AppServices
-
-use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 
 use sqlx::SqlitePool;
-use tokio::sync::RwLock;
-
-use crate::db;
 use crate::error::{RepoError, RepoResult};
 use crate::repositories::Repositories;
-use crate::session::MemorySqliteSessionStore;
 use crate::services::auth::AuthService;
 use crate::services::AppServices;
-use crate::system::SystemRegistry;
+use crate::session::SessionStore;
 
-/// Opaque tenant identifier. Wrap a raw string so we can add validation and
-/// avoid mixing it up with other `String`s.
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct TenantId(String);
 
 impl TenantId {
-    /// Construct a validated tenant id.
-    ///
-    /// Allows: `a-z`, `A-Z`, `0-9`, `-`, `_`. Length 1..=64.
-    /// Rejects everything else (path traversal, spaces, unicode).
     pub fn new(raw: impl Into<String>) -> Result<Self, TenantError> {
         let raw = raw.into();
         if raw.is_empty() || raw.len() > 64 {
@@ -79,7 +32,6 @@ impl std::fmt::Display for TenantId {
     }
 }
 
-/// Errors that can arise from tenant handling.
 #[derive(Debug, thiserror::Error)]
 pub enum TenantError {
     #[error("invalid tenant id: {0}")]
@@ -95,237 +47,22 @@ pub enum TenantError {
     Repo(#[from] RepoError),
 }
 
-#[derive(Clone)]
-pub enum TenantAdmissionMode {
-    AllowAll,
-    StaticAllowList(std::collections::HashSet<TenantId>),
-    SystemDb(SystemRegistry),
-}
-
-/// A cached entry per tenant: the connection pool **and** the fully-wired
-/// [`AppServices`] built on top of it. Both are cheap to clone (each holds
-/// its state behind `Arc`), so cache hits are effectively a handful of
-/// `Arc::clone`s.
-#[derive(Clone)]
-struct TenantEntry {
-    pool: SqlitePool,
-    services: AppServices,
-}
-
-/// Thread-safe runtime state for per-tenant pool/service caching.
-#[derive(Clone)]
-pub struct TenantRegistry {
-    db_root: PathBuf,
-    admission: TenantAdmissionMode,
-    auto_migrate: bool,
-    session_snapshot_root: Option<PathBuf>,
-    entries: Arc<RwLock<HashMap<TenantId, TenantEntry>>>,
-}
-
-pub fn new_tenant_registry(
-    db_root: PathBuf,
-    admission: TenantAdmissionMode,
-    auto_migrate: bool,
-    session_snapshot_root: Option<PathBuf>,
-) -> TenantRegistry {
-    tracing::debug!("new_tenant_registry: initializing");
-    TenantRegistry {
-        db_root,
-        admission,
-        auto_migrate,
-        session_snapshot_root,
-        entries: Arc::new(RwLock::new(HashMap::new())),
-    }
-}
-
-#[cfg(test)]
-pub async fn tenant_pool_for(
-    tenants: &TenantRegistry,
-    tenant: &TenantId,
-) -> Result<SqlitePool, TenantError> {
-    tracing::debug!("tenant_pool_for: tenant={}", tenant);
-    Ok(tenant_entry_for(tenants, tenant).await?.pool)
-}
-
-pub async fn tenant_services_for(
-    tenants: &TenantRegistry,
-    tenant: &TenantId,
-) -> Result<AppServices, TenantError> {
-    tracing::debug!("tenant_services_for: tenant={}", tenant);
-    Ok(tenant_entry_for(tenants, tenant).await?.services)
-}
-
-pub async fn tenant_provision(
-    tenants: &TenantRegistry,
-    tenant: TenantId,
-) -> RepoResult<()> {
-    if tenants.entries.read().await.contains_key(&tenant) {
-        return Ok(());
-    }
-    let url = tenant_db_url(tenants, &tenant);
-    let pool = db::connect(&url).await?;
-    db::migrate(&pool).await?;
-    let services = tenant_build_services(tenants, &tenant, &pool).await?;
-    let entry = TenantEntry { services, pool };
-    let mut guard = tenants.entries.write().await;
-    guard.entry(tenant).or_insert(entry);
-    Ok(())
-}
-
-pub async fn tenant_evict(tenants: &TenantRegistry, tenant: &TenantId) {
-    if let Some(entry) = tenants.entries.write().await.remove(tenant) {
-        if let Err(e) = entry.services.auth.checkpoint_sessions().await {
-            tracing::warn!("failed to checkpoint session backend on evict: {}", e);
-        }
-        entry.pool.close().await;
-    }
-}
-
-pub async fn tenant_shutdown(tenants: &TenantRegistry) {
-    let mut guard = tenants.entries.write().await;
-    for (_, entry) in guard.drain() {
-        if let Err(e) = entry.services.auth.checkpoint_sessions().await {
-            tracing::warn!("failed to checkpoint session backend on shutdown: {}", e);
-        }
-        entry.pool.close().await;
-    }
-}
-
-pub async fn tenant_active_ids(tenants: &TenantRegistry) -> Vec<TenantId> {
-    tenants.entries.read().await.keys().cloned().collect()
-}
-
-async fn tenant_entry_for(
-    tenants: &TenantRegistry,
-    tenant: &TenantId,
-) -> Result<TenantEntry, TenantError> {
-    tracing::debug!("tenant_entry_for: checking admission for tenant={}", tenant);
-    tenant_admit(tenants, tenant).await?;
-
-    if let Some(e) = tenants.entries.read().await.get(tenant).cloned() {
-        tracing::debug!("tenant_entry_for: cache hit for tenant={}", tenant);
-        return Ok(e);
-    }
-
-    tracing::debug!("tenant_entry_for: cache miss for tenant={}, creating new entry", tenant);
-    let mut guard = tenants.entries.write().await;
-    if let Some(e) = guard.get(tenant).cloned() {
-        return Ok(e);
-    }
-    let url = tenant_db_url(tenants, tenant);
-    tracing::debug!("tenant_entry_for: db_url={}", url);
-    let pool = db::connect(&url).await.map_err(TenantError::from)?;
-    if tenants.auto_migrate {
-        tracing::debug!("tenant_entry_for: running auto-migration for tenant={}", tenant);
-        db::migrate(&pool).await.map_err(TenantError::from)?;
-    }
-    let services = tenant_build_services(tenants, tenant, &pool).await?;
-    let entry = TenantEntry { services, pool };
-    guard.insert(tenant.clone(), entry.clone());
-    tracing::debug!("tenant_entry_for: entry created and cached for tenant={}", tenant);
-    Ok(entry)
-}
-
-async fn tenant_build_services(
-    tenants: &TenantRegistry,
-    tenant: &TenantId,
+pub async fn build_tenant_services(
     pool: &SqlitePool,
+    sessions: SessionStore,
 ) -> RepoResult<AppServices> {
     let repos = Arc::new(Repositories::new(pool.clone()));
-    let auth = if let Some(snapshot_root) = &tenants.session_snapshot_root {
-        let snapshot = snapshot_root.join(format!("{}.db", tenant.as_str()));
-        let store = MemorySqliteSessionStore::open(snapshot, tenant.as_str()).await?;
-        AuthService::with_session_store(
-            repos.clone(),
-            crate::session::SessionStore::MemorySqlite(store),
-        )
-    } else {
-        AuthService::new(repos.clone())
-    };
+    let auth = AuthService::with_session_store(
+        repos.clone(),
+        sessions,
+    );
     Ok(AppServices::from_repos_with_auth(repos, auth))
 }
 
-fn tenant_db_url(tenants: &TenantRegistry, tenant: &TenantId) -> String {
-    let path = tenants.db_root.join(format!("{}.db", tenant.as_str()));
+pub fn tenant_db_path(root: &std::path::Path, tenant: &TenantId) -> PathBuf {
+    root.join(format!("{}.db", tenant.as_str()))
+}
+
+pub fn tenant_db_url(path: &std::path::Path) -> String {
     format!("sqlite://{}?mode=rwc", path.display())
-}
-
-async fn tenant_admit(
-    tenants: &TenantRegistry,
-    tenant: &TenantId,
-) -> Result<(), TenantError> {
-    match &tenants.admission {
-        TenantAdmissionMode::AllowAll => Ok(()),
-        TenantAdmissionMode::StaticAllowList(allowed) => {
-            if allowed.contains(tenant) {
-                Ok(())
-            } else {
-                Err(TenantError::NotFound(tenant.clone()))
-            }
-        }
-        TenantAdmissionMode::SystemDb(system) => {
-            let row = system
-                .find_by_tenant_id(tenant.as_str())
-                .await
-                .map_err(TenantError::from)?;
-            match row {
-                None => Err(TenantError::NotFound(tenant.clone())),
-                Some(t) if t.status != "active" => Err(TenantError::Disabled(tenant.clone())),
-                Some(_) => Ok(()),
-            }
-        }
-    }
-}
-
-// -------- Tests --------
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn tenant_id_validation() {
-        assert!(TenantId::new("acme").is_ok());
-        assert!(TenantId::new("acme_1-2").is_ok());
-        assert!(TenantId::new("").is_err());
-        assert!(TenantId::new("../evil").is_err());
-        assert!(TenantId::new("has space").is_err());
-    }
-
-    #[tokio::test]
-    async fn registry_isolates_two_tenants() {
-        let root = std::env::temp_dir().join(format!(
-            "kalvi_tenants_{}",
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_nanos()
-        ));
-        std::fs::create_dir_all(&root).unwrap();
-        let reg = new_tenant_registry(root.clone(), TenantAdmissionMode::AllowAll, true, None);
-        let a = TenantId::new("tenant_a").unwrap();
-        let b = TenantId::new("tenant_b").unwrap();
-
-        let pool_a = tenant_pool_for(&reg, &a).await.unwrap();
-        let pool_b = tenant_pool_for(&reg, &b).await.unwrap();
-
-        // Same tenant → cached (same pool handle).
-        let pool_a2 = tenant_pool_for(&reg, &a).await.unwrap();
-        assert!(std::ptr::eq(
-            std::sync::Arc::as_ptr(&Arc::new(pool_a.clone())),
-            std::sync::Arc::as_ptr(&Arc::new(pool_a2.clone())),
-        ) || true); // pointer identity of SqlitePool isn't guaranteed, treat as sanity
-
-        // Different tenants → different DBs (write to A, expect nothing in B).
-        sqlx::query("INSERT INTO grade (name, level) VALUES ('X', 99)")
-            .execute(&pool_a).await.unwrap();
-
-        let count_a: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM grade WHERE level = 99")
-            .fetch_one(&pool_a).await.unwrap();
-        let count_b: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM grade WHERE level = 99")
-            .fetch_one(&pool_b).await.unwrap();
-        assert_eq!(count_a, 1);
-        assert_eq!(count_b, 0);
-        let _ = std::fs::remove_dir_all(root);
-    }
 }
