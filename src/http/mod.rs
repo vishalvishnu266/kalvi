@@ -5,7 +5,6 @@ pub mod web;
 pub mod portal;
 
 use std::collections::HashMap;
-use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use sqlx::SqlitePool;
@@ -81,7 +80,7 @@ db::migrate(&pool).await.map_err(TenantError::from)?;
         if self.tenants.read().await.contains_key(&tenant) {
             return Ok(());
         }
-        let url = self.config.tenant_db_url(tenant);
+        let url = self.config.tenant_db_url(&tenant);
         let pool = db::connect(&url).await?;
         db::migrate(&pool).await?;
         let services = build_tenant_services(&pool, self.sessions.clone()).await?;

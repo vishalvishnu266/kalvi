@@ -4,7 +4,7 @@ use axum::{
     middleware::Next,
     response::Response,
 };
-use tracing::{info, span, Instrument, Level};
+use tracing::{span, Instrument, Level};
 use uuid::Uuid;
 use axum::body::to_bytes;
 

@@ -1,14 +1,10 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use axum::{
     body::Body,
-    extract::State,
     http::{header, HeaderMap, Request as AxumRequest},
     middleware::Next,
-    response::{IntoResponse, Redirect, Response},
+    response::{IntoResponse, Response},
 };
-use axum::extract::Path;
-use crate::http::AppState;
-use crate::tenancy::TenantId;
 
 pub const COOKIE_TENANT: &str = "erp_tenant";
 pub const COOKIE_USER: &str = "erp_user";

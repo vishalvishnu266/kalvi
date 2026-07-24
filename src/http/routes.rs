@@ -1,20 +1,15 @@
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
-    routing::{get, post},
+    routing::get,
     Json, Router,
 };
 
 use crate::health_probes::Readiness;
 use crate::services::ServiceError;
-use crate::system::SystemRegistry;
 
 use crate::http::api_routes;
-use crate::web::{
-    admin as wad, assets as wa, auth as wau, dashboard as wdb, guardians as wgd,
-    landing as wl, modules as wm, portal as wp, staff as wsf, students as ws,
-};
-use crate::middleware::auth as wam;
+use crate::web::{assets as wa, landing as wl};
 use crate::middleware::tracing as wtr;
 pub use crate::middleware::tenant::TenantScope;
 
