@@ -35,7 +35,7 @@ impl SessionStore {
     }
 
     async fn ensure_schema(&self) -> RepoResult<()> {
-        sqlx::migrate!("migrations_session")
+        sqlx::migrate!("./migrations_session")
             .run(&self.pool)
             .await
             .map_err(|e| RepoError::Migrate(e))?;
