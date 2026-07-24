@@ -15,9 +15,10 @@ use serde::Deserialize;
 use crate::http::{AppState, TenantScope};
 use crate::middleware::auth::{read_cookie_from_headers, SessionUser};
 use crate::repositories::students::Student;
+use crate::repositories::auth::{User, Role};
 use crate::services::{AppServices, people::Scope};
 use crate::system::{NewPortalMembership, NewPortalUser};
-use crate::tenancy::{tenant_services_for, TenantId};
+use crate::tenancy::TenantId;
 use crate::web::error::{render, WebError};
 
 const COOKIE_PORTAL: &str = "erp_portal";
@@ -213,11 +214,11 @@ pub async fn post_link_tenant(
     };
     let tid = TenantId::new(f.tenant.trim().to_string())
         .map_err(|e| WebError::bad(e.to_string()))?;
-    let services: AppServices = tenant_services_for(&state.tenants, &tid).await
+    let services: AppServices = state.services_for(&tid).await
         .map_err(|e| WebError::bad(format!("tenant unavailable: {e}")))?;
-    let user = services.auth.login(&f.identifier, &f.password).await
+    let user: User = services.auth.login(&f.identifier, &f.password).await
         .map_err(|_| WebError::forbidden("invalid tenant credentials"))?;
-    let roles = services.repos.users.roles_of(user.id).await?;
+    let roles: Vec<Role> = services.repos.users.roles_of(user.id).await?;
     let role = if roles.iter().any(|r| r.name == "guardian") {
         "guardian"
     } else if roles.iter().any(|r| r.name == "student") {
@@ -297,7 +298,7 @@ async fn build_membership_views(state: &AppState, portal_user_id: i64) -> Result
             Ok(v) => v,
             Err(_) => continue,
         };
-        let services: AppServices = match tenant_services_for(&state.tenants, &tid).await {
+        let services: AppServices = match state.services_for(&tid).await {
             Ok(v) => v,
             Err(_) => continue,
         };

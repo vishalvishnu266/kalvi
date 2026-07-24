@@ -8,7 +8,7 @@ use axum::{
 };
 use axum::extract::Path;
 use crate::http::AppState;
-use crate::tenancy::{tenant_services_for, TenantId};
+use crate::tenancy::TenantId;
 
 pub const COOKIE_TENANT: &str = "erp_tenant";
 pub const COOKIE_USER: &str = "erp_user";

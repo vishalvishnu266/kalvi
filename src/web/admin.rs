@@ -9,7 +9,7 @@ use serde::Deserialize;
 
 use crate::http::AppState;
 use crate::system::{NewTenant, Tenant, UpdateTenant};
-use crate::tenancy::{tenant_evict, tenant_provision, TenantId};
+use crate::tenancy::TenantId;
 use crate::web::error::{render, WebError};
 
 #[derive(Template)]
@@ -83,7 +83,7 @@ let tenant = match s.system.create(&body).await {
 
 let tid = TenantId::new(&tenant.tenant_id)
         .map_err(|e| WebError(StatusCode::BAD_REQUEST, e.to_string()))?;
-    if let Err(e) = tenant_provision(&s.tenants, tid).await {
+    if let Err(e) = s.provision(tid).await {
         let _ = s.system.set_status(tenant.id, "disabled").await;
         return render(&NewTenantPage {
             error: Some(&format!("Tenant row created but provisioning failed: {e}")),
@@ -116,7 +116,7 @@ pub async fn disable_tenant(
     s.system.set_status(existing.id, "disabled").await
         .map_err(|e| WebError(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
     if let Ok(t) = TenantId::new(&existing.tenant_id) {
-        tenant_evict(&s.tenants, &t).await;
+        s.evict(&t).await;
     }
     Ok(redirect("/admin/tenants"))
 }
@@ -131,7 +131,7 @@ pub async fn delete_tenant(
     s.system.delete(existing.id).await
         .map_err(|e| WebError(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
     if let Ok(t) = TenantId::new(&existing.tenant_id) {
-        tenant_evict(&s.tenants, &t).await;
+        s.evict(&t).await;
     }
     Ok(redirect("/admin/tenants"))
 }
