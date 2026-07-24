@@ -1,6 +1,4 @@
 use std::sync::Arc;
-
-use sqlx::SqlitePool;
 use thiserror::Error;
 
 use crate::error::RepoError;

@@ -9,7 +9,6 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use sqlx::SqlitePool;
 
-use crate::system::SystemRegistry;
 use crate::session::SessionStore;
 use crate::tenancy::{TenantId, TenantError, build_tenant_services};
 use crate::services::AppServices;
@@ -57,7 +56,7 @@ impl AppState {
             return Ok(entry.services);
         }
 
-        let url = self.config.tenant_db_url(tenant);
+        let url = self.config.tenant_db_url(&tenant);
         let pool = db::connect(&url).await.map_err(TenantError::from)?;
 
 db::migrate(&pool).await.map_err(TenantError::from)?;
