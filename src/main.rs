@@ -15,21 +15,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     init_tracing();
     tracing::debug!("main: application starting");
 
-std::fs::create_dir_all("data").ok();
-    std::fs::create_dir_all(&config.tenant_db_root).ok();
+std::fs::create_dir_all(&config.db_dir).ok();
+    std::fs::create_dir_all(config.tenant_db_root()).ok();
 
-tracing::debug!("main: connecting to system db at {}", config.system_db_url);
-    let sys_pool = connect_system(&config.system_db_url).await?;
+    let system_db_url = config.system_db_url();
+    tracing::debug!("main: connecting to system db at {}", system_db_url);
+    let sys_pool = connect_system(&system_db_url).await?;
     tracing::debug!("main: running system migrations");
     migrate_system(&sys_pool).await?;
     let system = SystemRegistry::new(sys_pool);
     let system_pool_for_shutdown = system.pool_clone();
 
-tracing::debug!("main: initializing session store at {}", config.session_db_url);
-    let sessions = school_erp::session::SessionStore::open(&config.session_db_url).await?;
+    let session_db_url = config.session_db_url();
+    tracing::debug!("main: initializing session store at {}", session_db_url);
+    let sessions = school_erp::session::SessionStore::open(&session_db_url).await?;
     let session_pool_for_shutdown = sessions.pool_clone();
 
-let state = AppState::new(system, sessions, config.tenant_db_root.clone());
+    let state = AppState::new(system, sessions, config.tenant_db_root());
     let state_for_shutdown = state.clone();
 
 tracing::debug!("main: building router");
