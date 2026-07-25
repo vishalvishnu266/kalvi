@@ -1,12 +1,7 @@
-use std::sync::Arc;
+use crate::error::RepoError;
 
-use sqlx::SqlitePool;
-use crate::error::{RepoError, RepoResult};
-use crate::repositories::Repositories;
-use crate::services::auth::AuthService;
-use crate::services::AppServices;
-use crate::session::SessionStore;
-
+/// A validated tenant identifier used to look up tenant pools and
+/// scope every SQL statement into the correct tenant database.
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct TenantId(String);
 
@@ -45,16 +40,3 @@ pub enum TenantError {
     #[error(transparent)]
     Repo(#[from] RepoError),
 }
-
-pub async fn build_tenant_services(
-    pool: &SqlitePool,
-    sessions: SessionStore,
-) -> RepoResult<AppServices> {
-    let repos = Arc::new(Repositories::new(pool.clone()));
-    let auth = AuthService::with_session_store(
-        repos.clone(),
-        sessions,
-    );
-    Ok(AppServices::from_repos_with_auth(repos, auth))
-}
-

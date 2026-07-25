@@ -5,7 +5,7 @@ use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use sqlx::SqlitePool;
 
 use crate::error::{RepoError, RepoResult};
-use crate::repositories::auth::{NewSession, Session};
+use crate::models::auth::{NewSession, Session};
 
 #[derive(Clone)]
 pub struct SessionStore {

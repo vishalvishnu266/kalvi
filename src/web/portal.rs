@@ -14,9 +14,11 @@ use serde::Deserialize;
 
 use crate::http::{AppState, TenantScope};
 use crate::middleware::auth::{read_cookie_from_headers, SessionUser};
-use crate::repositories::students::Student;
-use crate::repositories::auth::{User, Role};
-use crate::services::AppServices;
+use crate::models::auth::User;
+use crate::models::people::Student;
+use crate::services::{
+    auth as auth_svc, guardians as g_svc, people as people_svc, system as sys_svc,
+};
 use crate::system::{NewPortalMembership, NewPortalUser};
 use crate::tenancy::TenantId;
 use crate::web::error::{render, WebError};
@@ -111,7 +113,7 @@ pub async fn post_login(
     State(state): State<AppState>,
     Form(f): Form<PortalLoginForm>,
 ) -> Result<Response, WebError> {
-    let Some(user) = state.system.find_portal_user_by_identifier(&f.identifier).await? else {
+    let Some(user) = sys_svc::find_portal_user_by_identifier(&state.system, &f.identifier).await? else {
         return render(&PortalLoginPage {
             error: Some("Invalid credentials"),
             identifier: &f.identifier,
@@ -154,7 +156,7 @@ pub async fn post_register(
     }
     let password_hash = hash_password(&f.password)
         .map_err(|e| WebError::bad(format!("password hash failed: {e}")))?;
-    let user = state.system.create_portal_user(&NewPortalUser {
+    let user = sys_svc::create_portal_user(&state.system, &NewPortalUser {
         username: f.username.trim().to_string(),
         email: f.email.trim().to_string(),
         password_hash,
@@ -193,7 +195,7 @@ pub async fn home(
     let Some(uid) = portal_user_id_from_headers(&headers) else {
         return Ok(Redirect::to("/portal/login").into_response());
     };
-    let user = state.system.get_portal_user(uid).await
+    let user = sys_svc::get_portal_user(&state.system, uid).await
         .map_err(|_| WebError::forbidden("invalid portal session"))?;
 
     let views = build_membership_views(&state, uid).await?;
@@ -214,11 +216,11 @@ pub async fn post_link_tenant(
     };
     let tid = TenantId::new(f.tenant.trim().to_string())
         .map_err(|e| WebError::bad(e.to_string()))?;
-    let services: AppServices = state.services_for(&tid).await
+    let pool = state.pool_for(&tid).await
         .map_err(|e| WebError::bad(format!("tenant unavailable: {e}")))?;
-    let user: User = services.auth.login(&f.identifier, &f.password).await
+    let user: User = auth_svc::login(&pool, &f.identifier, &f.password).await
         .map_err(|_| WebError::forbidden("invalid tenant credentials"))?;
-    let roles: Vec<Role> = services.repos.users.roles_of(user.id).await?;
+    let roles = auth_svc::roles_of(&pool, user.id).await?;
     let role = if roles.iter().any(|r| r.name == "guardian") {
         "guardian"
     } else if roles.iter().any(|r| r.name == "student") {
@@ -227,7 +229,7 @@ pub async fn post_link_tenant(
         return Err(WebError::forbidden("tenant account must be guardian or student"));
     };
 
-    state.system.add_portal_membership(&NewPortalMembership {
+    sys_svc::add_portal_membership(&state.system, &NewPortalMembership {
         portal_user_id,
         tenant_id: tid.as_str().to_string(),
         tenant_user_id: user.id,
@@ -251,8 +253,7 @@ pub async fn students(
     scope: TenantScope,
     Extension(session): Extension<SessionUser>,
 ) -> Result<Response, WebError> {
-    let rows = scope.services.people
-        .list_students_for(&scope.ctx, 100, 0)
+    let rows = people_svc::list_students_for(&scope.pool, &scope.ctx, 100, 0)
         .await?
         .into_iter()
         .map(map_student)
@@ -269,10 +270,10 @@ pub async fn student_show(
     Path((_tenant, id)): Path<(String, i64)>,
     Extension(session): Extension<SessionUser>,
 ) -> Result<Response, WebError> {
-    if !scope.services.people.can_view_student(&scope.ctx, id).await? {
+    if !people_svc::can_view_student(&scope.pool, &scope.ctx, id).await? {
         return Err(WebError::forbidden("not permitted to view this student"));
     }
-    let s = scope.services.repos.students.get(id).await?;
+    let s = people_svc::get_student(&scope.pool, id).await?;
     render(&PortalStudentShow {
         tenant_id: scope.tenant.as_str(),
         user_display: &session.display,
@@ -289,27 +290,27 @@ fn map_student(s: Student) -> StudentRow {
     }
 }
 
-async fn build_membership_views(state: &AppState, portal_user_id: i64) -> Result<Vec<PortalMembershipView>, WebError> {
-    let memberships = state.system.list_portal_memberships(portal_user_id).await?;
+async fn build_membership_views(
+    state: &AppState,
+    portal_user_id: i64,
+) -> Result<Vec<PortalMembershipView>, WebError> {
+    let memberships = sys_svc::list_portal_memberships(&state.system, portal_user_id).await?;
     let mut out = Vec::new();
     for m in memberships {
         let tid = match TenantId::new(m.tenant_id.clone()) {
             Ok(v) => v,
             Err(_) => continue,
         };
-        let services: AppServices = match state.services_for(&tid).await {
+        let pool = match state.pool_for(&tid).await {
             Ok(v) => v,
             Err(_) => continue,
         };
         let students = if m.role == "guardian" {
-            let ids = services.repos.guardians.students_of_user(m.tenant_user_id).await?;
-            let student_list: Vec<Student> = services.repos.students.list_by_ids(&ids).await?;
-            student_list
-                .into_iter()
-                .map(map_student)
-                .collect::<Vec<_>>()
+            let ids = g_svc::students_of_user(&pool, m.tenant_user_id).await?;
+            let student_list = people_svc::list_students_by_ids(&pool, &ids).await?;
+            student_list.into_iter().map(map_student).collect::<Vec<_>>()
         } else {
-            match services.repos.students.find_by_user_id(m.tenant_user_id).await? {
+            match people_svc::find_student_by_user_id(&pool, m.tenant_user_id).await? {
                 Some(s) => vec![map_student(s)],
                 None => Vec::new(),
             }

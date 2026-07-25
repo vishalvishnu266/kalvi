@@ -9,6 +9,7 @@ use serde::Deserialize;
 
 use crate::http::AppState;
 use crate::middleware::auth::read_cookie_from_headers;
+use crate::services::auth as auth_svc;
 use crate::tenancy::TenantId;
 use crate::web::error::{render, WebError};
 
@@ -73,8 +74,8 @@ async fn post_login_with_redirect(
             });
         }
     };
-    let services = match state.services_for(&tenant).await {
-        Ok(s) => s,
+    let pool = match state.pool_for(&tenant).await {
+        Ok(p) => p,
         Err(e) => {
             return render(&LoginPage {
                 error: Some(&format!("Tenant lookup failed: {e}")),
@@ -84,10 +85,9 @@ async fn post_login_with_redirect(
         }
     };
 
-    match services.auth.login(&f.identifier, &f.password).await {
+    match auth_svc::login(&pool, &f.identifier, &f.password).await {
         Ok(user) => {
-
-            let session = match services.auth.issue_session(user.id, None, None).await {
+            let session = match auth_svc::issue_session(&state.sessions, user.id, None, None).await {
                 Ok(s) => s,
                 Err(e) => {
                     return render(&LoginPage {
@@ -137,13 +137,12 @@ pub async fn post_logout(
     State(state): State<AppState>,
     headers: HeaderMap,
 ) -> Response {
-
     let cookie_tenant  = read_cookie_from_headers(&headers, crate::middleware::auth::COOKIE_TENANT);
     let cookie_session = read_cookie_from_headers(&headers, crate::middleware::auth::COOKIE_SESSION);
     if let (Some(tid), Some(token)) = (cookie_tenant, cookie_session) {
         if let Ok(t) = TenantId::new(tid) {
-            if let Ok(services) = state.services_for(&t).await {
-                let _ = services.auth.revoke_session(&token).await;
+            if let Ok(_pool) = state.pool_for(&t).await {
+                let _ = auth_svc::revoke_session(&state.sessions, &token).await;
             }
         }
     }

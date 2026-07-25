@@ -9,8 +9,8 @@ use tracing::log::info;
 
 use crate::http::TenantScope;
 use crate::middleware::auth::SessionUser;
-use crate::repositories::staff::Staff;
-use crate::services::perm;
+use crate::models::people::Staff;
+use crate::services::{people as people_svc, perm};
 use crate::web::error::{render, WebError};
 use crate::web::layout::{visible_nav_items, NavContext, NavItem};
 
@@ -36,9 +36,7 @@ pub struct StaffRow {
 }
 
 #[derive(Deserialize)]
-pub struct ListParams {
-    q: Option<String>,
-}
+pub struct ListParams { q: Option<String> }
 
 pub async fn list(
     scope: TenantScope,
@@ -46,7 +44,7 @@ pub async fn list(
     Extension(session): Extension<SessionUser>,
 ) -> Result<Response, WebError> {
     scope.ctx.require(perm::STAFF_VIEW)?;
-    let staff: Vec<Staff> = scope.services.repos.staff.list(50, 0).await
+    let staff: Vec<Staff> = people_svc::list_staff(&scope.pool, 50, 0).await
         .unwrap_or_default();
     info!("staff list");
     let q = qp.q.unwrap_or_default();
@@ -58,9 +56,7 @@ pub async fn list(
             && !name.to_lowercase().contains(&ql)
             && !s.employee_no.to_lowercase().contains(&ql)
             && !s.designation.as_deref().unwrap_or("").to_lowercase().contains(&ql)
-        {
-            return None;
-        }
+        { return None; }
         Some(row_from(&s, name))
     }).collect();
 
@@ -83,10 +79,7 @@ struct StaffShowPage<'a> {
     tabs: Vec<Tab>,
 }
 
-pub struct Tab {
-    pub label: &'static str,
-    pub active: bool,
-}
+pub struct Tab { pub label: &'static str, pub active: bool }
 
 pub async fn show(
     scope: TenantScope,
@@ -94,7 +87,7 @@ pub async fn show(
     Extension(session): Extension<SessionUser>,
 ) -> Result<Response, WebError> {
     scope.ctx.require(perm::STAFF_VIEW)?;
-    let s = scope.services.repos.staff.get(id).await?;
+    let s = people_svc::get_staff(&scope.pool, id).await?;
     let name = display_name(&s);
     let staff = row_from(&s, name);
 

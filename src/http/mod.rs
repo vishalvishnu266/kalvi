@@ -10,29 +10,34 @@ use tokio::sync::RwLock;
 use sqlx::SqlitePool;
 
 use crate::session::SessionStore;
-use crate::tenancy::{TenantId, TenantError, build_tenant_services};
-use crate::services::AppServices;
+use crate::tenancy::{TenantId, TenantError};
 use crate::db;
-use crate::system::SystemRegistry;
-
-#[derive(Clone)]
-struct TenantEntry {
-    pool: SqlitePool,
-    services: AppServices,
-}
-
 use crate::Config;
 
+/// Global application state.
+///
+/// Holds only the *pool handles* for the three physical databases:
+///
+/// * `system`   — the master database (`system.db`), stored as a raw
+///   `SqlitePool`. All tenant-registry / portal-user reads and writes
+///   go through [`crate::services::system`] free functions.
+/// * `sessions` — the shared session store database (`sessions.db`).
+/// * `tenants`  — a map of tenant `SqlitePool` handles, populated on
+///   first use (`provision` / `pool_for`) and evicted on disable.
+///
+/// **No services are cached here.** Handlers receive a per-request
+/// [`crate::http::TenantScope`] and call free-fn services directly
+/// against `scope.pool`, e.g. `services::people::admit(&scope.pool, &scope.ctx, body)`.
 #[derive(Clone)]
 pub struct AppState {
-    pub system: SystemRegistry,
+    pub system:   SqlitePool,
     pub sessions: SessionStore,
-    pub config: Config,
-    pub tenants: Arc<RwLock<HashMap<TenantId, TenantEntry>>>,
+    pub config:   Config,
+    pub tenants:  Arc<RwLock<HashMap<TenantId, SqlitePool>>>,
 }
 
 impl AppState {
-    pub fn new(system: SystemRegistry, sessions: SessionStore, config: Config) -> Self {
+    pub fn new(system: SqlitePool, sessions: SessionStore, config: Config) -> Self {
         Self {
             system,
             sessions,
@@ -41,9 +46,12 @@ impl AppState {
         }
     }
 
-    pub async fn services_for(&self, tenant: &TenantId) -> Result<AppServices, TenantError> {
-        if let Some(entry) = self.tenants.read().await.get(tenant).cloned() {
-            return Ok(entry.services);
+    /// Resolve (or lazily open + migrate) the tenant pool. Cheap on the
+    /// fast path — just a read-lock lookup + clone of the underlying
+    /// `SqlitePool` (which itself is `Arc`-based).
+    pub async fn pool_for(&self, tenant: &TenantId) -> Result<SqlitePool, TenantError> {
+        if let Some(p) = self.tenants.read().await.get(tenant).cloned() {
+            return Ok(p);
         }
 
         let path = self.config.tenant_db_path(tenant);
@@ -52,30 +60,26 @@ impl AppState {
         }
 
         let mut guard = self.tenants.write().await;
-
-        if let Some(entry) = guard.get(tenant).cloned() {
-            return Ok(entry.services);
+        if let Some(p) = guard.get(tenant).cloned() {
+            return Ok(p);
         }
 
-        let url = self.config.tenant_db_url(&tenant);
+        let url = self.config.tenant_db_url(tenant);
         let pool = db::connect(&url).await?;
-
-db::migrate(&pool).await.map_err(TenantError::from)?;
-
-        let services = build_tenant_services(&pool, self.sessions.clone()).await.map_err(TenantError::from)?;
-        let entry = TenantEntry { pool, services: services.clone() };
-
-        guard.insert(tenant.clone(), entry);
-        Ok(services)
+        db::migrate(&pool).await.map_err(TenantError::from)?;
+        guard.insert(tenant.clone(), pool.clone());
+        Ok(pool)
     }
 
+    /// Snapshot of currently cached tenant pools (used at shutdown).
     pub async fn active_tenant_pools(&self) -> Vec<(TenantId, SqlitePool)> {
         self.tenants.read().await
             .iter()
-            .map(|(id, entry)| (id.clone(), entry.pool.clone()))
+            .map(|(id, p)| (id.clone(), p.clone()))
             .collect()
     }
 
+    /// Create the tenant database, run migrations, and cache the pool.
     pub async fn provision(&self, tenant: TenantId) -> crate::error::RepoResult<()> {
         if self.tenants.read().await.contains_key(&tenant) {
             return Ok(());
@@ -83,16 +87,16 @@ db::migrate(&pool).await.map_err(TenantError::from)?;
         let url = self.config.tenant_db_url(&tenant);
         let pool = db::connect(&url).await?;
         db::migrate(&pool).await?;
-        let services = build_tenant_services(&pool, self.sessions.clone()).await?;
-        let entry = TenantEntry { pool, services };
         let mut guard = self.tenants.write().await;
-        guard.entry(tenant).or_insert(entry);
+        guard.entry(tenant).or_insert(pool);
         Ok(())
     }
 
+    /// Drop the cached pool for a tenant (called when a tenant is
+    /// disabled or deleted). The physical database file is left intact.
     pub async fn evict(&self, tenant: &TenantId) {
-        if let Some(entry) = self.tenants.write().await.remove(tenant) {
-            entry.pool.close().await;
+        if let Some(p) = self.tenants.write().await.remove(tenant) {
+            p.close().await;
         }
     }
 }

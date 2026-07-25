@@ -6,10 +6,11 @@ use axum::{
 };
 use serde::Deserialize;
 use tracing::log::info;
+
 use crate::http::TenantScope;
-use crate::repositories::students::Student;
 use crate::middleware::auth::SessionUser;
-use crate::services::perm;
+use crate::models::people::Student;
+use crate::services::{people as people_svc, perm};
 use crate::web::error::{render, WebError};
 use crate::web::layout::{visible_nav_items, NavContext, NavItem};
 
@@ -20,8 +21,7 @@ struct StudentsListPage<'a> {
     nav_items: Vec<&'static NavItem>,
     q: &'a str,
     rows: Vec<StudentRow>,
-
-can_admit: bool,
+    can_admit: bool,
 }
 
 pub struct StudentRow {
@@ -41,9 +41,8 @@ pub async fn list(
     Query(qp): Query<ListParams>,
     Extension(session): Extension<SessionUser>,
 ) -> Result<Response, WebError> {
-
-    let students: Vec<Student> = tscope.services.people
-        .list_students_for(&tscope.ctx, 50, 0).await?;
+    let students: Vec<Student> =
+        people_svc::list_students_for(&tscope.pool, &tscope.ctx, 50, 0).await?;
     info!("student list: {} rows", students.len());
 
     let q = qp.q.unwrap_or_default();
@@ -85,23 +84,17 @@ struct StudentShowPage<'a> {
     can_edit: bool,
 }
 
-pub struct Tab {
-    pub label: &'static str,
-    pub active: bool,
-}
+pub struct Tab { pub label: &'static str, pub active: bool }
 
 pub async fn show(
     tscope: TenantScope,
     Path((_tenant, id)): Path<(String, i64)>,
     Extension(session): Extension<SessionUser>,
 ) -> Result<Response, WebError> {
-
-let scope_check = tscope.services.people.can_view_student(&tscope.ctx, id).await?;
-    if !scope_check {
+    if !people_svc::can_view_student(&tscope.pool, &tscope.ctx, id).await? {
         return Err(WebError::forbidden("not permitted to view this student"));
     }
-
-    let s = tscope.services.repos.students.get(id).await?;
+    let s = people_svc::get_student(&tscope.pool, id).await?;
     let student = StudentRow {
         id: s.id,
         name: display_name(&s),

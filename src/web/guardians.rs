@@ -10,8 +10,9 @@ use serde::Deserialize;
 
 use crate::http::TenantScope;
 use crate::middleware::auth::SessionUser;
-use crate::repositories::guardians::{Guardian, NewGuardian, UpdateGuardian};
-use crate::services::perm;
+use crate::models::guardians::{Guardian, NewGuardian, UpdateGuardian};
+use crate::models::people::Student;
+use crate::services::{guardians as g_svc, people as people_svc, perm};
 use crate::web::error::{render, WebError};
 use crate::web::layout::{visible_nav_items, NavContext, NavItem};
 
@@ -32,8 +33,7 @@ struct ShowPage<'a> {
     nav: &'a NavContext,
     nav_items: Vec<&'static NavItem>,
     g: &'a Guardian,
-
-linked: Vec<crate::repositories::students::Student>,
+    linked: Vec<Student>,
     can_manage: bool,
 }
 
@@ -42,11 +42,8 @@ linked: Vec<crate::repositories::students::Student>,
 struct FormPage<'a> {
     nav: &'a NavContext,
     nav_items: Vec<&'static NavItem>,
-
     form: &'a GuardianForm,
-
     action_url: String,
-
     is_edit: bool,
     error: Option<&'a str>,
 }
@@ -73,7 +70,7 @@ impl GuardianForm {
         }
     }
 
-fn validate(&self) -> Option<&'static str> {
+    fn validate(&self) -> Option<&'static str> {
         if self.first_name.trim().is_empty() { return Some("First name is required"); }
         if self.last_name.trim().is_empty()  { return Some("Last name is required"); }
         None
@@ -92,8 +89,7 @@ fn validate(&self) -> Option<&'static str> {
     }
 
     fn to_update(&self) -> UpdateGuardian {
-
-UpdateGuardian {
+        UpdateGuardian {
             first_name: Some(self.first_name.trim().to_string()),
             last_name:  Some(self.last_name.trim().to_string()),
             phone:      Some(self.phone.trim().to_string()),
@@ -118,7 +114,7 @@ pub async fn list(
     Extension(session): Extension<SessionUser>,
 ) -> Result<Response, WebError> {
     ts.ctx.require_any(&[perm::GUARDIANS_VIEW, perm::GUARDIANS_MANAGE])?;
-    let all = ts.services.repos.guardians.list(200, 0).await.unwrap_or_default();
+    let all = g_svc::list(&ts.pool, 200, 0).await.unwrap_or_default();
     let q = qp.q.unwrap_or_default();
     let ql = q.to_lowercase();
     let rows: Vec<Guardian> = all.into_iter().filter(|g| {
@@ -149,10 +145,9 @@ pub async fn show(
     Extension(session): Extension<SessionUser>,
 ) -> Result<Response, WebError> {
     ts.ctx.require_any(&[perm::GUARDIANS_VIEW, perm::GUARDIANS_MANAGE])?;
-    let g = ts.services.repos.guardians.get(id).await?;
-    let student_ids = ts.services.repos.guardians.students_of_guardian(id).await
-        .unwrap_or_default();
-    let linked = ts.services.repos.students.list_by_ids(&student_ids).await
+    let g = g_svc::get(&ts.pool, id).await?;
+    let student_ids = g_svc::students_of_guardian(&ts.pool, id).await.unwrap_or_default();
+    let linked = people_svc::list_students_by_ids(&ts.pool, &student_ids).await
         .unwrap_or_default();
 
     let title = format!("Guardians · {} {}", g.first_name, g.last_name);
@@ -185,7 +180,7 @@ pub async fn create(
     if let Some(err) = f.validate() {
         return render_form(&ts, &session, &f, None, Some(err));
     }
-    match ts.services.repos.guardians.create(&f.to_new()).await {
+    match g_svc::create(&ts.pool, &f.to_new()).await {
         Ok(g) => Ok(redirect(&format!(
             "/web/{}/guardians/{}?flash=Guardian+created",
             ts.tenant.as_str(), g.id
@@ -200,7 +195,7 @@ pub async fn edit_form(
     Extension(session): Extension<SessionUser>,
 ) -> Result<Response, WebError> {
     ts.ctx.require(perm::GUARDIANS_MANAGE)?;
-    let g = ts.services.repos.guardians.get(id).await?;
+    let g = g_svc::get(&ts.pool, id).await?;
     let form = GuardianForm::from_guardian(&g);
     render_form(&ts, &session, &form, Some(id), None)
 }
@@ -215,7 +210,7 @@ pub async fn update(
     if let Some(err) = f.validate() {
         return render_form(&ts, &session, &f, Some(id), Some(err));
     }
-    match ts.services.repos.guardians.update(id, &f.to_update()).await {
+    match g_svc::update(&ts.pool, id, &f.to_update()).await {
         Ok(_) => Ok(redirect(&format!(
             "/web/{}/guardians/{}?flash=Guardian+updated",
             ts.tenant.as_str(), id
@@ -229,7 +224,7 @@ pub async fn delete(
     Path((_t, id)): Path<(String, i64)>,
 ) -> Result<Response, WebError> {
     ts.ctx.require(perm::GUARDIANS_MANAGE)?;
-    ts.services.repos.guardians.delete(id).await?;
+    g_svc::delete(&ts.pool, id).await?;
     Ok(redirect(&format!(
         "/web/{}/guardians?flash=Guardian+deleted",
         ts.tenant.as_str()

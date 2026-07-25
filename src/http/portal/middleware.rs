@@ -9,6 +9,7 @@ use axum::{
 
 use crate::http::AppState;
 use crate::middleware::auth::{COOKIE_SESSION, read_cookie_from_headers, SessionUser};
+use crate::services::auth as auth_svc;
 use crate::tenancy::TenantId;
 
 pub async fn require_session(
@@ -17,39 +18,31 @@ pub async fn require_session(
     mut req: AxumRequest<Body>,
     next: Next,
 ) -> Response {
-    let t_str = params.get("tenant").map(|s| s.as_str())
-        .ok_or_else(|| Redirect::to("/portal/login").into_response());
-
-    let t_str = match t_str {
-        Ok(t) => t,
-        Err(r) => return r,
+    let t_str = match params.get("tenant").map(|s| s.as_str()) {
+        Some(t) => t,
+        None => return Redirect::to("/portal/login").into_response(),
     };
-
     let login_url = format!("/portal/{}/login", t_str);
 
     let Ok(tenant) = TenantId::new(t_str.to_string()) else {
         return Redirect::to(&login_url).into_response();
     };
-
     let Some(token) = read_cookie_from_headers(req.headers(), COOKIE_SESSION) else {
         return Redirect::to(&login_url).into_response();
     };
-
-    let Ok(services) = state.services_for(&tenant).await else {
+    let Ok(pool) = state.pool_for(&tenant).await else {
         return Redirect::to(&login_url).into_response();
     };
 
-    let (session, user) = match services.auth.resolve_session(&token).await {
+    let (session, user) = match auth_svc::resolve_session(&pool, &state.sessions, &token).await {
         Ok(pair) => pair,
         Err(_)   => return Redirect::to(&login_url).into_response(),
     };
 
-    let roles: Vec<String> = services.repos.users
-        .roles_of(user.id).await
+    let roles: Vec<String> = auth_svc::roles_of(&pool, user.id).await
         .map(|rs| rs.into_iter().map(|r| r.name).collect())
         .unwrap_or_default();
-    let permissions: HashSet<String> = services.repos.users
-        .permissions_of(user.id).await
+    let permissions: HashSet<String> = auth_svc::permissions_of(&pool, user.id).await
         .map(|ps| ps.into_iter().map(|p| p.code).collect())
         .unwrap_or_default();
 
@@ -69,12 +62,9 @@ pub async fn require_portal_shell(
     req: AxumRequest<Body>,
     next: Next,
 ) -> Response {
-    let user = req.extensions().get::<SessionUser>();
-
-    if let Some(_) = user {
+    if req.extensions().get::<SessionUser>().is_some() {
         return next.run(req).await;
     }
-
     let path = req.uri().path();
     let tenant = path.split('/').nth(2).unwrap_or("default");
     Redirect::to(&format!("/portal/{}/login", tenant)).into_response()
