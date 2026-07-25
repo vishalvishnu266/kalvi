@@ -72,8 +72,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 fn init_tracing() {
     use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
-    let filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new("debug"));
+    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("debug"));
     let layer = fmt::layer()
         .with_target(true)
         .with_level(true)

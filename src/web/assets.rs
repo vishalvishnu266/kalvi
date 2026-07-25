@@ -21,7 +21,8 @@ pub async fn serve(Path(path): Path<String>) -> Response {
                     (header::CACHE_CONTROL, "public, max-age=3600".to_string()),
                 ],
                 Body::from(file.data.into_owned()),
-            ).into_response()
+            )
+                .into_response()
         }
         None => (StatusCode::NOT_FOUND, "asset not found").into_response(),
     }

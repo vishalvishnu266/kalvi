@@ -8,47 +8,60 @@ use sqlx::SqlitePool;
 
 use crate::error::{RepoError, RepoResult};
 use crate::system::{
-    NewPortalMembership, NewPortalUser, NewTenant, PortalMembership, PortalUser,
-    Tenant, UpdateTenant,
+    NewPortalMembership, NewPortalUser, NewTenant, PortalMembership, PortalUser, Tenant,
+    UpdateTenant,
 };
 use crate::tenancy::TenantId;
 
 // ── Tenant registry ─────────────────────────────────────────────────────
 
 pub async fn create_tenant(pool: &SqlitePool, t: &NewTenant) -> RepoResult<Tenant> {
-    let _ = TenantId::new(&t.tenant_id)
-        .map_err(|e| RepoError::validation(e.to_string()))?;
+    let _ = TenantId::new(&t.tenant_id).map_err(|e| RepoError::validation(e.to_string()))?;
 
     let id = sqlx::query_scalar::<_, i64>(
         r#"INSERT INTO tenant (tenant_id, name, plan, notes)
            VALUES (?, ?, ?, ?) RETURNING id"#,
     )
-    .bind(&t.tenant_id).bind(&t.name).bind(&t.plan).bind(&t.notes)
-    .fetch_one(pool).await?;
+    .bind(&t.tenant_id)
+    .bind(&t.name)
+    .bind(&t.plan)
+    .bind(&t.notes)
+    .fetch_one(pool)
+    .await?;
     get_tenant(pool, id).await
 }
 
 pub async fn get_tenant(pool: &SqlitePool, id: i64) -> RepoResult<Tenant> {
     sqlx::query_as::<_, Tenant>("SELECT * FROM tenant WHERE id = ?")
-        .bind(id).fetch_optional(pool).await?
+        .bind(id)
+        .fetch_optional(pool)
+        .await?
         .ok_or(RepoError::NotFound)
 }
 
 pub async fn find_tenant_by_tenant_id(pool: &SqlitePool, tid: &str) -> RepoResult<Option<Tenant>> {
-    Ok(sqlx::query_as::<_, Tenant>("SELECT * FROM tenant WHERE tenant_id = ?")
-        .bind(tid).fetch_optional(pool).await?)
+    Ok(
+        sqlx::query_as::<_, Tenant>("SELECT * FROM tenant WHERE tenant_id = ?")
+            .bind(tid)
+            .fetch_optional(pool)
+            .await?,
+    )
 }
 
 pub async fn list_tenants(pool: &SqlitePool) -> RepoResult<Vec<Tenant>> {
     Ok(sqlx::query_as::<_, Tenant>(
         "SELECT * FROM tenant WHERE status <> 'deleted' ORDER BY tenant_id",
-    ).fetch_all(pool).await?)
+    )
+    .fetch_all(pool)
+    .await?)
 }
 
 pub async fn update_tenant(pool: &SqlitePool, id: i64, u: &UpdateTenant) -> RepoResult<Tenant> {
     if let Some(s) = &u.status {
         if !matches!(s.as_str(), "active" | "disabled" | "deleted") {
-            return Err(RepoError::validation("status must be active|disabled|deleted"));
+            return Err(RepoError::validation(
+                "status must be active|disabled|deleted",
+            ));
         }
     }
     sqlx::query(
@@ -60,16 +73,27 @@ pub async fn update_tenant(pool: &SqlitePool, id: i64, u: &UpdateTenant) -> Repo
              updated_at = datetime('now')
            WHERE id = ?"#,
     )
-    .bind(&u.name).bind(&u.plan).bind(&u.notes).bind(&u.status).bind(id)
-    .execute(pool).await?;
+    .bind(&u.name)
+    .bind(&u.plan)
+    .bind(&u.notes)
+    .bind(&u.status)
+    .bind(id)
+    .execute(pool)
+    .await?;
     get_tenant(pool, id).await
 }
 
 pub async fn set_tenant_status(pool: &SqlitePool, id: i64, status: &str) -> RepoResult<()> {
-    update_tenant(pool, id, &UpdateTenant {
-        status: Some(status.into()),
-        ..Default::default()
-    }).await.map(|_| ())
+    update_tenant(
+        pool,
+        id,
+        &UpdateTenant {
+            status: Some(status.into()),
+            ..Default::default()
+        },
+    )
+    .await
+    .map(|_| ())
 }
 
 pub async fn soft_delete_tenant(pool: &SqlitePool, id: i64) -> RepoResult<()> {
@@ -83,14 +107,19 @@ pub async fn create_portal_user(pool: &SqlitePool, u: &NewPortalUser) -> RepoRes
         r#"INSERT INTO portal_user (username, email, password_hash)
            VALUES (?, ?, ?) RETURNING id"#,
     )
-    .bind(&u.username).bind(&u.email).bind(&u.password_hash)
-    .fetch_one(pool).await?;
+    .bind(&u.username)
+    .bind(&u.email)
+    .bind(&u.password_hash)
+    .fetch_one(pool)
+    .await?;
     get_portal_user(pool, id).await
 }
 
 pub async fn get_portal_user(pool: &SqlitePool, id: i64) -> RepoResult<PortalUser> {
     sqlx::query_as::<_, PortalUser>("SELECT * FROM portal_user WHERE id = ?")
-        .bind(id).fetch_optional(pool).await?
+        .bind(id)
+        .fetch_optional(pool)
+        .await?
         .ok_or(RepoError::NotFound)
 }
 
@@ -101,8 +130,10 @@ pub async fn find_portal_user_by_identifier(
     Ok(sqlx::query_as::<_, PortalUser>(
         "SELECT * FROM portal_user WHERE username = ? OR email = ? LIMIT 1",
     )
-    .bind(identifier).bind(identifier)
-    .fetch_optional(pool).await?)
+    .bind(identifier)
+    .bind(identifier)
+    .fetch_optional(pool)
+    .await?)
 }
 
 pub async fn add_portal_membership(pool: &SqlitePool, m: &NewPortalMembership) -> RepoResult<()> {
@@ -114,8 +145,12 @@ pub async fn add_portal_membership(pool: &SqlitePool, m: &NewPortalMembership) -
            (portal_user_id, tenant_id, tenant_user_id, role)
            VALUES (?, ?, ?, ?)"#,
     )
-    .bind(m.portal_user_id).bind(&m.tenant_id).bind(m.tenant_user_id).bind(&m.role)
-    .execute(pool).await?;
+    .bind(m.portal_user_id)
+    .bind(&m.tenant_id)
+    .bind(m.tenant_user_id)
+    .bind(&m.role)
+    .execute(pool)
+    .await?;
     Ok(())
 }
 
@@ -130,5 +165,6 @@ pub async fn list_portal_memberships(
            ORDER BY pm.tenant_id, pm.id"#,
     )
     .bind(portal_user_id)
-    .fetch_all(pool).await?)
+    .fetch_all(pool)
+    .await?)
 }

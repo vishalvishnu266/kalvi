@@ -7,7 +7,7 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 use crate::http::AppState;
-use crate::middleware::auth::{SessionUser, COOKIE_SESSION, read_cookie_from_headers};
+use crate::middleware::auth::{read_cookie_from_headers, SessionUser, COOKIE_SESSION};
 use crate::services::{auth as auth_svc, Actor, RequestCtx};
 use crate::session::SessionStore;
 use crate::tenancy::{TenantError, TenantId};
@@ -17,10 +17,10 @@ use crate::tenancy::{TenantError, TenantId};
 /// call free-fn services directly, e.g.
 /// `services::people::admit(&scope.pool, &scope.ctx, body).await?`.
 pub struct TenantScope {
-    pub tenant:   TenantId,
-    pub pool:     SqlitePool,
+    pub tenant: TenantId,
+    pub pool: SqlitePool,
     pub sessions: SessionStore,
-    pub ctx:      RequestCtx,
+    pub ctx: RequestCtx,
 }
 
 impl FromRequestParts<AppState> for TenantScope {
@@ -34,15 +34,19 @@ impl FromRequestParts<AppState> for TenantScope {
             .await
             .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
 
-        let tid = TenantId::new(tenant)
-            .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
+        let tid = TenantId::new(tenant).map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
 
         let pool = state.pool_for(&tid).await.map_err(tenant_error_to_http)?;
         let sessions = state.sessions.clone();
 
         let ctx = resolve_ctx(&tid, &pool, &sessions, parts).await;
 
-        Ok(Self { tenant: tid, pool, sessions, ctx })
+        Ok(Self {
+            tenant: tid,
+            pool,
+            sessions,
+            ctx,
+        })
     }
 }
 
@@ -58,7 +62,9 @@ async fn resolve_ctx(
         let perms: Vec<String> = su.permissions.iter().cloned().collect();
         return RequestCtx {
             tenant: tid.clone(),
-            actor: Actor::User { user_id: su.user_id },
+            actor: Actor::User {
+                user_id: su.user_id,
+            },
             request_id,
             trace_id: None,
             permissions: Arc::new(perms),
@@ -66,7 +72,8 @@ async fn resolve_ctx(
         };
     }
 
-    let bearer = parts.headers
+    let bearer = parts
+        .headers
         .get(axum::http::header::AUTHORIZATION)
         .and_then(|v| v.to_str().ok())
         .and_then(|v| v.strip_prefix("Bearer "))
@@ -78,7 +85,8 @@ async fn resolve_ctx(
 
     if let Some(token) = token_opt {
         if let Ok((_, user)) = auth_svc::resolve_session(pool, sessions, &token).await {
-            let perms: HashSet<String> = auth_svc::permissions_of(pool, user.id).await
+            let perms: HashSet<String> = auth_svc::permissions_of(pool, user.id)
+                .await
                 .map(|ps| ps.into_iter().map(|p| p.code).collect())
                 .unwrap_or_default();
             return RequestCtx {
@@ -105,8 +113,8 @@ async fn resolve_ctx(
 fn tenant_error_to_http(e: TenantError) -> (StatusCode, String) {
     match e {
         TenantError::InvalidId(_) => (StatusCode::BAD_REQUEST, e.to_string()),
-        TenantError::NotFound(_)  => (StatusCode::NOT_FOUND, e.to_string()),
-        TenantError::Disabled(_)  => (StatusCode::FORBIDDEN, e.to_string()),
-        TenantError::Repo(_)      => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
+        TenantError::NotFound(_) => (StatusCode::NOT_FOUND, e.to_string()),
+        TenantError::Disabled(_) => (StatusCode::FORBIDDEN, e.to_string()),
+        TenantError::Repo(_) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
     }
 }

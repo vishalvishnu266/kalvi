@@ -34,7 +34,9 @@ pub struct StudentRow {
 }
 
 #[derive(Deserialize)]
-pub struct ListParams { q: Option<String> }
+pub struct ListParams {
+    q: Option<String>,
+}
 
 pub async fn list(
     tscope: TenantScope,
@@ -47,31 +49,47 @@ pub async fn list(
 
     let q = qp.q.unwrap_or_default();
     let ql = q.to_lowercase();
-    let rows: Vec<StudentRow> = students.into_iter().filter_map(|s| {
-        let name = display_name(&s);
-        if !ql.is_empty()
-            && !name.to_lowercase().contains(&ql)
-            && !s.admission_no.to_lowercase().contains(&ql)
-        { return None; }
-        Some(StudentRow {
-            id: s.id,
-            name,
-            admission_no: s.admission_no,
-            grade:   "—".into(),
-            section: "—".into(),
-            status:  if s.status == "active" { "active" } else { "inactive" },
+    let rows: Vec<StudentRow> = students
+        .into_iter()
+        .filter_map(|s| {
+            let name = display_name(&s);
+            if !ql.is_empty()
+                && !name.to_lowercase().contains(&ql)
+                && !s.admission_no.to_lowercase().contains(&ql)
+            {
+                return None;
+            }
+            Some(StudentRow {
+                id: s.id,
+                name,
+                admission_no: s.admission_no,
+                grade: "—".into(),
+                section: "—".into(),
+                status: if s.status == "active" {
+                    "active"
+                } else {
+                    "inactive"
+                },
+            })
         })
-    }).collect();
+        .collect();
 
     let nav = NavContext::new(
         session.display.clone(),
         tscope.tenant.as_str().to_string(),
-        "students", "Students",
+        "students",
+        "Students",
     );
     let nav_items = visible_nav_items(&session);
     let can_admit = session.has(perm::STUDENTS_ADMIT);
 
-    render(&StudentsListPage { nav: &nav, nav_items, q: &q, rows, can_admit })
+    render(&StudentsListPage {
+        nav: &nav,
+        nav_items,
+        q: &q,
+        rows,
+        can_admit,
+    })
 }
 
 #[derive(Template)]
@@ -84,7 +102,10 @@ struct StudentShowPage<'a> {
     can_edit: bool,
 }
 
-pub struct Tab { pub label: &'static str, pub active: bool }
+pub struct Tab {
+    pub label: &'static str,
+    pub active: bool,
+}
 
 pub async fn show(
     tscope: TenantScope,
@@ -101,28 +122,46 @@ pub async fn show(
         admission_no: s.admission_no,
         grade: "—".into(),
         section: "—".into(),
-        status: if s.status == "active" { "active" } else { "inactive" },
+        status: if s.status == "active" {
+            "active"
+        } else {
+            "inactive"
+        },
     };
 
     let title = format!("Students · {}", student.name);
     let nav = NavContext::new(
         session.display.clone(),
         tscope.tenant.as_str().to_string(),
-        "students", title,
+        "students",
+        title,
     );
 
     let current = "overview";
-    let tabs = ["overview","attendance","fees","guardians","documents"]
+    let tabs = ["overview", "attendance", "fees", "guardians", "documents"]
         .into_iter()
-        .map(|l| Tab { label: l, active: l == current })
+        .map(|l| Tab {
+            label: l,
+            active: l == current,
+        })
         .collect();
 
     let nav_items = visible_nav_items(&session);
     let can_edit = session.has(perm::STUDENTS_EDIT);
-    render(&StudentShowPage { nav: &nav, nav_items, student, tabs, can_edit })
+    render(&StudentShowPage {
+        nav: &nav,
+        nav_items,
+        student,
+        tabs,
+        can_edit,
+    })
 }
 
 fn display_name(s: &Student) -> String {
-    let mid = s.middle_name.as_deref().map(|m| format!(" {m}")).unwrap_or_default();
+    let mid = s
+        .middle_name
+        .as_deref()
+        .map(|m| format!(" {m}"))
+        .unwrap_or_default();
     format!("{}{} {}", s.first_name, mid, s.last_name)
 }

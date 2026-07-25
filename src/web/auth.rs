@@ -27,15 +27,30 @@ struct LoginPage<'a> {
 }
 
 pub async fn get_login() -> Result<Response, WebError> {
-    render(&LoginPage { error: None, tenant: "", identifier: "", tenant_locked: false })
+    render(&LoginPage {
+        error: None,
+        tenant: "",
+        identifier: "",
+        tenant_locked: false,
+    })
 }
 
 pub async fn get_tenant_login(Path(tenant): Path<String>) -> Result<Response, WebError> {
-    render(&LoginPage { error: None, tenant: &tenant, identifier: "", tenant_locked: true })
+    render(&LoginPage {
+        error: None,
+        tenant: &tenant,
+        identifier: "",
+        tenant_locked: true,
+    })
 }
 
 pub async fn get_portal_tenant_login(Path(tenant): Path<String>) -> Result<Response, WebError> {
-    render(&LoginPage { error: None, tenant: &tenant, identifier: "", tenant_locked: true })
+    render(&LoginPage {
+        error: None,
+        tenant: &tenant,
+        identifier: "",
+        tenant_locked: true,
+    })
 }
 
 #[derive(Deserialize)]
@@ -69,7 +84,8 @@ async fn post_login_with_redirect(
         Err(e) => {
             return render(&LoginPage {
                 error: Some(&e.to_string()),
-                tenant: &f.tenant, identifier: &f.identifier,
+                tenant: &f.tenant,
+                identifier: &f.identifier,
                 tenant_locked: false,
             });
         }
@@ -79,7 +95,8 @@ async fn post_login_with_redirect(
         Err(e) => {
             return render(&LoginPage {
                 error: Some(&format!("Tenant lookup failed: {e}")),
-                tenant: &f.tenant, identifier: &f.identifier,
+                tenant: &f.tenant,
+                identifier: &f.identifier,
                 tenant_locked: false,
             });
         }
@@ -87,12 +104,14 @@ async fn post_login_with_redirect(
 
     match auth_svc::login(&pool, &f.identifier, &f.password).await {
         Ok(user) => {
-            let session = match auth_svc::issue_session(&state.sessions, user.id, None, None).await {
+            let session = match auth_svc::issue_session(&state.sessions, user.id, None, None).await
+            {
                 Ok(s) => s,
                 Err(e) => {
                     return render(&LoginPage {
                         error: Some(&format!("Could not start session: {e}")),
-                        tenant: &f.tenant, identifier: &f.identifier,
+                        tenant: &f.tenant,
+                        identifier: &f.identifier,
                         tenant_locked: !f.tenant.is_empty(),
                     });
                 }
@@ -100,7 +119,8 @@ async fn post_login_with_redirect(
 
             let display = user.email.clone().unwrap_or(user.username.clone());
             let max_age = (session.expires_at - chrono::Utc::now().naive_utc())
-                .num_seconds().max(0);
+                .num_seconds()
+                .max(0);
             let set_tenant = format!(
                 "{COOKIE_TENANT}={}; Path=/; Max-Age={max_age}; SameSite=Lax; HttpOnly",
                 tenant.as_str()
@@ -123,22 +143,22 @@ async fn post_login_with_redirect(
                     (header::LOCATION, location),
                 ],
                 Body::empty(),
-            ).into_response())
+            )
+                .into_response())
         }
         Err(_) => render(&LoginPage {
             error: Some("Invalid credentials"),
-            tenant: &f.tenant, identifier: &f.identifier,
+            tenant: &f.tenant,
+            identifier: &f.identifier,
             tenant_locked: !f.tenant.is_empty(),
         }),
     }
 }
 
-pub async fn post_logout(
-    State(state): State<AppState>,
-    headers: HeaderMap,
-) -> Response {
-    let cookie_tenant  = read_cookie_from_headers(&headers, crate::middleware::auth::COOKIE_TENANT);
-    let cookie_session = read_cookie_from_headers(&headers, crate::middleware::auth::COOKIE_SESSION);
+pub async fn post_logout(State(state): State<AppState>, headers: HeaderMap) -> Response {
+    let cookie_tenant = read_cookie_from_headers(&headers, crate::middleware::auth::COOKIE_TENANT);
+    let cookie_session =
+        read_cookie_from_headers(&headers, crate::middleware::auth::COOKIE_SESSION);
     if let (Some(tid), Some(token)) = (cookie_tenant, cookie_session) {
         if let Ok(t) = TenantId::new(tid) {
             if let Ok(_pool) = state.pool_for(&t).await {
@@ -147,8 +167,8 @@ pub async fn post_logout(
         }
     }
 
-    let clear_tenant  = format!("{COOKIE_TENANT}=; Path=/; Max-Age=0; SameSite=Lax; HttpOnly");
-    let clear_user    = format!("{COOKIE_USER}=; Path=/; Max-Age=0; SameSite=Lax");
+    let clear_tenant = format!("{COOKIE_TENANT}=; Path=/; Max-Age=0; SameSite=Lax; HttpOnly");
+    let clear_user = format!("{COOKIE_USER}=; Path=/; Max-Age=0; SameSite=Lax");
     let clear_session = format!("{COOKIE_SESSION}=; Path=/; Max-Age=0; SameSite=Lax; HttpOnly");
     (
         StatusCode::SEE_OTHER,
@@ -159,5 +179,6 @@ pub async fn post_logout(
             (header::LOCATION, "/web/login".to_string()),
         ],
         Body::empty(),
-    ).into_response()
+    )
+        .into_response()
 }

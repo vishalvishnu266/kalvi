@@ -33,7 +33,8 @@ fn hash(password: &str) -> ServiceResult<String> {
 fn verify(password: &str, hash: &str) -> bool {
     match PasswordHash::new(hash) {
         Ok(parsed) => Argon2::default()
-            .verify_password(password.as_bytes(), &parsed).is_ok(),
+            .verify_password(password.as_bytes(), &parsed)
+            .is_ok(),
         Err(_) => false,
     }
 }
@@ -51,42 +52,64 @@ pub async fn create_user(pool: &SqlitePool, u: &NewUser) -> RepoResult<User> {
         r#"INSERT INTO user_account (username, email, password_hash, is_active)
            VALUES (?, ?, ?, ?) RETURNING id"#,
     )
-    .bind(&u.username).bind(&u.email).bind(&u.password_hash).bind(u.is_active as i64)
-    .fetch_one(pool).await?;
+    .bind(&u.username)
+    .bind(&u.email)
+    .bind(&u.password_hash)
+    .bind(u.is_active as i64)
+    .fetch_one(pool)
+    .await?;
     get_user(pool, id).await
 }
 
 pub async fn get_user(pool: &SqlitePool, id: i64) -> RepoResult<User> {
     sqlx::query_as::<_, User>("SELECT * FROM user_account WHERE id = ?")
-        .bind(id).fetch_optional(pool).await?
+        .bind(id)
+        .fetch_optional(pool)
+        .await?
         .ok_or(RepoError::NotFound)
 }
 
 pub async fn find_user_by_username(pool: &SqlitePool, username: &str) -> RepoResult<Option<User>> {
-    Ok(sqlx::query_as::<_, User>("SELECT * FROM user_account WHERE username = ?")
-        .bind(username).fetch_optional(pool).await?)
+    Ok(
+        sqlx::query_as::<_, User>("SELECT * FROM user_account WHERE username = ?")
+            .bind(username)
+            .fetch_optional(pool)
+            .await?,
+    )
 }
 
 pub async fn find_user_by_email(pool: &SqlitePool, email: &str) -> RepoResult<Option<User>> {
-    Ok(sqlx::query_as::<_, User>("SELECT * FROM user_account WHERE email = ?")
-        .bind(email).fetch_optional(pool).await?)
+    Ok(
+        sqlx::query_as::<_, User>("SELECT * FROM user_account WHERE email = ?")
+            .bind(email)
+            .fetch_optional(pool)
+            .await?,
+    )
 }
 
 pub async fn touch_last_login(pool: &SqlitePool, id: i64) -> RepoResult<()> {
     sqlx::query("UPDATE user_account SET last_login_at = datetime('now') WHERE id = ?")
-        .bind(id).execute(pool).await?;
+        .bind(id)
+        .execute(pool)
+        .await?;
     Ok(())
 }
 
 pub async fn update_password_hash(pool: &SqlitePool, id: i64, h: &str) -> RepoResult<()> {
     sqlx::query("UPDATE user_account SET password_hash = ? WHERE id = ?")
-        .bind(h).bind(id).execute(pool).await?;
+        .bind(h)
+        .bind(id)
+        .execute(pool)
+        .await?;
     Ok(())
 }
 
 pub async fn assign_role_id(pool: &SqlitePool, user_id: i64, role_id: i64) -> RepoResult<()> {
     sqlx::query("INSERT OR IGNORE INTO user_role (user_id, role_id) VALUES (?, ?)")
-        .bind(user_id).bind(role_id).execute(pool).await?;
+        .bind(user_id)
+        .bind(role_id)
+        .execute(pool)
+        .await?;
     Ok(())
 }
 
@@ -95,7 +118,10 @@ pub async fn roles_of(pool: &SqlitePool, user_id: i64) -> RepoResult<Vec<Role>> 
         r#"SELECT r.* FROM role r
            INNER JOIN user_role ur ON ur.role_id = r.id
            WHERE ur.user_id = ? ORDER BY r.name"#,
-    ).bind(user_id).fetch_all(pool).await?)
+    )
+    .bind(user_id)
+    .fetch_all(pool)
+    .await?)
 }
 
 pub async fn permissions_of(pool: &SqlitePool, user_id: i64) -> RepoResult<Vec<Permission>> {
@@ -104,12 +130,19 @@ pub async fn permissions_of(pool: &SqlitePool, user_id: i64) -> RepoResult<Vec<P
            INNER JOIN role_permission rp ON rp.permission_id = p.id
            INNER JOIN user_role ur       ON ur.role_id = rp.role_id
            WHERE ur.user_id = ? ORDER BY p.code"#,
-    ).bind(user_id).fetch_all(pool).await?)
+    )
+    .bind(user_id)
+    .fetch_all(pool)
+    .await?)
 }
 
 pub async fn find_role_by_name(pool: &SqlitePool, name: &str) -> RepoResult<Option<Role>> {
-    Ok(sqlx::query_as::<_, Role>("SELECT * FROM role WHERE name = ?")
-        .bind(name).fetch_optional(pool).await?)
+    Ok(
+        sqlx::query_as::<_, Role>("SELECT * FROM role WHERE name = ?")
+            .bind(name)
+            .fetch_optional(pool)
+            .await?,
+    )
 }
 
 // ── High-level auth workflows ───────────────────────────────────────
@@ -128,12 +161,16 @@ pub async fn register(
         return Err(ServiceError::conflict("username taken"));
     }
     let h = hash(password)?;
-    let user = create_user(pool, &NewUser {
-        username: username.into(),
-        email:    email.map(str::to_string),
-        password_hash: h,
-        is_active: true,
-    }).await?;
+    let user = create_user(
+        pool,
+        &NewUser {
+            username: username.into(),
+            email: email.map(str::to_string),
+            password_hash: h,
+            is_active: true,
+        },
+    )
+    .await?;
     for name in roles {
         if let Some(r) = find_role_by_name(pool, name).await? {
             assign_role_id(pool, user.id, r.id).await?;
@@ -149,7 +186,9 @@ pub async fn login(pool: &SqlitePool, identifier: &str, password: &str) -> Servi
         find_user_by_username(pool, identifier).await?
     };
     let user = user.ok_or(ServiceError::Unauthorized)?;
-    if !user.is_active { return Err(ServiceError::Unauthorized); }
+    if !user.is_active {
+        return Err(ServiceError::Unauthorized);
+    }
     if !verify(password, &user.password_hash) {
         return Err(ServiceError::Unauthorized);
     }
@@ -158,7 +197,10 @@ pub async fn login(pool: &SqlitePool, identifier: &str, password: &str) -> Servi
 }
 
 pub async fn change_password(
-    pool: &SqlitePool, user_id: i64, old: &str, new: &str,
+    pool: &SqlitePool,
+    user_id: i64,
+    old: &str,
+    new: &str,
 ) -> ServiceResult<()> {
     if new.len() < 8 {
         return Err(ServiceError::validation("password must be >= 8 chars"));
@@ -180,7 +222,14 @@ pub async fn issue_session(
     user_agent: Option<String>,
     remote_ip: Option<String>,
 ) -> ServiceResult<Session> {
-    issue_session_with_ttl(sessions, user_id, DEFAULT_SESSION_TTL_DAYS, user_agent, remote_ip).await
+    issue_session_with_ttl(
+        sessions,
+        user_id,
+        DEFAULT_SESSION_TTL_DAYS,
+        user_agent,
+        remote_ip,
+    )
+    .await
 }
 
 pub async fn issue_session_with_ttl(
@@ -192,9 +241,16 @@ pub async fn issue_session_with_ttl(
 ) -> ServiceResult<Session> {
     let expires_at = chrono::Utc::now().naive_utc() + Duration::days(ttl_days);
     let token = mint_token();
-    Ok(sessions.create(&NewSession {
-        token, user_id, tenant_id: None, expires_at, user_agent, remote_ip,
-    }).await?)
+    Ok(sessions
+        .create(&NewSession {
+            token,
+            user_id,
+            tenant_id: None,
+            expires_at,
+            user_agent,
+            remote_ip,
+        })
+        .await?)
 }
 
 pub async fn resolve_session(
@@ -202,7 +258,9 @@ pub async fn resolve_session(
     sessions: &SessionStore,
     token: &str,
 ) -> ServiceResult<(Session, User)> {
-    let session = sessions.find_active_by_token(token).await?
+    let session = sessions
+        .find_active_by_token(token)
+        .await?
         .ok_or(ServiceError::Unauthorized)?;
     let user = get_user(pool, session.user_id).await?;
     if !user.is_active {

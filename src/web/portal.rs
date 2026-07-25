@@ -106,14 +106,18 @@ pub struct LinkTenantForm {
 }
 
 pub async fn get_login() -> Result<Response, WebError> {
-    render(&PortalLoginPage { error: None, identifier: "" })
+    render(&PortalLoginPage {
+        error: None,
+        identifier: "",
+    })
 }
 
 pub async fn post_login(
     State(state): State<AppState>,
     Form(f): Form<PortalLoginForm>,
 ) -> Result<Response, WebError> {
-    let Some(user) = sys_svc::find_portal_user_by_identifier(&state.system, &f.identifier).await? else {
+    let Some(user) = sys_svc::find_portal_user_by_identifier(&state.system, &f.identifier).await?
+    else {
         return render(&PortalLoginPage {
             error: Some("Invalid credentials"),
             identifier: &f.identifier,
@@ -127,7 +131,8 @@ pub async fn post_login(
     }
     let set_cookie = format!(
         "{COOKIE_PORTAL}={}; Path=/; Max-Age={}; SameSite=Lax; HttpOnly",
-        user.id, 60 * 60 * 24 * 14
+        user.id,
+        60 * 60 * 24 * 14
     );
     Ok((
         StatusCode::SEE_OTHER,
@@ -136,11 +141,16 @@ pub async fn post_login(
             (header::LOCATION, "/portal".to_string()),
         ],
         Body::empty(),
-    ).into_response())
+    )
+        .into_response())
 }
 
 pub async fn get_register() -> Result<Response, WebError> {
-    render(&PortalRegisterPage { error: None, username: "", email: "" })
+    render(&PortalRegisterPage {
+        error: None,
+        username: "",
+        email: "",
+    })
 }
 
 pub async fn post_register(
@@ -156,15 +166,21 @@ pub async fn post_register(
     }
     let password_hash = hash_password(&f.password)
         .map_err(|e| WebError::bad(format!("password hash failed: {e}")))?;
-    let user = sys_svc::create_portal_user(&state.system, &NewPortalUser {
-        username: f.username.trim().to_string(),
-        email: f.email.trim().to_string(),
-        password_hash,
-    }).await.map_err(|e| WebError::bad(e.to_string()))?;
+    let user = sys_svc::create_portal_user(
+        &state.system,
+        &NewPortalUser {
+            username: f.username.trim().to_string(),
+            email: f.email.trim().to_string(),
+            password_hash,
+        },
+    )
+    .await
+    .map_err(|e| WebError::bad(e.to_string()))?;
 
     let set_cookie = format!(
         "{COOKIE_PORTAL}={}; Path=/; Max-Age={}; SameSite=Lax; HttpOnly",
-        user.id, 60 * 60 * 24 * 14
+        user.id,
+        60 * 60 * 24 * 14
     );
     Ok((
         StatusCode::SEE_OTHER,
@@ -173,7 +189,8 @@ pub async fn post_register(
             (header::LOCATION, "/portal".to_string()),
         ],
         Body::empty(),
-    ).into_response())
+    )
+        .into_response())
 }
 
 pub async fn post_logout() -> Response {
@@ -185,17 +202,16 @@ pub async fn post_logout() -> Response {
             (header::LOCATION, "/portal/login".to_string()),
         ],
         Body::empty(),
-    ).into_response()
+    )
+        .into_response()
 }
 
-pub async fn home(
-    State(state): State<AppState>,
-    headers: HeaderMap,
-) -> Result<Response, WebError> {
+pub async fn home(State(state): State<AppState>, headers: HeaderMap) -> Result<Response, WebError> {
     let Some(uid) = portal_user_id_from_headers(&headers) else {
         return Ok(Redirect::to("/portal/login").into_response());
     };
-    let user = sys_svc::get_portal_user(&state.system, uid).await
+    let user = sys_svc::get_portal_user(&state.system, uid)
+        .await
         .map_err(|_| WebError::forbidden("invalid portal session"))?;
 
     let views = build_membership_views(&state, uid).await?;
@@ -214,11 +230,14 @@ pub async fn post_link_tenant(
     let Some(portal_user_id) = portal_user_id_from_headers(&headers) else {
         return Ok(Redirect::to("/portal/login").into_response());
     };
-    let tid = TenantId::new(f.tenant.trim().to_string())
-        .map_err(|e| WebError::bad(e.to_string()))?;
-    let pool = state.pool_for(&tid).await
+    let tid =
+        TenantId::new(f.tenant.trim().to_string()).map_err(|e| WebError::bad(e.to_string()))?;
+    let pool = state
+        .pool_for(&tid)
+        .await
         .map_err(|e| WebError::bad(format!("tenant unavailable: {e}")))?;
-    let user: User = auth_svc::login(&pool, &f.identifier, &f.password).await
+    let user: User = auth_svc::login(&pool, &f.identifier, &f.password)
+        .await
         .map_err(|_| WebError::forbidden("invalid tenant credentials"))?;
     let roles = auth_svc::roles_of(&pool, user.id).await?;
     let role = if roles.iter().any(|r| r.name == "guardian") {
@@ -226,15 +245,21 @@ pub async fn post_link_tenant(
     } else if roles.iter().any(|r| r.name == "student") {
         "student"
     } else {
-        return Err(WebError::forbidden("tenant account must be guardian or student"));
+        return Err(WebError::forbidden(
+            "tenant account must be guardian or student",
+        ));
     };
 
-    sys_svc::add_portal_membership(&state.system, &NewPortalMembership {
-        portal_user_id,
-        tenant_id: tid.as_str().to_string(),
-        tenant_user_id: user.id,
-        role: role.to_string(),
-    }).await?;
+    sys_svc::add_portal_membership(
+        &state.system,
+        &NewPortalMembership {
+            portal_user_id,
+            tenant_id: tid.as_str().to_string(),
+            tenant_user_id: user.id,
+            role: role.to_string(),
+        },
+    )
+    .await?;
 
     Ok(Redirect::to("/portal").into_response())
 }
@@ -282,7 +307,11 @@ pub async fn student_show(
 }
 
 fn map_student(s: Student) -> StudentRow {
-    let mid = s.middle_name.as_deref().map(|m| format!(" {m}")).unwrap_or_default();
+    let mid = s
+        .middle_name
+        .as_deref()
+        .map(|m| format!(" {m}"))
+        .unwrap_or_default();
     StudentRow {
         id: s.id,
         name: format!("{}{} {}", s.first_name, mid, s.last_name),
@@ -308,7 +337,10 @@ async fn build_membership_views(
         let students = if m.role == "guardian" {
             let ids = g_svc::students_of_user(&pool, m.tenant_user_id).await?;
             let student_list = people_svc::list_students_by_ids(&pool, &ids).await?;
-            student_list.into_iter().map(map_student).collect::<Vec<_>>()
+            student_list
+                .into_iter()
+                .map(map_student)
+                .collect::<Vec<_>>()
         } else {
             match people_svc::find_student_by_user_id(&pool, m.tenant_user_id).await? {
                 Some(s) => vec![map_student(s)],
@@ -339,7 +371,8 @@ fn hash_password(password: &str) -> Result<String, String> {
 fn verify_password(password: &str, hash: &str) -> bool {
     match PasswordHash::new(hash) {
         Ok(parsed) => Argon2::default()
-            .verify_password(password.as_bytes(), &parsed).is_ok(),
+            .verify_password(password.as_bytes(), &parsed)
+            .is_ok(),
         Err(_) => false,
     }
 }

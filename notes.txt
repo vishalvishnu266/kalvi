@@ -1,0 +1,320 @@
+   Compiling school_erp v0.1.0 (/Users/user/Desktop/kalvi)
+^[[Oerror[E0425]: cannot find value `ATTENDANCE_VIEW` in this scope
+  --> src/web/dashboard.rs:30:185
+   |
+30 | ...con: "calendar-check", gradient: "from-emerald-500 to-teal-600",  perm: Some(&[ATTENDANCE_VIEW, ATTENDANCE_VIEW_OWN, ATTENDANCE_MARK]) },
+   |                                                                                   ^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `ATTENDANCE_VIEW_OWN` in this scope
+  --> src/web/dashboard.rs:30:202
+   |
+30 | ...k", gradient: "from-emerald-500 to-teal-600",  perm: Some(&[ATTENDANCE_VIEW, ATTENDANCE_VIEW_OWN, ATTENDANCE_MARK]) },
+   |                                                                                 ^^^^^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `ATTENDANCE_MARK` in this scope
+  --> src/web/dashboard.rs:30:223
+   |
+30 | ...-emerald-500 to-teal-600",  perm: Some(&[ATTENDANCE_VIEW, ATTENDANCE_VIEW_OWN, ATTENDANCE_MARK]) },
+   |                                                                                   ^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `TIMETABLE_VIEW` in this scope
+  --> src/web/dashboard.rs:31:185
+   |
+31 | ...con: "calendar-days",  gradient: "from-sky-500 to-blue-600",      perm: Some(&[TIMETABLE_VIEW, TIMETABLE_MANAGE]) },
+   |                                                                                   ^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `TIMETABLE_MANAGE` in this scope
+  --> src/web/dashboard.rs:31:201
+   |
+31 | ...ys",  gradient: "from-sky-500 to-blue-600",      perm: Some(&[TIMETABLE_VIEW, TIMETABLE_MANAGE]) },
+   |                                                                                  ^^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `FEES_VIEW` in this scope
+  --> src/web/dashboard.rs:32:185
+   |
+32 | ...  icon: "wallet",         gradient: "from-amber-500 to-orange-600",  perm: Some(&[FEES_VIEW, FEES_VIEW_OWN, FEES_COLLECT, FEES_PAY]) },
+   |                                                                                      ^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `FEES_VIEW_OWN` in this scope
+  --> src/web/dashboard.rs:32:196
+   |
+32 | ...et",         gradient: "from-amber-500 to-orange-600",  perm: Some(&[FEES_VIEW, FEES_VIEW_OWN, FEES_COLLECT, FEES_PAY]) },
+   |                                                                                    ^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `FEES_COLLECT` in this scope
+  --> src/web/dashboard.rs:32:211
+   |
+32 | ...adient: "from-amber-500 to-orange-600",  perm: Some(&[FEES_VIEW, FEES_VIEW_OWN, FEES_COLLECT, FEES_PAY]) },
+   |                                                                                    ^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `FEES_PAY` in this scope
+  --> src/web/dashboard.rs:32:225
+   |
+32 | ...m-amber-500 to-orange-600",  perm: Some(&[FEES_VIEW, FEES_VIEW_OWN, FEES_COLLECT, FEES_PAY]) },
+   |                                                                                      ^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `EXAMINATIONS_VIEW` in this scope
+  --> src/web/dashboard.rs:33:185
+   |
+33 | ...on: "clipboard-check",gradient: "from-fuchsia-500 to-pink-600",  perm: Some(&[EXAMINATIONS_VIEW, EXAMINATIONS_VIEW_OWN, EXAMINATIONS_ENTER_MARKS]) },
+   |                                                                                  ^^^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `EXAMINATIONS_VIEW_OWN` in this scope
+  --> src/web/dashboard.rs:33:204
+   |
+33 | ...,gradient: "from-fuchsia-500 to-pink-600",  perm: Some(&[EXAMINATIONS_VIEW, EXAMINATIONS_VIEW_OWN, EXAMINATIONS_ENTER_MARKS]) },
+   |                                                                                ^^^^^^^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `EXAMINATIONS_ENTER_MARKS` in this scope
+  --> src/web/dashboard.rs:33:227
+   |
+33 | ...500 to-pink-600",  perm: Some(&[EXAMINATIONS_VIEW, EXAMINATIONS_VIEW_OWN, EXAMINATIONS_ENTER_MARKS]) },
+   |                                                                              ^^^^^^^^^^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `PAYROLL_VIEW` in this scope
+  --> src/web/dashboard.rs:36:185
+   |
+36 | ...icon: "banknote",       gradient: "from-lime-500 to-emerald-600",  perm: Some(&[PAYROLL_VIEW, PAYROLL_VIEW_OWN]) },
+   |                                                                                    ^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `PAYROLL_VIEW_OWN` in this scope
+  --> src/web/dashboard.rs:36:199
+   |
+36 | ...,       gradient: "from-lime-500 to-emerald-600",  perm: Some(&[PAYROLL_VIEW, PAYROLL_VIEW_OWN]) },
+   |                                                                                  ^^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `COMMUNICATION_VIEW` in this scope
+  --> src/web/dashboard.rs:38:185
+   |
+38 | ...n: "megaphone",      gradient: "from-orange-500 to-red-600",    perm: Some(&[COMMUNICATION_VIEW, COMMUNICATION_BROADCAST]) },
+   |                                                                                 ^^^^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `COMMUNICATION_BROADCAST` in this scope
+  --> src/web/dashboard.rs:38:205
+   |
+38 | ...radient: "from-orange-500 to-red-600",    perm: Some(&[COMMUNICATION_VIEW, COMMUNICATION_BROADCAST]) },
+   |                                                                               ^^^^^^^^^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `LIBRARY_VIEW` in this scope
+  --> src/web/dashboard.rs:39:185
+   |
+39 |         Tile { href: "library",        label: "Library",        description: "Books & loans",           icon: "library",        gradient: "from-teal-500 to-cyan-600",     perm: Some(&[LIBRARY_VIEW]) },
+   |                                                                                                                                                                                         ^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `TRANSPORT_VIEW` in this scope
+  --> src/web/dashboard.rs:40:185
+   |
+40 |         Tile { href: "transport",      label: "Transport",      description: "Routes & stops",          icon: "bus",            gradient: "from-yellow-500 to-amber-600",  perm: Some(&[TRANSPORT_VIEW]) },
+   |                                                                                                                                                                                         ^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `HOSTEL_VIEW` in this scope
+  --> src/web/dashboard.rs:41:185
+   |
+41 |         Tile { href: "hostel",         label: "Hostel",         description: "Rooms & allocations",     icon: "bed-double",     gradient: "from-indigo-500 to-blue-700",   perm: Some(&[HOSTEL_VIEW]) },
+   |                                                                                                                                                                                         ^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `INVENTORY_VIEW` in this scope
+  --> src/web/dashboard.rs:42:185
+   |
+42 |         Tile { href: "inventory",      label: "Inventory",      description: "Assets & stock",          icon: "package",        gradient: "from-stone-500 to-stone-700",   perm: Some(&[INVENTORY_VIEW]) },
+   |                                                                                                                                                                                         ^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `HEALTH_VIEW` in this scope
+  --> src/web/dashboard.rs:43:185
+   |
+43 |         Tile { href: "health",         label: "Health",         description: "Medical & incidents",     icon: "heart-pulse",    gradient: "from-red-500 to-rose-600",      perm: Some(&[HEALTH_VIEW]) },
+   |                                                                                                                                                                                         ^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `DISCIPLINE_VIEW` in this scope
+  --> src/web/dashboard.rs:44:185
+   |
+44 | ...con: "shield-alert",   gradient: "from-orange-600 to-red-700",    perm: Some(&[DISCIPLINE_VIEW]) },
+   |                                                                                   ^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `DOCUMENTS_VIEW` in this scope
+  --> src/web/dashboard.rs:45:185
+   |
+45 |         Tile { href: "documents",      label: "Documents",      description: "Files & certificates",    icon: "file-text",      gradient: "from-slate-500 to-slate-700",   perm: Some(&[DOCUMENTS_VIEW]) },
+   |                                                                                                                                                                                         ^^^^^^^^^^^^^^ help: a constant with a similar name exists: `STUDENTS_VIEW`
+   |
+  ::: src/services/mod.rs:55:5
+   |
+55 |     pub const STUDENTS_VIEW:      &str = "students.view";
+   |     ----------------------------------------------------- similarly named constant `STUDENTS_VIEW` defined here
+
+error[E0425]: cannot find value `ATTENDANCE_VIEW` in this scope
+  --> src/web/layout.rs:51:133
+   |
+51 |         NavItem { key: "attendance", label: "Attendance", href: "attendance", icon: "calendar-check",   mobile: true,  perm: Some(&[ATTENDANCE_VIEW, ATTENDANCE_VIEW_OWN, ATTENDANCE_MARK]) },
+   |                                                                                                                                     ^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `ATTENDANCE_VIEW_OWN` in this scope
+  --> src/web/layout.rs:51:150
+   |
+51 |         NavItem { key: "attendance", label: "Attendance", href: "attendance", icon: "calendar-check",   mobile: true,  perm: Some(&[ATTENDANCE_VIEW, ATTENDANCE_VIEW_OWN, ATTENDANCE_MARK]) },
+   |                                                                                                                                                      ^^^^^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `ATTENDANCE_MARK` in this scope
+  --> src/web/layout.rs:51:171
+   |
+51 |         NavItem { key: "attendance", label: "Attendance", href: "attendance", icon: "calendar-check",   mobile: true,  perm: Some(&[ATTENDANCE_VIEW, ATTENDANCE_VIEW_OWN, ATTENDANCE_MARK]) },
+   |                                                                                                                                                                           ^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `FEES_VIEW` in this scope
+  --> src/web/layout.rs:52:133
+   |
+52 |         NavItem { key: "fees",       label: "Fees",       href: "fees",       icon: "wallet",           mobile: true,  perm: Some(&[FEES_VIEW, FEES_VIEW_OWN, FEES_COLLECT, FEES_PAY]) },
+   |                                                                                                                                     ^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `FEES_VIEW_OWN` in this scope
+  --> src/web/layout.rs:52:144
+   |
+52 |         NavItem { key: "fees",       label: "Fees",       href: "fees",       icon: "wallet",           mobile: true,  perm: Some(&[FEES_VIEW, FEES_VIEW_OWN, FEES_COLLECT, FEES_PAY]) },
+   |                                                                                                                                                ^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `FEES_COLLECT` in this scope
+  --> src/web/layout.rs:52:159
+   |
+52 |         NavItem { key: "fees",       label: "Fees",       href: "fees",       icon: "wallet",           mobile: true,  perm: Some(&[FEES_VIEW, FEES_VIEW_OWN, FEES_COLLECT, FEES_PAY]) },
+   |                                                                                                                                                               ^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `FEES_PAY` in this scope
+  --> src/web/layout.rs:52:173
+   |
+52 |         NavItem { key: "fees",       label: "Fees",       href: "fees",       icon: "wallet",           mobile: true,  perm: Some(&[FEES_VIEW, FEES_VIEW_OWN, FEES_COLLECT, FEES_PAY]) },
+   |                                                                                                                                                                             ^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `LIBRARY_VIEW` in this scope
+  --> src/web/layout.rs:53:133
+   |
+53 |         NavItem { key: "library",    label: "Library",    href: "library",    icon: "library",          mobile: false, perm: Some(&[LIBRARY_VIEW]) },
+   |                                                                                                                                     ^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `ATTENDANCE_VIEW` in module `perm`
+   --> src/web/modules.rs:107:52
+    |
+107 | stub_handler!(attendance,    "attendance",   perm::ATTENDANCE_VIEW, perm::ATTENDANCE_VIEW_OWN, perm::ATTENDANCE_MARK);
+    |                                                    ^^^^^^^^^^^^^^^ not found in `perm`
+
+error[E0425]: cannot find value `ATTENDANCE_VIEW_OWN` in module `perm`
+   --> src/web/modules.rs:107:75
+    |
+107 | stub_handler!(attendance,    "attendance",   perm::ATTENDANCE_VIEW, perm::ATTENDANCE_VIEW_OWN, perm::ATTENDANCE_MARK);
+    |                                                                           ^^^^^^^^^^^^^^^^^^^ not found in `perm`
+
+error[E0425]: cannot find value `ATTENDANCE_MARK` in module `perm`
+   --> src/web/modules.rs:107:102
+    |
+107 | stub_handler!(attendance,    "attendance",   perm::ATTENDANCE_VIEW, perm::ATTENDANCE_VIEW_OWN, perm::ATTENDANCE_MARK);
+    |                                                                                                      ^^^^^^^^^^^^^^^ not found in `perm`
+
+error[E0425]: cannot find value `TIMETABLE_VIEW` in module `perm`
+   --> src/web/modules.rs:108:52
+    |
+108 | stub_handler!(timetable,     "timetable",    perm::TIMETABLE_VIEW, perm::TIMETABLE_MANAGE);
+    |                                                    ^^^^^^^^^^^^^^ not found in `perm`
+
+error[E0425]: cannot find value `TIMETABLE_MANAGE` in module `perm`
+   --> src/web/modules.rs:108:74
+    |
+108 | stub_handler!(timetable,     "timetable",    perm::TIMETABLE_VIEW, perm::TIMETABLE_MANAGE);
+    |                                                                          ^^^^^^^^^^^^^^^^ not found in `perm`
+
+error[E0425]: cannot find value `FEES_VIEW` in module `perm`
+   --> src/web/modules.rs:109:52
+    |
+109 | stub_handler!(fees,          "fees",         perm::FEES_VIEW, perm::FEES_COLLECT);
+    |                                                    ^^^^^^^^^ not found in `perm`
+
+error[E0425]: cannot find value `FEES_COLLECT` in module `perm`
+   --> src/web/modules.rs:109:69
+    |
+109 | stub_handler!(fees,          "fees",         perm::FEES_VIEW, perm::FEES_COLLECT);
+    |                                                                     ^^^^^^^^^^^^ not found in `perm`
+
+error[E0425]: cannot find value `EXAMINATIONS_VIEW` in module `perm`
+   --> src/web/modules.rs:110:52
+    |
+110 | stub_handler!(examinations,  "examinations", perm::EXAMINATIONS_VIEW, perm::EXAMINATIONS_ENTER_MARKS);
+    |                                                    ^^^^^^^^^^^^^^^^^ not found in `perm`
+
+error[E0425]: cannot find value `EXAMINATIONS_ENTER_MARKS` in module `perm`
+   --> src/web/modules.rs:110:77
+    |
+110 | stub_handler!(examinations,  "examinations", perm::EXAMINATIONS_VIEW, perm::EXAMINATIONS_ENTER_MARKS);
+    |                                                                             ^^^^^^^^^^^^^^^^^^^^^^^^ not found in `perm`
+
+error[E0425]: cannot find value `PAYROLL_VIEW` in module `perm`
+   --> src/web/modules.rs:112:52
+    |
+112 | stub_handler!(payroll,       "payroll",      perm::PAYROLL_VIEW, perm::PAYROLL_RUN);
+    |                                                    ^^^^^^^^^^^^ not found in `perm`
+
+error[E0425]: cannot find value `PAYROLL_RUN` in module `perm`
+   --> src/web/modules.rs:112:72
+    |
+112 | stub_handler!(payroll,       "payroll",      perm::PAYROLL_VIEW, perm::PAYROLL_RUN);
+    |                                                                        ^^^^^^^^^^^ not found in `perm`
+
+error[E0425]: cannot find value `COMMUNICATION_VIEW` in module `perm`
+   --> src/web/modules.rs:113:52
+    |
+113 | stub_handler!(communication, "communication",perm::COMMUNICATION_VIEW, perm::COMMUNICATION_BROADCAST);
+    |                                                    ^^^^^^^^^^^^^^^^^^ not found in `perm`
+
+error[E0425]: cannot find value `COMMUNICATION_BROADCAST` in module `perm`
+   --> src/web/modules.rs:113:78
+    |
+113 | stub_handler!(communication, "communication",perm::COMMUNICATION_VIEW, perm::COMMUNICATION_BROADCAST);
+    |                                                                              ^^^^^^^^^^^^^^^^^^^^^^^ not found in `perm`
+
+error[E0425]: cannot find value `LIBRARY_VIEW` in module `perm`
+   --> src/web/modules.rs:114:52
+    |
+114 | stub_handler!(library,       "library",      perm::LIBRARY_VIEW);
+    |                                                    ^^^^^^^^^^^^ not found in `perm`
+
+error[E0425]: cannot find value `TRANSPORT_VIEW` in module `perm`
+   --> src/web/modules.rs:115:52
+    |
+115 | stub_handler!(transport,     "transport",    perm::TRANSPORT_VIEW);
+    |                                                    ^^^^^^^^^^^^^^ not found in `perm`
+
+error[E0425]: cannot find value `HOSTEL_VIEW` in module `perm`
+   --> src/web/modules.rs:116:52
+    |
+116 | stub_handler!(hostel,        "hostel",       perm::HOSTEL_VIEW);
+    |                                                    ^^^^^^^^^^^ not found in `perm`
+
+error[E0425]: cannot find value `INVENTORY_VIEW` in module `perm`
+   --> src/web/modules.rs:117:52
+    |
+117 | stub_handler!(inventory,     "inventory",    perm::INVENTORY_VIEW);
+    |                                                    ^^^^^^^^^^^^^^ not found in `perm`
+
+error[E0425]: cannot find value `HEALTH_VIEW` in module `perm`
+   --> src/web/modules.rs:118:52
+    |
+118 | stub_handler!(health,        "health",       perm::HEALTH_VIEW);
+    |                                                    ^^^^^^^^^^^ not found in `perm`
+
+error[E0425]: cannot find value `DISCIPLINE_VIEW` in module `perm`
+   --> src/web/modules.rs:119:52
+    |
+119 | stub_handler!(discipline,    "discipline",   perm::DISCIPLINE_VIEW);
+    |                                                    ^^^^^^^^^^^^^^^ not found in `perm`
+
+error[E0425]: cannot find value `DOCUMENTS_VIEW` in module `perm`
+   --> src/web/modules.rs:120:52
+    |
+120 | stub_handler!(documents,     "documents",    perm::DOCUMENTS_VIEW);
+    |                                                    ^^^^^^^^^^^^^^ help: a constant with a similar name exists: `STUDENTS_VIEW`
+    |
+   ::: src/services/mod.rs:55:5
+    |
+ 55 |     pub const STUDENTS_VIEW:      &str = "students.view";
+    |     ----------------------------------------------------- similarly named constant `STUDENTS_VIEW` defined here
+
+For more information about this error, try `rustc --explain E0425`.
+error: could not compile `school_erp` (lib) due to 51 previous errors
+➜  kalvi git:(feature/ui1) ✗

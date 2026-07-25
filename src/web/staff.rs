@@ -36,7 +36,9 @@ pub struct StaffRow {
 }
 
 #[derive(Deserialize)]
-pub struct ListParams { q: Option<String> }
+pub struct ListParams {
+    q: Option<String>,
+}
 
 pub async fn list(
     scope: TenantScope,
@@ -44,30 +46,47 @@ pub async fn list(
     Extension(session): Extension<SessionUser>,
 ) -> Result<Response, WebError> {
     scope.ctx.require(perm::STAFF_VIEW)?;
-    let staff: Vec<Staff> = people_svc::list_staff(&scope.pool, 50, 0).await
+    let staff: Vec<Staff> = people_svc::list_staff(&scope.pool, 50, 0)
+        .await
         .unwrap_or_default();
     info!("staff list");
     let q = qp.q.unwrap_or_default();
     let ql = q.to_lowercase();
 
-    let rows: Vec<StaffRow> = staff.into_iter().filter_map(|s| {
-        let name = display_name(&s);
-        if !ql.is_empty()
-            && !name.to_lowercase().contains(&ql)
-            && !s.employee_no.to_lowercase().contains(&ql)
-            && !s.designation.as_deref().unwrap_or("").to_lowercase().contains(&ql)
-        { return None; }
-        Some(row_from(&s, name))
-    }).collect();
+    let rows: Vec<StaffRow> = staff
+        .into_iter()
+        .filter_map(|s| {
+            let name = display_name(&s);
+            if !ql.is_empty()
+                && !name.to_lowercase().contains(&ql)
+                && !s.employee_no.to_lowercase().contains(&ql)
+                && !s
+                    .designation
+                    .as_deref()
+                    .unwrap_or("")
+                    .to_lowercase()
+                    .contains(&ql)
+            {
+                return None;
+            }
+            Some(row_from(&s, name))
+        })
+        .collect();
 
     let nav = NavContext::new(
         session.display.clone(),
         scope.tenant.as_str().to_string(),
-        "staff", "Staff",
+        "staff",
+        "Staff",
     );
     let nav_items = visible_nav_items(&session);
 
-    render(&StaffListPage { nav: &nav, nav_items, q: &q, rows })
+    render(&StaffListPage {
+        nav: &nav,
+        nav_items,
+        q: &q,
+        rows,
+    })
 }
 
 #[derive(Template)]
@@ -79,7 +98,10 @@ struct StaffShowPage<'a> {
     tabs: Vec<Tab>,
 }
 
-pub struct Tab { pub label: &'static str, pub active: bool }
+pub struct Tab {
+    pub label: &'static str,
+    pub active: bool,
+}
 
 pub async fn show(
     scope: TenantScope,
@@ -95,17 +117,26 @@ pub async fn show(
     let nav = NavContext::new(
         session.display.clone(),
         scope.tenant.as_str().to_string(),
-        "staff", title,
+        "staff",
+        title,
     );
 
     let current = "overview";
     let tabs = ["overview", "attendance", "payroll", "classes", "documents"]
         .into_iter()
-        .map(|l| Tab { label: l, active: l == current })
+        .map(|l| Tab {
+            label: l,
+            active: l == current,
+        })
         .collect();
 
     let nav_items = visible_nav_items(&session);
-    render(&StaffShowPage { nav: &nav, nav_items, staff, tabs })
+    render(&StaffShowPage {
+        nav: &nav,
+        nav_items,
+        staff,
+        tabs,
+    })
 }
 
 fn display_name(s: &Staff) -> String {
@@ -122,6 +153,10 @@ fn row_from(s: &Staff, name: String) -> StaffRow {
         email: s.email.clone().unwrap_or_else(|| "—".into()),
         phone: s.phone.clone().unwrap_or_else(|| "—".into()),
         employment_type: s.employment_type.clone().unwrap_or_else(|| "—".into()),
-        status: if s.status == "active" { "active" } else { "inactive" },
+        status: if s.status == "active" {
+            "active"
+        } else {
+            "inactive"
+        },
     }
 }

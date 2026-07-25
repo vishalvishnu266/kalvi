@@ -6,7 +6,7 @@ pub async fn wait_for_signal() {
     #[cfg(unix)]
     {
         use tokio::signal::unix::{signal, SignalKind};
-        let mut sigint  = signal(SignalKind::interrupt()).expect("install SIGINT");
+        let mut sigint = signal(SignalKind::interrupt()).expect("install SIGINT");
         let mut sigterm = signal(SignalKind::terminate()).expect("install SIGTERM");
         tokio::select! {
             _ = sigint.recv()  => tracing::info!("received SIGINT, shutting down"),
@@ -20,15 +20,15 @@ pub async fn wait_for_signal() {
     }
 }
 
-pub async fn close_pools(
-    system_pool: &SqlitePool,
-    step_timeout: Duration,
-) {
+pub async fn close_pools(system_pool: &SqlitePool, step_timeout: Duration) {
     tracing::debug!("close_pools: starting shutdown sequence");
 
-tracing::debug!("close_pools: closing system pool");
+    tracing::debug!("close_pools: closing system pool");
     let system_close = system_pool.close();
-    if tokio::time::timeout(step_timeout, system_close).await.is_err() {
+    if tokio::time::timeout(step_timeout, system_close)
+        .await
+        .is_err()
+    {
         tracing::warn!("system pool did not close within {:?}", step_timeout);
     } else {
         tracing::info!("system pool closed");

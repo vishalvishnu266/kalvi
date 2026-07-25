@@ -7,19 +7,25 @@ use crate::services::ServiceError;
 pub struct WebError(pub StatusCode, pub String);
 
 impl WebError {
-    pub fn bad(msg: impl Into<String>) -> Self { Self(StatusCode::BAD_REQUEST, msg.into()) }
-    pub fn forbidden(msg: impl Into<String>) -> Self { Self(StatusCode::FORBIDDEN, msg.into()) }
-    pub fn not_found(msg: impl Into<String>) -> Self { Self(StatusCode::NOT_FOUND, msg.into()) }
+    pub fn bad(msg: impl Into<String>) -> Self {
+        Self(StatusCode::BAD_REQUEST, msg.into())
+    }
+    pub fn forbidden(msg: impl Into<String>) -> Self {
+        Self(StatusCode::FORBIDDEN, msg.into())
+    }
+    pub fn not_found(msg: impl Into<String>) -> Self {
+        Self(StatusCode::NOT_FOUND, msg.into())
+    }
 }
 
 impl From<ServiceError> for WebError {
     fn from(e: ServiceError) -> Self {
         let sc = match &e {
-            ServiceError::NotFound        => StatusCode::NOT_FOUND,
-            ServiceError::Validation(_)   => StatusCode::BAD_REQUEST,
-            ServiceError::Conflict(_)     => StatusCode::CONFLICT,
-            ServiceError::Unauthorized    => StatusCode::UNAUTHORIZED,
-            ServiceError::Forbidden(_)    => StatusCode::FORBIDDEN,
+            ServiceError::NotFound => StatusCode::NOT_FOUND,
+            ServiceError::Validation(_) => StatusCode::BAD_REQUEST,
+            ServiceError::Conflict(_) => StatusCode::CONFLICT,
+            ServiceError::Unauthorized => StatusCode::UNAUTHORIZED,
+            ServiceError::Forbidden(_) => StatusCode::FORBIDDEN,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         };
         Self(sc, e.to_string())
@@ -29,17 +35,19 @@ impl From<ServiceError> for WebError {
 impl From<RepoError> for WebError {
     fn from(e: RepoError) -> Self {
         let sc = match &e {
-            RepoError::NotFound       => StatusCode::NOT_FOUND,
-            RepoError::Validation(_)  => StatusCode::BAD_REQUEST,
-            RepoError::Conflict(_)    => StatusCode::CONFLICT,
-            _                         => StatusCode::INTERNAL_SERVER_ERROR,
+            RepoError::NotFound => StatusCode::NOT_FOUND,
+            RepoError::Validation(_) => StatusCode::BAD_REQUEST,
+            RepoError::Conflict(_) => StatusCode::CONFLICT,
+            _ => StatusCode::INTERNAL_SERVER_ERROR,
         };
         Self(sc, e.to_string())
     }
 }
 
 impl From<askama::Error> for WebError {
-    fn from(e: askama::Error) -> Self { Self(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()) }
+    fn from(e: askama::Error) -> Self {
+        Self(StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
+    }
 }
 
 impl IntoResponse for WebError {
@@ -53,12 +61,19 @@ impl IntoResponse for WebError {
              <p style=\"color:#555\">{}</p></div>",
             html_escape(&msg)
         );
-        (sc, [(axum::http::header::CONTENT_TYPE, "text/html; charset=utf-8")], body).into_response()
+        (
+            sc,
+            [(axum::http::header::CONTENT_TYPE, "text/html; charset=utf-8")],
+            body,
+        )
+            .into_response()
     }
 }
 
 fn html_escape(s: &str) -> String {
-    s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
 }
 
 pub fn render<T: askama::Template>(t: &T) -> Result<Response, WebError> {
@@ -67,5 +82,6 @@ pub fn render<T: askama::Template>(t: &T) -> Result<Response, WebError> {
         StatusCode::OK,
         [(axum::http::header::CONTENT_TYPE, "text/html; charset=utf-8")],
         html,
-    ).into_response())
+    )
+        .into_response())
 }

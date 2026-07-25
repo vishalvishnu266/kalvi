@@ -29,11 +29,11 @@ pub struct NewGuardian {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct UpdateGuardian {
     pub first_name: Option<String>,
-    pub last_name:  Option<String>,
-    pub phone:      Option<String>,
-    pub email:      Option<String>,
+    pub last_name: Option<String>,
+    pub phone: Option<String>,
+    pub email: Option<String>,
     pub occupation: Option<String>,
-    pub address:    Option<String>,
+    pub address: Option<String>,
 }
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]

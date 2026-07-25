@@ -11,13 +11,18 @@ impl TenantId {
         if raw.is_empty() || raw.len() > 64 {
             return Err(TenantError::InvalidId("length must be 1..=64".into()));
         }
-        if !raw.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
+        if !raw
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+        {
             return Err(TenantError::InvalidId("only [A-Za-z0-9_-] allowed".into()));
         }
         Ok(Self(raw))
     }
 
-    pub fn as_str(&self) -> &str { &self.0 }
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
 }
 
 impl std::fmt::Display for TenantId {

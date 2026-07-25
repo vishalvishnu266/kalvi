@@ -14,8 +14,8 @@ use axum_test::TestServer;
 use school_erp::health_probes::Readiness;
 use school_erp::{build_router, connect_system, migrate_system, AppState, Config};
 use tempfile::TempDir;
-use tower_http::normalize_path::NormalizePathLayer;
 use tower::Layer;
+use tower_http::normalize_path::NormalizePathLayer;
 
 pub struct TestApp {
     pub server: TestServer,
@@ -25,16 +25,44 @@ pub struct TestApp {
 pub struct Persona {
     pub username: &'static str,
     pub password: &'static str,
-    pub role:     &'static str,
+    pub role: &'static str,
 }
 
-pub const ADMIN:      Persona = Persona { username: "admin",      password: "admin123", role: "admin"      };
-pub const PRINCIPAL:  Persona = Persona { username: "principal",  password: "demo1234", role: "principal"  };
-pub const TEACHER:    Persona = Persona { username: "teacher",    password: "demo1234", role: "teacher"    };
-pub const ACCOUNTANT: Persona = Persona { username: "accountant", password: "demo1234", role: "accountant" };
-pub const LIBRARIAN:  Persona = Persona { username: "librarian",  password: "demo1234", role: "librarian"  };
-pub const PARENT:     Persona = Persona { username: "parent",     password: "demo1234", role: "guardian"   };
-pub const STUDENT:    Persona = Persona { username: "student1",   password: "demo1234", role: "student"    };
+pub const ADMIN: Persona = Persona {
+    username: "admin",
+    password: "admin123",
+    role: "admin",
+};
+pub const PRINCIPAL: Persona = Persona {
+    username: "principal",
+    password: "demo1234",
+    role: "principal",
+};
+pub const TEACHER: Persona = Persona {
+    username: "teacher",
+    password: "demo1234",
+    role: "teacher",
+};
+pub const ACCOUNTANT: Persona = Persona {
+    username: "accountant",
+    password: "demo1234",
+    role: "accountant",
+};
+pub const LIBRARIAN: Persona = Persona {
+    username: "librarian",
+    password: "demo1234",
+    role: "librarian",
+};
+pub const PARENT: Persona = Persona {
+    username: "parent",
+    password: "demo1234",
+    role: "guardian",
+};
+pub const STUDENT: Persona = Persona {
+    username: "student1",
+    password: "demo1234",
+    role: "student",
+};
 
 pub const TENANT: &str = "demo";
 
@@ -49,10 +77,13 @@ pub async fn boot_with_personas() -> TestApp {
     std::fs::create_dir_all(&config.db_dir).ok();
     std::fs::create_dir_all(config.tenant_db_root()).ok();
 
-    let sys_pool = connect_system(&config.system_db_url()).await.expect("system db");
+    let sys_pool = connect_system(&config.system_db_url())
+        .await
+        .expect("system db");
     migrate_system(&sys_pool).await.expect("system migrations");
 
-    let sessions = school_erp::session::SessionStore::open(&config.session_db_url()).await
+    let sessions = school_erp::session::SessionStore::open(&config.session_db_url())
+        .await
         .expect("session store");
 
     let state = AppState::new(sys_pool, sessions, config);
@@ -67,7 +98,9 @@ pub async fn boot_with_personas() -> TestApp {
         .expect("test server");
 
     create_tenant(&server).await;
-    for p in [ADMIN, PRINCIPAL, TEACHER, ACCOUNTANT, LIBRARIAN, PARENT, STUDENT] {
+    for p in [
+        ADMIN, PRINCIPAL, TEACHER, ACCOUNTANT, LIBRARIAN, PARENT, STUDENT,
+    ] {
         register(&server, &p).await;
     }
 
@@ -84,8 +117,11 @@ async fn create_tenant(server: &TestServer) {
         }))
         .await;
     let status = resp.status_code().as_u16();
-    assert!(status == 200 || status == 201 || status == 409,
-        "create tenant unexpected {status}: {}", resp.text());
+    assert!(
+        status == 200 || status == 201 || status == 409,
+        "create tenant unexpected {status}: {}",
+        resp.text()
+    );
 }
 
 async fn register(server: &TestServer, p: &Persona) {
@@ -99,8 +135,12 @@ async fn register(server: &TestServer, p: &Persona) {
         }))
         .await;
     let status = resp.status_code().as_u16();
-    assert!(status == 200 || status == 201 || status == 409,
-        "register {} unexpected {status}: {}", p.username, resp.text());
+    assert!(
+        status == 200 || status == 201 || status == 409,
+        "register {} unexpected {status}: {}",
+        p.username,
+        resp.text()
+    );
 }
 
 pub async fn login_as(app: &TestApp, p: &Persona) {
@@ -108,15 +148,17 @@ pub async fn login_as(app: &TestApp, p: &Persona) {
         .server
         .post("/web/login")
         .form(&[
-            ("tenant",     TENANT),
+            ("tenant", TENANT),
             ("identifier", p.username),
-            ("password",   p.password),
+            ("password", p.password),
         ])
         .await;
     let status = resp.status_code().as_u16();
     assert!(
         (200..=399).contains(&status),
-        "login {} failed with {status}: {}", p.username, resp.text()
+        "login {} failed with {status}: {}",
+        p.username,
+        resp.text()
     );
 }
 

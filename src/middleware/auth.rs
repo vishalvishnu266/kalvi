@@ -1,10 +1,10 @@
-use std::collections::HashSet;
 use axum::{
     body::Body,
     http::{header, HeaderMap, Request as AxumRequest},
     middleware::Next,
     response::{IntoResponse, Response},
 };
+use std::collections::HashSet;
 
 pub const COOKIE_TENANT: &str = "erp_tenant";
 pub const COOKIE_USER: &str = "erp_user";
@@ -17,22 +17,21 @@ pub struct SessionUser {
     pub display: String,
     pub session_id: i64,
 
-pub roles: Vec<String>,
+    pub roles: Vec<String>,
 
     pub permissions: HashSet<String>,
 }
 
 impl SessionUser {
-
     pub fn has(&self, code: &str) -> bool {
         self.permissions.contains(code)
     }
 
-pub fn any_of(&self, codes: &[&str]) -> bool {
+    pub fn any_of(&self, codes: &[&str]) -> bool {
         codes.iter().any(|c| self.has(c))
     }
 
-pub fn is_role(&self, r: &str) -> bool {
+    pub fn is_role(&self, r: &str) -> bool {
         self.roles.iter().any(|x| x == r)
     }
 }
@@ -97,16 +96,21 @@ fn forbidden_response(path: &str, missing: &[&str]) -> Response {
   <p><a href="/">← Back to home</a></p>
 </main></body></html>"#
         );
-        (StatusCode::FORBIDDEN,
-         [(axum::http::header::CONTENT_TYPE, "text/html; charset=utf-8")],
-         html).into_response()
+        (
+            StatusCode::FORBIDDEN,
+            [(axum::http::header::CONTENT_TYPE, "text/html; charset=utf-8")],
+            html,
+        )
+            .into_response()
     }
 }
 
 fn url_tenant_from_prefix(path: &str, prefix: &str) -> Option<String> {
     let rest = path.strip_prefix(prefix)?;
     let seg = rest.split('/').next()?;
-    if seg.is_empty() || seg == "login" || seg == "logout" { return None; }
+    if seg.is_empty() || seg == "login" || seg == "logout" {
+        return None;
+    }
     Some(seg.to_string())
 }
 

@@ -1,17 +1,17 @@
-pub mod api_routes;
-pub mod routes;
 pub mod admin;
-pub mod web;
+pub mod api_routes;
 pub mod portal;
+pub mod routes;
+pub mod web;
 
+use sqlx::SqlitePool;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use sqlx::SqlitePool;
 
-use crate::session::SessionStore;
-use crate::tenancy::{TenantId, TenantError};
 use crate::db;
+use crate::session::SessionStore;
+use crate::tenancy::{TenantError, TenantId};
 use crate::Config;
 
 /// Global application state.
@@ -30,10 +30,10 @@ use crate::Config;
 /// against `scope.pool`, e.g. `services::people::admit(&scope.pool, &scope.ctx, body)`.
 #[derive(Clone)]
 pub struct AppState {
-    pub system:   SqlitePool,
+    pub system: SqlitePool,
     pub sessions: SessionStore,
-    pub config:   Config,
-    pub tenants:  Arc<RwLock<HashMap<TenantId, SqlitePool>>>,
+    pub config: Config,
+    pub tenants: Arc<RwLock<HashMap<TenantId, SqlitePool>>>,
 }
 
 impl AppState {
@@ -73,7 +73,9 @@ impl AppState {
 
     /// Snapshot of currently cached tenant pools (used at shutdown).
     pub async fn active_tenant_pools(&self) -> Vec<(TenantId, SqlitePool)> {
-        self.tenants.read().await
+        self.tenants
+            .read()
+            .await
             .iter()
             .map(|(id, p)| (id.clone(), p.clone()))
             .collect()

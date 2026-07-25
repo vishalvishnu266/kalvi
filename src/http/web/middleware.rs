@@ -1,4 +1,3 @@
-use std::collections::{HashMap, HashSet};
 use axum::{
     body::Body,
     extract::{Path, State},
@@ -6,9 +5,10 @@ use axum::{
     middleware::Next,
     response::{IntoResponse, Redirect, Response},
 };
+use std::collections::{HashMap, HashSet};
 
 use crate::http::AppState;
-use crate::middleware::auth::{COOKIE_SESSION, read_cookie_from_headers, SessionUser};
+use crate::middleware::auth::{read_cookie_from_headers, SessionUser, COOKIE_SESSION};
 use crate::services::auth as auth_svc;
 use crate::tenancy::TenantId;
 
@@ -36,13 +36,15 @@ pub async fn require_session(
 
     let (session, user) = match auth_svc::resolve_session(&pool, &state.sessions, &token).await {
         Ok(pair) => pair,
-        Err(_)   => return Redirect::to(&login_url).into_response(),
+        Err(_) => return Redirect::to(&login_url).into_response(),
     };
 
-    let roles: Vec<String> = auth_svc::roles_of(&pool, user.id).await
+    let roles: Vec<String> = auth_svc::roles_of(&pool, user.id)
+        .await
         .map(|rs| rs.into_iter().map(|r| r.name).collect())
         .unwrap_or_default();
-    let permissions: HashSet<String> = auth_svc::permissions_of(&pool, user.id).await
+    let permissions: HashSet<String> = auth_svc::permissions_of(&pool, user.id)
+        .await
         .map(|ps| ps.into_iter().map(|p| p.code).collect())
         .unwrap_or_default();
 
@@ -58,10 +60,7 @@ pub async fn require_session(
     next.run(req).await
 }
 
-pub async fn require_staff_shell(
-    req: AxumRequest<Body>,
-    next: Next,
-) -> Response {
+pub async fn require_staff_shell(req: AxumRequest<Body>, next: Next) -> Response {
     if req.extensions().get::<SessionUser>().is_some() {
         return next.run(req).await;
     }
