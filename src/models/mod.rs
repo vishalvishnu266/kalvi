@@ -4,5 +4,4 @@
 
 pub mod academic;
 pub mod auth;
-pub mod guardians;
 pub mod people;

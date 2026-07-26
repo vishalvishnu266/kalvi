@@ -10,7 +10,7 @@ use serde::Deserialize;
 use crate::http::AppState;
 use crate::services::system as sys_svc;
 use crate::system::{NewTenant, Tenant, UpdateTenant};
-use crate::tenancy::TenantId;
+use crate::tenancy::validate_tenant_id;
 use crate::web::error::{render, WebError};
 
 #[derive(Template)]
@@ -68,7 +68,7 @@ pub async fn create_tenant(
     State(s): State<AppState>,
     Form(f): Form<NewTenantForm>,
 ) -> Result<Response, WebError> {
-    if let Err(e) = TenantId::new(f.tenant_id.clone()) {
+    if let Err(e) = validate_tenant_id(f.tenant_id.clone()) {
         return render(&NewTenantPage {
             error: Some(&e.to_string()),
             form: &f,
@@ -98,7 +98,7 @@ pub async fn create_tenant(
         }
     };
 
-    let tid = TenantId::new(&tenant.tenant_id)
+    let tid = validate_tenant_id(&tenant.tenant_id)
         .map_err(|e| WebError(StatusCode::BAD_REQUEST, e.to_string()))?;
     if let Err(e) = s.provision(tid).await {
         let _ = sys_svc::set_tenant_status(&s.system, tenant.id, "disabled").await;
@@ -136,8 +136,8 @@ pub async fn disable_tenant(
     sys_svc::set_tenant_status(&s.system, existing.id, "disabled")
         .await
         .map_err(|e| WebError(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    if let Ok(t) = TenantId::new(&existing.tenant_id) {
-        s.evict(&t).await;
+    if validate_tenant_id(&existing.tenant_id).is_ok() {
+        s.evict(&existing.tenant_id).await;
     }
     Ok(redirect("/admin/tenants"))
 }
@@ -153,8 +153,8 @@ pub async fn delete_tenant(
     sys_svc::soft_delete_tenant(&s.system, existing.id)
         .await
         .map_err(|e| WebError(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    if let Ok(t) = TenantId::new(&existing.tenant_id) {
-        s.evict(&t).await;
+    if validate_tenant_id(&existing.tenant_id).is_ok() {
+        s.evict(&existing.tenant_id).await;
     }
     Ok(redirect("/admin/tenants"))
 }

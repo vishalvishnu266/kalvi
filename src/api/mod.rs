@@ -1,5 +1,4 @@
 pub mod academic;
 pub mod admin;
 pub mod auth;
-pub mod guardians;
 pub mod people;

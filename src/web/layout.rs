@@ -52,14 +52,6 @@ pub fn nav_items() -> &'static [NavItem] {
             perm: None,
         },
         NavItem {
-            key: "students",
-            label: "Students",
-            href: "students",
-            icon: "graduation-cap",
-            mobile: true,
-            perm: Some(&[STUDENTS_VIEW, STUDENTS_VIEW_OWN]),
-        },
-        NavItem {
             key: "staff",
             label: "Staff",
             href: "staff",

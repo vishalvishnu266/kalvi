@@ -11,12 +11,12 @@ use crate::system::{
     NewPortalMembership, NewPortalUser, NewTenant, PortalMembership, PortalUser, Tenant,
     UpdateTenant,
 };
-use crate::tenancy::TenantId;
+use crate::tenancy::validate_tenant_id;
 
 // ── Tenant registry ─────────────────────────────────────────────────────
 
 pub async fn create_tenant(pool: &SqlitePool, t: &NewTenant) -> RepoResult<Tenant> {
-    let _ = TenantId::new(&t.tenant_id).map_err(|e| RepoError::validation(e.to_string()))?;
+    let _ = validate_tenant_id(&t.tenant_id).map_err(|e| RepoError::validation(e.to_string()))?;
 
     let id = sqlx::query_scalar::<_, i64>(
         r#"INSERT INTO tenant (tenant_id, name, plan, notes)

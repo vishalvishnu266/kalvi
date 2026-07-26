@@ -10,12 +10,12 @@ use crate::http::AppState;
 use crate::middleware::auth::{read_cookie_from_headers, SessionUser, COOKIE_SESSION};
 use crate::services::{auth as auth_svc, Actor, RequestCtx};
 use crate::session::SessionStore;
-use crate::tenancy::{TenantError, TenantId};
+use crate::tenancy::{validate_tenant_id, TenantError, TenantId};
 
 /// Per-request scope resolved from the `{tenant}` URL segment.
 /// Holds the tenant pool + session store + request context. Handlers
 /// call free-fn services directly, e.g.
-/// `services::people::admit(&scope.pool, &scope.ctx, body).await?`.
+/// `services::people::hire_staff(&scope.pool, &scope.ctx, body).await?`.
 pub struct TenantScope {
     pub tenant: TenantId,
     pub pool: SqlitePool,
@@ -34,7 +34,8 @@ impl FromRequestParts<AppState> for TenantScope {
             .await
             .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
 
-        let tid = TenantId::new(tenant).map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
+        let tid =
+            validate_tenant_id(tenant).map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
 
         let pool = state.pool_for(&tid).await.map_err(tenant_error_to_http)?;
         let sessions = state.sessions.clone();
@@ -51,7 +52,7 @@ impl FromRequestParts<AppState> for TenantScope {
 }
 
 async fn resolve_ctx(
-    tid: &TenantId,
+    tid: &str,
     pool: &SqlitePool,
     sessions: &SessionStore,
     parts: &Parts,
@@ -61,7 +62,7 @@ async fn resolve_ctx(
     if let Some(su) = parts.extensions.get::<SessionUser>() {
         let perms: Vec<String> = su.permissions.iter().cloned().collect();
         return RequestCtx {
-            tenant: tid.clone(),
+            tenant: tid.to_string(),
             actor: Actor::User {
                 user_id: su.user_id,
             },
@@ -90,7 +91,7 @@ async fn resolve_ctx(
                 .map(|ps| ps.into_iter().map(|p| p.code).collect())
                 .unwrap_or_default();
             return RequestCtx {
-                tenant: tid.clone(),
+                tenant: tid.to_string(),
                 actor: Actor::User { user_id: user.id },
                 request_id,
                 trace_id: None,
@@ -101,7 +102,7 @@ async fn resolve_ctx(
     }
 
     RequestCtx {
-        tenant: tid.clone(),
+        tenant: tid.to_string(),
         actor: Actor::Anonymous,
         request_id,
         trace_id: None,

@@ -1,7 +1,5 @@
 use crate::http::AppState;
-use crate::web::{
-    auth as wau, dashboard as wdb, guardians as wgd, modules as wm, staff as wsf, students as ws,
-};
+use crate::web::{auth as wau, dashboard as wdb, modules as wm, staff as wsf};
 use axum::{
     routing::{get, post},
     Router,
@@ -11,15 +9,8 @@ mod middleware;
 pub fn routes(state: AppState) -> Router<AppState> {
     let web_tenant_shell = Router::new()
         .route("/", get(wdb::index))
-        .route("/students", get(ws::list))
-        .route("/students/{id}", get(ws::show))
         .route("/staff", get(wsf::list))
         .route("/staff/{id}", get(wsf::show))
-        .route("/guardians", get(wgd::list).post(wgd::create))
-        .route("/guardians/new", get(wgd::new_form))
-        .route("/guardians/{id}", get(wgd::show).post(wgd::update))
-        .route("/guardians/{id}/edit", get(wgd::edit_form))
-        .route("/guardians/{id}/delete", post(wgd::delete))
         .route("/attendance", get(wm::attendance))
         .route("/timetable", get(wm::timetable))
         .route("/fees", get(wm::fees))

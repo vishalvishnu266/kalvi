@@ -1,34 +1,31 @@
 use crate::error::RepoError;
 
-/// A validated tenant identifier used to look up tenant pools and
-/// scope every SQL statement into the correct tenant database.
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
-pub struct TenantId(String);
+/// A tenant identifier used to look up tenant pools and scope every SQL
+/// statement into the correct tenant database.
+///
+/// This is a plain [`String`] — we intentionally do not wrap it in a
+/// newtype. Use [`validate_tenant_id`] to construct a validated tenant
+/// id from raw input.
+pub type TenantId = String;
 
-impl TenantId {
-    pub fn new(raw: impl Into<String>) -> Result<Self, TenantError> {
-        let raw = raw.into();
-        if raw.is_empty() || raw.len() > 64 {
-            return Err(TenantError::InvalidId("length must be 1..=64".into()));
-        }
-        if !raw
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
-        {
-            return Err(TenantError::InvalidId("only [A-Za-z0-9_-] allowed".into()));
-        }
-        Ok(Self(raw))
+/// Validate a raw tenant id and return an owned [`TenantId`] (i.e. a
+/// `String`) if it satisfies the tenant id format rules.
+///
+/// Rules:
+/// * length must be `1..=64`
+/// * only ASCII alphanumerics, `-` and `_` are allowed
+pub fn validate_tenant_id(raw: impl Into<String>) -> Result<TenantId, TenantError> {
+    let raw = raw.into();
+    if raw.is_empty() || raw.len() > 64 {
+        return Err(TenantError::InvalidId("length must be 1..=64".into()));
     }
-
-    pub fn as_str(&self) -> &str {
-        &self.0
+    if !raw
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+    {
+        return Err(TenantError::InvalidId("only [A-Za-z0-9_-] allowed".into()));
     }
-}
-
-impl std::fmt::Display for TenantId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.0)
-    }
+    Ok(raw)
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -37,10 +34,10 @@ pub enum TenantError {
     InvalidId(String),
 
     #[error("tenant not found: {0}")]
-    NotFound(TenantId),
+    NotFound(String),
 
     #[error("tenant is disabled: {0}")]
-    Disabled(TenantId),
+    Disabled(String),
 
     #[error(transparent)]
     Repo(#[from] RepoError),

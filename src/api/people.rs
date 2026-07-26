@@ -6,8 +6,8 @@ use axum::{
 use serde::Deserialize;
 
 use crate::http::{ServiceHttpError, TenantScope};
-use crate::models::people::{NewStaff, Staff, Student, UpdateStaff, UpdateStudent};
-use crate::services::people::{self as people_svc, Admission, AdmissionResult};
+use crate::models::people::{NewStaff, Staff, UpdateStaff};
+use crate::services::people as people_svc;
 use crate::services::perm;
 
 #[derive(Deserialize)]
@@ -19,85 +19,6 @@ pub struct Page {
 }
 fn d50() -> i64 {
     50
-}
-
-pub async fn list_students(
-    scope: TenantScope,
-    Query(p): Query<Page>,
-) -> Result<Json<Vec<Student>>, ServiceHttpError> {
-    Ok(Json(
-        people_svc::list_students_for(&scope.pool, &scope.ctx, p.limit, p.offset).await?,
-    ))
-}
-
-#[derive(Deserialize)]
-pub struct SearchQ {
-    pub q: String,
-    #[serde(default = "d50")]
-    pub limit: i64,
-}
-
-pub async fn search_students(
-    scope: TenantScope,
-    Query(q): Query<SearchQ>,
-) -> Result<Json<Vec<Student>>, ServiceHttpError> {
-    scope
-        .ctx
-        .require_any(&[perm::STUDENTS_VIEW, perm::STUDENTS_VIEW_OWN])?;
-    Ok(Json(
-        people_svc::search_students(&scope.pool, &q.q, q.limit).await?,
-    ))
-}
-
-pub async fn get_student(
-    scope: TenantScope,
-    Path((_t, id)): Path<(String, i64)>,
-) -> Result<Json<Student>, ServiceHttpError> {
-    scope
-        .ctx
-        .require_any(&[perm::STUDENTS_VIEW, perm::STUDENTS_VIEW_OWN])?;
-    Ok(Json(people_svc::get_student(&scope.pool, id).await?))
-}
-
-pub async fn update_student(
-    scope: TenantScope,
-    Path((_t, id)): Path<(String, i64)>,
-    Json(b): Json<UpdateStudent>,
-) -> Result<Json<Student>, ServiceHttpError> {
-    scope.ctx.require(perm::STUDENTS_EDIT)?;
-    Ok(Json(people_svc::update_student(&scope.pool, id, &b).await?))
-}
-
-pub async fn delete_student(
-    scope: TenantScope,
-    Path((_t, id)): Path<(String, i64)>,
-) -> Result<StatusCode, ServiceHttpError> {
-    scope.ctx.require(perm::STUDENTS_EDIT)?;
-    people_svc::delete_student(&scope.pool, id).await?;
-    Ok(StatusCode::NO_CONTENT)
-}
-
-pub async fn admit(
-    scope: TenantScope,
-    Json(b): Json<Admission>,
-) -> Result<Json<AdmissionResult>, ServiceHttpError> {
-    Ok(Json(people_svc::admit(&scope.pool, &scope.ctx, b).await?))
-}
-
-pub async fn withdraw(
-    scope: TenantScope,
-    Path((_t, id)): Path<(String, i64)>,
-) -> Result<StatusCode, ServiceHttpError> {
-    people_svc::withdraw(&scope.pool, &scope.ctx, id).await?;
-    Ok(StatusCode::NO_CONTENT)
-}
-
-pub async fn graduate(
-    scope: TenantScope,
-    Path((_t, id)): Path<(String, i64)>,
-) -> Result<StatusCode, ServiceHttpError> {
-    people_svc::graduate(&scope.pool, &scope.ctx, id).await?;
-    Ok(StatusCode::NO_CONTENT)
 }
 
 pub async fn list_staff(

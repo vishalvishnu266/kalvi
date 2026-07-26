@@ -18,4 +18,4 @@ pub use error::RepoError;
 pub use http::{build_router, AppState};
 pub use services::{Actor, RequestCtx, ServiceError, ServiceResult};
 pub use system::{connect_system, migrate_system};
-pub use tenancy::TenantId;
+pub use tenancy::{validate_tenant_id, TenantId};

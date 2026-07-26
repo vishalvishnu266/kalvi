@@ -1,10 +1,10 @@
 use crate::http::AppState;
 use axum::{
-    routing::{delete, get, post},
+    routing::{get, post},
     Router,
 };
 
-use crate::api::{academic as ac, admin as adm, auth as ath, guardians as gd, people as pp};
+use crate::api::{academic as ac, admin as adm, auth as ath, people as pp};
 
 pub fn admin_api() -> Router<AppState> {
     Router::new()
@@ -39,28 +39,11 @@ pub fn tenant_api() -> Router<AppState> {
             "/academic/subjects",
             get(ac::list_subjects).post(ac::create_subject),
         )
-        // ── people (students + staff) ───────────────────────────
-        .route("/people/students", get(pp::list_students))
-        .route("/people/students/search", get(pp::search_students))
-        .route(
-            "/people/students/{id}",
-            get(pp::get_student)
-                .put(pp::update_student)
-                .delete(pp::delete_student),
-        )
-        .route("/people/students/admit", post(pp::admit))
-        .route("/people/students/{id}/withdraw", post(pp::withdraw))
-        .route("/people/students/{id}/graduate", post(pp::graduate))
+        // ── people (staff) ──────────────────────────────────────
         .route("/people/staff", get(pp::list_staff).post(pp::hire))
         .route(
             "/people/staff/{id}",
             get(pp::get_staff).put(pp::update_staff),
         )
         .route("/people/staff/{id}/terminate", post(pp::terminate))
-        // ── guardians ───────────────────────────────────────────
-        .route("/guardians", get(gd::list).post(gd::create))
-        .route("/guardians/{id}", get(gd::get_one).delete(gd::remove))
-        .route("/guardians/link", post(gd::link))
-        .route("/guardians/link/{sid}/{gid}", delete(gd::unlink))
-        .route("/guardians/of-student/{sid}", get(gd::of_student))
 }

@@ -10,7 +10,7 @@ use std::collections::{HashMap, HashSet};
 use crate::http::AppState;
 use crate::middleware::auth::{read_cookie_from_headers, SessionUser, COOKIE_SESSION};
 use crate::services::auth as auth_svc;
-use crate::tenancy::TenantId;
+use crate::tenancy::validate_tenant_id;
 
 pub async fn require_session(
     State(state): State<AppState>,
@@ -24,7 +24,7 @@ pub async fn require_session(
     };
     let login_url = format!("/web/{}/login", t_str);
 
-    let Ok(tenant) = TenantId::new(t_str.to_string()) else {
+    let Ok(tenant) = validate_tenant_id(t_str.to_string()) else {
         return Redirect::to(&login_url).into_response();
     };
     let Some(token) = read_cookie_from_headers(req.headers(), COOKIE_SESSION) else {

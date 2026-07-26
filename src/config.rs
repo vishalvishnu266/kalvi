@@ -36,12 +36,11 @@ impl Config {
         self.db_dir.join("tenants")
     }
 
-    pub fn tenant_db_path(&self, tenant_id: &crate::tenancy::TenantId) -> PathBuf {
-        self.tenant_db_root()
-            .join(format!("{}.db", tenant_id.as_str()))
+    pub fn tenant_db_path(&self, tenant_id: &str) -> PathBuf {
+        self.tenant_db_root().join(format!("{}.db", tenant_id))
     }
 
-    pub fn tenant_db_url(&self, tenant_id: &crate::tenancy::TenantId) -> String {
+    pub fn tenant_db_url(&self, tenant_id: &str) -> String {
         format!("sqlite://{}", self.tenant_db_path(tenant_id).display())
     }
 }

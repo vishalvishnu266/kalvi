@@ -1,3 +1,12 @@
+//! Portal (parent/student self-service) web handlers.
+//!
+//! Student- and guardian-specific views used to live here and read from
+//! the tenant DB via `services::people` / `services::guardians`. Those
+//! services have been removed — a dedicated portal service layer will
+//! replace them. For now the portal exposes only the shared
+//! login/register/logout/home + tenant-link surfaces; the student &
+//! guardian screens are stubbed out at the route layer.
+
 use argon2::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
@@ -5,7 +14,7 @@ use argon2::{
 use askama::Template;
 use axum::{
     body::Body,
-    extract::{Form, Path, State},
+    extract::{Form, State},
     http::{header, HeaderMap, StatusCode},
     response::{IntoResponse, Redirect, Response},
     Extension,
@@ -15,12 +24,9 @@ use serde::Deserialize;
 use crate::http::{AppState, TenantScope};
 use crate::middleware::auth::{read_cookie_from_headers, SessionUser};
 use crate::models::auth::User;
-use crate::models::people::Student;
-use crate::services::{
-    auth as auth_svc, guardians as g_svc, people as people_svc, system as sys_svc,
-};
+use crate::services::{auth as auth_svc, system as sys_svc};
 use crate::system::{NewPortalMembership, NewPortalUser};
-use crate::tenancy::TenantId;
+use crate::tenancy::validate_tenant_id;
 use crate::web::error::{render, WebError};
 
 const COOKIE_PORTAL: &str = "erp_portal";
@@ -30,29 +36,6 @@ const COOKIE_PORTAL: &str = "erp_portal";
 struct PortalHome<'a> {
     tenant_id: &'a str,
     user_display: &'a str,
-}
-
-#[derive(Template)]
-#[template(path = "portal/students.html")]
-struct PortalStudents<'a> {
-    tenant_id: &'a str,
-    user_display: &'a str,
-    rows: Vec<StudentRow>,
-}
-
-#[derive(Template)]
-#[template(path = "portal/student_show.html")]
-struct PortalStudentShow<'a> {
-    tenant_id: &'a str,
-    user_display: &'a str,
-    student: StudentRow,
-}
-
-#[derive(Clone)]
-struct StudentRow {
-    id: i64,
-    name: String,
-    admission_no: String,
 }
 
 #[derive(Template)]
@@ -82,7 +65,6 @@ struct PortalHomePage<'a> {
 struct PortalMembershipView {
     tenant_id: String,
     role: String,
-    students: Vec<StudentRow>,
 }
 
 #[derive(Deserialize)]
@@ -230,8 +212,8 @@ pub async fn post_link_tenant(
     let Some(portal_user_id) = portal_user_id_from_headers(&headers) else {
         return Ok(Redirect::to("/portal/login").into_response());
     };
-    let tid =
-        TenantId::new(f.tenant.trim().to_string()).map_err(|e| WebError::bad(e.to_string()))?;
+    let tid = validate_tenant_id(f.tenant.trim().to_string())
+        .map_err(|e| WebError::bad(e.to_string()))?;
     let pool = state
         .pool_for(&tid)
         .await
@@ -274,51 +256,6 @@ pub async fn index(
     })
 }
 
-pub async fn students(
-    scope: TenantScope,
-    Extension(session): Extension<SessionUser>,
-) -> Result<Response, WebError> {
-    let rows = people_svc::list_students_for(&scope.pool, &scope.ctx, 100, 0)
-        .await?
-        .into_iter()
-        .map(map_student)
-        .collect();
-    render(&PortalStudents {
-        tenant_id: scope.tenant.as_str(),
-        user_display: &session.display,
-        rows,
-    })
-}
-
-pub async fn student_show(
-    scope: TenantScope,
-    Path((_tenant, id)): Path<(String, i64)>,
-    Extension(session): Extension<SessionUser>,
-) -> Result<Response, WebError> {
-    if !people_svc::can_view_student(&scope.pool, &scope.ctx, id).await? {
-        return Err(WebError::forbidden("not permitted to view this student"));
-    }
-    let s = people_svc::get_student(&scope.pool, id).await?;
-    render(&PortalStudentShow {
-        tenant_id: scope.tenant.as_str(),
-        user_display: &session.display,
-        student: map_student(s),
-    })
-}
-
-fn map_student(s: Student) -> StudentRow {
-    let mid = s
-        .middle_name
-        .as_deref()
-        .map(|m| format!(" {m}"))
-        .unwrap_or_default();
-    StudentRow {
-        id: s.id,
-        name: format!("{}{} {}", s.first_name, mid, s.last_name),
-        admission_no: s.admission_no,
-    }
-}
-
 async fn build_membership_views(
     state: &AppState,
     portal_user_id: i64,
@@ -326,31 +263,12 @@ async fn build_membership_views(
     let memberships = sys_svc::list_portal_memberships(&state.system, portal_user_id).await?;
     let mut out = Vec::new();
     for m in memberships {
-        let tid = match TenantId::new(m.tenant_id.clone()) {
-            Ok(v) => v,
-            Err(_) => continue,
-        };
-        let pool = match state.pool_for(&tid).await {
-            Ok(v) => v,
-            Err(_) => continue,
-        };
-        let students = if m.role == "guardian" {
-            let ids = g_svc::students_of_user(&pool, m.tenant_user_id).await?;
-            let student_list = people_svc::list_students_by_ids(&pool, &ids).await?;
-            student_list
-                .into_iter()
-                .map(map_student)
-                .collect::<Vec<_>>()
-        } else {
-            match people_svc::find_student_by_user_id(&pool, m.tenant_user_id).await? {
-                Some(s) => vec![map_student(s)],
-                None => Vec::new(),
-            }
-        };
+        if validate_tenant_id(m.tenant_id.clone()).is_err() {
+            continue;
+        }
         out.push(PortalMembershipView {
             tenant_id: m.tenant_id,
             role: m.role,
-            students,
         });
     }
     Ok(out)

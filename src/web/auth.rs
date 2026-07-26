@@ -10,7 +10,7 @@ use serde::Deserialize;
 use crate::http::AppState;
 use crate::middleware::auth::read_cookie_from_headers;
 use crate::services::auth as auth_svc;
-use crate::tenancy::TenantId;
+use crate::tenancy::validate_tenant_id;
 use crate::web::error::{render, WebError};
 
 pub const COOKIE_TENANT: &str = crate::middleware::auth::COOKIE_TENANT;
@@ -79,7 +79,7 @@ async fn post_login_with_redirect(
     f: LoginForm,
     base_path: &str,
 ) -> Result<Response, WebError> {
-    let tenant = match TenantId::new(f.tenant.clone()) {
+    let tenant = match validate_tenant_id(f.tenant.clone()) {
         Ok(t) => t,
         Err(e) => {
             return render(&LoginPage {
@@ -160,7 +160,7 @@ pub async fn post_logout(State(state): State<AppState>, headers: HeaderMap) -> R
     let cookie_session =
         read_cookie_from_headers(&headers, crate::middleware::auth::COOKIE_SESSION);
     if let (Some(tid), Some(token)) = (cookie_tenant, cookie_session) {
-        if let Ok(t) = TenantId::new(tid) {
+        if let Ok(t) = validate_tenant_id(tid) {
             if let Ok(_pool) = state.pool_for(&t).await {
                 let _ = auth_svc::revoke_session(&state.sessions, &token).await;
             }

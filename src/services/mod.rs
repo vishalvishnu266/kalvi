@@ -12,7 +12,6 @@ pub mod context;
 
 pub mod academic;
 pub mod auth;
-pub mod guardians;
 pub mod people;
 pub mod system;
 
@@ -63,17 +62,9 @@ pub type ServiceResult<T> = Result<T, ServiceError>;
 /// upcoming domain implementations line up.
 pub mod perm {
     // ── People ──────────────────────────────────────────────────────
-    pub const STUDENTS_VIEW: &str = "students.view";
-    pub const STUDENTS_VIEW_OWN: &str = "students.view_own";
-    pub const STUDENTS_EDIT: &str = "students.edit";
-    pub const STUDENTS_ADMIT: &str = "students.admit";
-
     pub const STAFF_VIEW: &str = "staff.view";
     pub const STAFF_EDIT: &str = "staff.edit";
     pub const STAFF_HIRE: &str = "staff.hire";
-
-    pub const GUARDIANS_VIEW: &str = "guardians.view";
-    pub const GUARDIANS_MANAGE: &str = "guardians.manage";
 
     // ── Academic ────────────────────────────────────────────────────
     pub const ACADEMIC_VIEW: &str = "academic.view";

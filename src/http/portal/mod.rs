@@ -14,8 +14,6 @@ pub fn routes(state: AppState) -> Router<AppState> {
 
     let portal_tenant_shell = Router::new()
         .route("/", get(wp::index))
-        .route("/students", get(wp::students))
-        .route("/students/{id}", get(wp::student_show))
         .layer(axum::middleware::from_fn(middleware::require_portal_shell))
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),

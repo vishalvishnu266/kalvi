@@ -7,7 +7,7 @@ use axum::{
 use crate::http::AppState;
 use crate::services::system as sys_svc;
 use crate::system::{NewTenant, Tenant, UpdateTenant};
-use crate::tenancy::TenantId;
+use crate::tenancy::validate_tenant_id;
 
 fn err_500<E: std::fmt::Display>(e: E) -> (StatusCode, String) {
     (StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
@@ -31,7 +31,8 @@ pub async fn create(
         .await
         .map_err(err_400)?;
     let tid =
-        TenantId::new(&tenant.tenant_id).map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
+        validate_tenant_id(&tenant.tenant_id)
+            .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
     s.provision(tid).await.map_err(err_500)?;
     Ok(Json(tenant))
 }
@@ -62,8 +63,8 @@ pub async fn update(
         .await
         .map_err(err_400)?;
     if matches!(updated.status.as_str(), "disabled" | "deleted") {
-        if let Ok(t) = TenantId::new(&updated.tenant_id) {
-            s.evict(&t).await;
+        if validate_tenant_id(&updated.tenant_id).is_ok() {
+            s.evict(&updated.tenant_id).await;
         }
     }
     Ok(Json(updated))
@@ -80,8 +81,8 @@ pub async fn soft_delete(
     sys_svc::soft_delete_tenant(&s.system, existing.id)
         .await
         .map_err(err_500)?;
-    if let Ok(t) = TenantId::new(&existing.tenant_id) {
-        s.evict(&t).await;
+    if validate_tenant_id(&existing.tenant_id).is_ok() {
+        s.evict(&existing.tenant_id).await;
     }
     Ok(StatusCode::NO_CONTENT)
 }
@@ -115,8 +116,8 @@ pub async fn disable(
     sys_svc::set_tenant_status(&s.system, existing.id, "disabled")
         .await
         .map_err(err_500)?;
-    if let Ok(t) = TenantId::new(&existing.tenant_id) {
-        s.evict(&t).await;
+    if validate_tenant_id(&existing.tenant_id).is_ok() {
+        s.evict(&existing.tenant_id).await;
     }
     Ok(Json(
         sys_svc::get_tenant(&s.system, existing.id)

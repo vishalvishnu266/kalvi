@@ -27,14 +27,6 @@ pub struct Tile {
 fn tiles() -> &'static [Tile] {
     &[
         Tile {
-            href: "students",
-            label: "Students",
-            description: "Admissions & profiles",
-            icon: "graduation-cap",
-            gradient: "from-brand-500 to-indigo-600",
-            perm: Some(&[STUDENTS_VIEW, STUDENTS_VIEW_OWN]),
-        },
-        Tile {
             href: "attendance",
             label: "Attendance",
             description: "Daily marking & reports",
@@ -93,14 +85,6 @@ fn tiles() -> &'static [Tile] {
             icon: "banknote",
             gradient: "from-lime-500 to-emerald-600",
             perm: Some(&[PAYROLL_VIEW, PAYROLL_VIEW_OWN]),
-        },
-        Tile {
-            href: "guardians",
-            label: "Guardians",
-            description: "Parents & contacts",
-            icon: "users",
-            gradient: "from-rose-500 to-pink-600",
-            perm: Some(&[GUARDIANS_VIEW]),
         },
         Tile {
             href: "communication",

@@ -27,7 +27,7 @@ use crate::Config;
 ///
 /// **No services are cached here.** Handlers receive a per-request
 /// [`crate::http::TenantScope`] and call free-fn services directly
-/// against `scope.pool`, e.g. `services::people::admit(&scope.pool, &scope.ctx, body)`.
+/// against `scope.pool`, e.g. `services::people::hire_staff(&scope.pool, &scope.ctx, body)`.
 #[derive(Clone)]
 pub struct AppState {
     pub system: SqlitePool,
@@ -49,14 +49,14 @@ impl AppState {
     /// Resolve (or lazily open + migrate) the tenant pool. Cheap on the
     /// fast path — just a read-lock lookup + clone of the underlying
     /// `SqlitePool` (which itself is `Arc`-based).
-    pub async fn pool_for(&self, tenant: &TenantId) -> Result<SqlitePool, TenantError> {
+    pub async fn pool_for(&self, tenant: &str) -> Result<SqlitePool, TenantError> {
         if let Some(p) = self.tenants.read().await.get(tenant).cloned() {
             return Ok(p);
         }
 
         let path = self.config.tenant_db_path(tenant);
         if !path.exists() {
-            return Err(TenantError::NotFound(tenant.clone()));
+            return Err(TenantError::NotFound(tenant.to_string()));
         }
 
         let mut guard = self.tenants.write().await;
@@ -67,7 +67,7 @@ impl AppState {
         let url = self.config.tenant_db_url(tenant);
         let pool = db::connect(&url).await?;
         db::migrate(&pool).await.map_err(TenantError::from)?;
-        guard.insert(tenant.clone(), pool.clone());
+        guard.insert(tenant.to_string(), pool.clone());
         Ok(pool)
     }
 
@@ -96,7 +96,7 @@ impl AppState {
 
     /// Drop the cached pool for a tenant (called when a tenant is
     /// disabled or deleted). The physical database file is left intact.
-    pub async fn evict(&self, tenant: &TenantId) {
+    pub async fn evict(&self, tenant: &str) {
         if let Some(p) = self.tenants.write().await.remove(tenant) {
             p.close().await;
         }

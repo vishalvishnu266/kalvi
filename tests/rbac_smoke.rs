@@ -37,7 +37,6 @@ fn assert_contains_none(persona: &str, body: &str, needles: &[&str]) {
 
 /// Every nav item shows up in the sidebar as `>Label<` inside an `<a>` tag,
 /// so those substrings are a reliable signal even if class names change.
-const NAV_STUDENTS: &str = ">Students<";
 const NAV_STAFF: &str = ">Staff<";
 const NAV_ACADEMIC: &str = ">Academic<";
 const NAV_ATTENDANCE: &str = ">Attendance<";
@@ -59,7 +58,6 @@ async fn admin_sees_full_sidebar() {
         "admin",
         &body,
         &[
-            NAV_STUDENTS,
             NAV_STAFF,
             NAV_ACADEMIC,
             NAV_ATTENDANCE,
@@ -76,8 +74,9 @@ async fn librarian_sees_only_library_nav() {
 
     let (status, body) = get(&app, &format!("/web/{TENANT}/")).await;
     assert_eq!(status, 200);
-    // Librarian's baseline binding grants students.view + library.*.
-    assert_contains_all("librarian", &body, &[NAV_STUDENTS, NAV_LIBRARY]);
+    // Librarian's baseline binding grants library.* only (students & guardians
+    // have moved out of the tenant service layer).
+    assert_contains_all("librarian", &body, &[NAV_LIBRARY]);
     assert_contains_none("librarian", &body, &[NAV_STAFF, NAV_ACADEMIC, NAV_FEES]);
 }
 
@@ -88,7 +87,7 @@ async fn parent_lands_in_portal_shell() {
 
     let (status, body) = get(&app, &format!("/portal/{TENANT}/")).await;
     assert_eq!(status, 200);
-    assert_contains_all("parent", &body, &["Parent/Student Portal", "My Students"]);
+    assert_contains_all("parent", &body, &["Parent/Student Portal"]);
 }
 
 #[tokio::test]
@@ -98,7 +97,7 @@ async fn student_lands_in_portal_shell() {
 
     let (status, body) = get(&app, &format!("/portal/{TENANT}/")).await;
     assert_eq!(status, 200);
-    assert_contains_all("student", &body, &["Parent/Student Portal", "My Students"]);
+    assert_contains_all("student", &body, &["Parent/Student Portal"]);
 }
 
 // =============================================================================
@@ -121,15 +120,11 @@ async fn route_guards_return_403_for_wrong_persona() {
         // Parent is routed to portal shell when trying to open staff shell.
         (&PARENT, "/web/demo/staff", 303),
         (&PARENT, "/web/demo/academic", 303),
-        (&PARENT, "/web/demo/guardians", 303),
-        (&PARENT, "/portal/demo/students", 200),
-        // Accountant is allowed Fees; denied Guardians (no guardians.view).
+        // Accountant is allowed Fees.
         (&ACCOUNTANT, "/web/demo/fees", 200),
-        (&ACCOUNTANT, "/web/demo/guardians", 403),
-        // Admin sees everything.
+        // Admin sees everything remaining.
         (&ADMIN, "/web/demo/staff", 200),
         (&ADMIN, "/web/demo/academic", 200),
-        (&ADMIN, "/web/demo/guardians", 200),
     ];
 
     for (persona, url, expected) in cases {

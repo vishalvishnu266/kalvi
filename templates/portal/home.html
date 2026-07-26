@@ -43,22 +43,7 @@
   {% for m in memberships %}
   <section class="card">
     <h3>Tenant: {{ m.tenant_id }} · Role: {{ m.role }}</h3>
-    {% if m.students.is_empty() %}
-      <p class="muted">No students visible in this tenant.</p>
-    {% else %}
-      <table>
-        <thead><tr><th>Name</th><th>Admission #</th><th>Open</th></tr></thead>
-        <tbody>
-        {% for s in m.students %}
-          <tr>
-            <td>{{ s.name }}</td>
-            <td>{{ s.admission_no }}</td>
-            <td><a href="/portal/{{ m.tenant_id }}/students/{{ s.id }}">View tenant page</a></td>
-          </tr>
-        {% endfor %}
-        </tbody>
-      </table>
-    {% endif %}
+    <p class="muted">Student and guardian views for this tenant are coming soon.</p>
   </section>
   {% endfor %}
 </main>
