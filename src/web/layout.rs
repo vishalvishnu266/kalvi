@@ -40,6 +40,8 @@ pub struct NavItem {
     pub perm: Option<&'static [&'static str]>,
 }
 
+/// Framework-only nav: Dashboard + a single Demo entry. Add one
+/// `NavItem` per module here as you (re-)build them.
 pub fn nav_items() -> &'static [NavItem] {
     use crate::services::perm::*;
     &[
@@ -52,52 +54,12 @@ pub fn nav_items() -> &'static [NavItem] {
             perm: None,
         },
         NavItem {
-            key: "staff",
-            label: "Staff",
-            href: "staff",
-            icon: "briefcase",
-            mobile: false,
-            perm: Some(&[STAFF_VIEW]),
-        },
-        NavItem {
-            key: "academic",
-            label: "Academic",
-            href: "academic",
-            icon: "book-open",
-            mobile: false,
-            perm: Some(&[ACADEMIC_VIEW]),
-        },
-        NavItem {
-            key: "attendance",
-            label: "Attendance",
-            href: "attendance",
-            icon: "calendar-check",
+            key: "demo",
+            label: "Demo",
+            href: "demo",
+            icon: "sparkles",
             mobile: true,
-            perm: Some(&[ATTENDANCE_VIEW, ATTENDANCE_VIEW_OWN, ATTENDANCE_MARK]),
-        },
-        NavItem {
-            key: "fees",
-            label: "Fees",
-            href: "fees",
-            icon: "wallet",
-            mobile: true,
-            perm: Some(&[FEES_VIEW, FEES_VIEW_OWN, FEES_COLLECT, FEES_PAY]),
-        },
-        NavItem {
-            key: "library",
-            label: "Library",
-            href: "library",
-            icon: "library",
-            mobile: false,
-            perm: Some(&[LIBRARY_VIEW]),
-        },
-        NavItem {
-            key: "more",
-            label: "More",
-            href: "more",
-            icon: "menu",
-            mobile: true,
-            perm: None,
+            perm: Some(&[DEMO_VIEW]),
         },
     ]
 }

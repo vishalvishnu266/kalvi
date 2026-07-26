@@ -1,10 +1,18 @@
+//! Tenant-scoped and admin JSON API route trees.
+//!
+//! Business modules have been stripped. The tenant router now
+//! carries only:
+//!   * `auth` — register / login / whoami / change-password.
+//!   * `demo` — a tiny reference module showing how to wire a new
+//!     domain (see `src/api/demo.rs` + `src/services/demo.rs`).
+
 use crate::http::AppState;
 use axum::{
     routing::{get, post},
     Router,
 };
 
-use crate::api::{academic as ac, admin as adm, auth as ath, people as pp};
+use crate::api::{admin as adm, auth as ath, demo as dm};
 
 pub fn admin_api() -> Router<AppState> {
     Router::new()
@@ -24,26 +32,8 @@ pub fn tenant_api() -> Router<AppState> {
         .route("/auth/login", post(ath::login))
         .route("/auth/change-password", post(ath::change_password))
         .route("/auth/whoami", get(ath::whoami))
-        // ── academic ────────────────────────────────────────────
-        .route("/academic/years", get(ac::list_years).post(ac::create_year))
-        .route("/academic/years/current", get(ac::current_year))
-        .route("/academic/years/{id}/activate", post(ac::activate_year))
-        .route(
-            "/academic/years/{id}/terms",
-            get(ac::list_terms).post(ac::create_term),
-        )
-        .route("/academic/grades", get(ac::list_grades))
-        .route("/academic/sections", get(ac::list_sections))
-        .route("/academic/rooms", get(ac::list_rooms).post(ac::create_room))
-        .route(
-            "/academic/subjects",
-            get(ac::list_subjects).post(ac::create_subject),
-        )
-        // ── people (staff) ──────────────────────────────────────
-        .route("/people/staff", get(pp::list_staff).post(pp::hire))
-        .route(
-            "/people/staff/{id}",
-            get(pp::get_staff).put(pp::update_staff),
-        )
-        .route("/people/staff/{id}/terminate", post(pp::terminate))
+        // ── demo (reference wiring — delete once real modules land) ─
+        .route("/demo/ping", get(dm::ping))
+        .route("/demo/messages", get(dm::list))
+        .route("/demo/echo", post(dm::echo))
 }

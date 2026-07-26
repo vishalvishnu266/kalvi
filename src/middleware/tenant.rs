@@ -15,7 +15,7 @@ use crate::tenancy::{validate_tenant_id, TenantError, TenantId};
 /// Per-request scope resolved from the `{tenant}` URL segment.
 /// Holds the tenant pool + session store + request context. Handlers
 /// call free-fn services directly, e.g.
-/// `services::people::hire_staff(&scope.pool, &scope.ctx, body).await?`.
+/// `services::demo::create_message(&scope.pool, &scope.ctx, body).await?`.
 pub struct TenantScope {
     pub tenant: TenantId,
     pub pool: SqlitePool,

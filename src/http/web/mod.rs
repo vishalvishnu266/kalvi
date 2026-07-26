@@ -1,5 +1,5 @@
 use crate::http::AppState;
-use crate::web::{auth as wau, dashboard as wdb, modules as wm, staff as wsf};
+use crate::web::{auth as wau, dashboard as wdb, demo as wdm};
 use axum::{
     routing::{get, post},
     Router,
@@ -7,26 +7,12 @@ use axum::{
 mod middleware;
 
 pub fn routes(state: AppState) -> Router<AppState> {
+    // Business module screens have been stripped. Add one route per
+    // module inside this router as you build them; the auth + shell
+    // middleware layers below apply automatically.
     let web_tenant_shell = Router::new()
         .route("/", get(wdb::index))
-        .route("/staff", get(wsf::list))
-        .route("/staff/{id}", get(wsf::show))
-        .route("/attendance", get(wm::attendance))
-        .route("/timetable", get(wm::timetable))
-        .route("/fees", get(wm::fees))
-        .route("/examinations", get(wm::examinations))
-        .route("/academic", get(wm::academic))
-        .route("/payroll", get(wm::payroll))
-        .route("/communication", get(wm::communication))
-        .route("/library", get(wm::library))
-        .route("/transport", get(wm::transport))
-        .route("/hostel", get(wm::hostel))
-        .route("/inventory", get(wm::inventory))
-        .route("/health", get(wm::health))
-        .route("/discipline", get(wm::discipline))
-        .route("/documents", get(wm::documents))
-        .route("/audit", get(wm::audit))
-        .route("/settings", get(wm::settings))
+        .route("/demo", get(wdm::index))
         .layer(axum::middleware::from_fn(middleware::require_staff_shell))
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),

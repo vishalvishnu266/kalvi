@@ -119,10 +119,9 @@ for ($i=1; $i -le $attempts; $i++) {
 }
 
 # ---------- 6. Seed demo tenant -------------------------------------------
-Bold "Seeding demo tenant"
-$env:BASE_URL = $BaseUrl
-bash "scripts/seed_demo.sh"
-if ($LASTEXITCODE -ne 0) { Fail "seed_demo.sh failed" }
+# Business seed data has been removed along with the business modules;
+# provision a tenant + user manually via the admin API once the server is up.
+Warn "seed step skipped — provision tenants manually via /admin/api/tenants"
 
 # ---------- 7. Summary ----------------------------------------------------
 Bold "Done"

@@ -27,7 +27,7 @@ use crate::Config;
 ///
 /// **No services are cached here.** Handlers receive a per-request
 /// [`crate::http::TenantScope`] and call free-fn services directly
-/// against `scope.pool`, e.g. `services::people::hire_staff(&scope.pool, &scope.ctx, body)`.
+/// against `scope.pool`, e.g. `services::demo::create_message(&scope.pool, &scope.ctx, body)`.
 #[derive(Clone)]
 pub struct AppState {
     pub system: SqlitePool,

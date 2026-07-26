@@ -168,8 +168,15 @@ for i in $(seq 1 $ATTEMPTS); do
 done
 
 # ---------- 6. Seed demo tenant -------------------------------------------
-bold "Seeding demo tenant"
-BASE_URL="$BASE_URL" bash "$REPO_ROOT/scripts/seed_demo.sh"
+# Business seed data has been removed along with the business modules;
+# create a tenant + user by hand once the server is up, e.g.
+#   curl -sX POST http://127.0.0.1:3000/admin/api/tenants \
+#        -H 'content-type: application/json' \
+#        -d '{"tenant_id":"demo","name":"Demo School"}'
+#   curl -sX POST http://127.0.0.1:3000/api/demo/auth/register \
+#        -H 'content-type: application/json' \
+#        -d '{"username":"admin","password":"admin123","roles":["admin"]}'
+warn "seed step skipped — provision tenants manually via /admin/api/tenants"
 
 # ---------- 7. Summary ----------------------------------------------------
 bold "Done"

@@ -105,15 +105,6 @@ fn forbidden_response(path: &str, missing: &[&str]) -> Response {
     }
 }
 
-fn url_tenant_from_prefix(path: &str, prefix: &str) -> Option<String> {
-    let rest = path.strip_prefix(prefix)?;
-    let seg = rest.split('/').next()?;
-    if seg.is_empty() || seg == "login" || seg == "logout" {
-        return None;
-    }
-    Some(seg.to_string())
-}
-
 pub fn read_cookie_from_headers(headers: &HeaderMap, name: &str) -> Option<String> {
     let raw = headers.get(header::COOKIE)?.to_str().ok()?;
     for kv in raw.split(';') {

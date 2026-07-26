@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="mb-6">
+  <h2 class="text-2xl font-semibold tracking-tight">Demo module</h2>
+  <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+    Placeholder page that shows the wiring pattern for a real module.
+    Migration → model → service → web handler → template.
+  </p>
+</div>
+
+<div class="mb-6 p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm">
+  <div class="text-xs uppercase tracking-wide text-zinc-500 mb-2">Try the JSON API</div>
+  <pre class="text-xs bg-zinc-50 dark:bg-zinc-950 p-3 rounded-lg overflow-x-auto"><code>curl -s http://127.0.0.1:3000/api/{{ nav.tenant_id }}/demo/ping
+
+curl -s -X POST http://127.0.0.1:3000/api/{{ nav.tenant_id }}/demo/echo \
+     -H 'content-type: application/json' \
+     -H 'cookie: erp_session=&lt;your-session-cookie&gt;' \
+     -d '{"text":"hello world"}'</code></pre>
+</div>
+
+<div class="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm overflow-hidden">
+  <div class="px-4 py-3 border-b border-zinc-100 dark:border-zinc-800 text-sm font-medium">
+    Recent messages
+  </div>
+
+  {% if messages.is_empty() %}
+    <div class="px-4 py-10 text-center text-sm text-zinc-500">
+      No demo messages yet. POST one to <code>/api/{{ nav.tenant_id }}/demo/echo</code>.
+    </div>
+  {% else %}
+    <table class="w-full text-sm">
+      <thead class="bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400">
+        <tr>
+          <th class="text-left font-medium px-4 py-2.5 w-16">#</th>
+          <th class="text-left font-medium px-4 py-2.5">Text</th>
+          <th class="text-left font-medium px-4 py-2.5 w-24">By</th>
+          <th class="text-left font-medium px-4 py-2.5 w-56">Created</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800">
+        {% for m in messages %}
+        <tr>
+          <td class="px-4 py-2.5 font-mono text-xs text-zinc-500">{{ m.id }}</td>
+          <td class="px-4 py-2.5">{{ m.text }}</td>
+          <td class="px-4 py-2.5 text-zinc-500">
+            {% match m.created_by %}
+              {% when Some with (u) %}user {{ u }}
+              {% when None %}—
+            {% endmatch %}
+          </td>
+          <td class="px-4 py-2.5 text-xs text-zinc-500">{{ m.created_at }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+</div>
+
+{% endblock %}

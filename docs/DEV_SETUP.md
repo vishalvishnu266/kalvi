@@ -1,7 +1,8 @@
-# Dev setup — one command
+# Dev setup
 
-> Blow away everything, rebuild, and end up with a live server and a fully
-> seeded demo tenant. Repeatable and idempotent.
+> Blow away everything, rebuild, and end up with a live server that
+> has no tenants and no business modules — the framework skeleton on
+> which the school ERP will be built.
 
 ```bash
 bash scripts/dev_reset.sh
@@ -12,89 +13,76 @@ Windows:
 pwsh scripts/dev_reset.ps1
 ```
 
-That's it. When it prints `Done`, open <http://127.0.0.1:3000/web/login>.
-For parent/student cross-tenant portal auth, open <http://127.0.0.1:3000/portal/login>.
+When it prints `Done`, open <http://127.0.0.1:3000/>. See
+[`../scripts/README.md`](../scripts/README.md) for the exact `curl`
+commands to create a tenant + admin user + hit the demo endpoints.
 
 ---
 
-## What `dev_reset.sh` actually does
+## What `dev_reset.sh` does
 
-1. **Stops any running server** — by PID file (`.dev_server.pid`) if present,
-   otherwise by anything listening on the target port.
-2. **Wipes `data/`** — deletes `system.db`, `tenants/*.db`, and their WAL /
-   SHM sidecars. The top-level directory is recreated empty.
+1. **Stops any running server** — by PID file (`.dev_server.pid`) if
+   present, otherwise by anything listening on the target port.
+2. **Wipes `data/`** — deletes `system.db`, `sessions.db`,
+   `tenants/*.db`, and their WAL / SHM sidecars.
 3. **Builds the server** (unless `SKIP_BUILD=1`).
-4. **Starts it in the background** — logs to `.dev_server.log`, PID written
-   to `.dev_server.pid`.
-5. **Polls `GET /api/live`** until the server is healthy (60s timeout).
-6. **Runs `scripts/seed_demo.sh`**, which:
-   - Provisions the `demo` tenant via `POST /admin/api/tenants`.
-   - Registers 7 role-scoped demo users (admin + principal + teacher +
-     accountant + librarian + parent + student1).
-   - Hires 8 staff and admits 10 students through the tenant API.
+4. **Starts it in the background** — logs to `.dev_server.log`, PID
+   written to `.dev_server.pid`.
+5. **Polls `GET /api/live`** until healthy (60s timeout).
 
-Total time on a warm cargo cache: ~10 seconds. Total time on a cold one:
-however long `cargo build --release` takes.
+No seed step: this codebase is intentionally free of business rows
+right now.
 
 ---
 
 ## Env-var knobs
 
-| Var          | Default                              | Effect                                                   |
-| ------------ | ------------------------------------ | -------------------------------------------------------- |
-| `PROFILE`    | `release`                            | Use `debug` for faster incremental rebuilds.             |
-| `PORT`       | `3000`                               | Change the server bind port.                             |
-| `BASE_URL`   | `http://127.0.0.1:$PORT`             | Override the URL the seeder posts to.                    |
-| `DATA_DIR`   | `data`                               | Directory to wipe. Change with care.                     |
-| `SKIP_BUILD` | `0`                                  | `1` = don't run `cargo build` (assume binary is current).|
-| `FOREGROUND` | `0`                                  | `1` = keep the server attached to the current terminal.  |
-| `LOG_FILE`   | `.dev_server.log`                    | Where the background server's stdout+stderr are written. |
-| `PID_FILE`   | `.dev_server.pid`                    | Where the background server's PID is written.            |
-| `SESSION_BACKEND` | `tenant_db`                      | Session storage backend: `tenant_db` or `memory_sqlite`.|
-| `SESSION_SNAPSHOT_ROOT` | `data/sessions`            | Snapshot folder used by `memory_sqlite` backend.         |
+| Var          | Default                     | Effect                                           |
+| ------------ | --------------------------- | ------------------------------------------------ |
+| `PROFILE`    | `release`                   | Use `debug` for faster incremental rebuilds.     |
+| `PORT`       | `3000`                      | Change the server bind port.                     |
+| `BASE_URL`   | `http://127.0.0.1:$PORT`    | Override the URL used in log output.             |
+| `DATA_DIR`   | `data`                      | Directory to wipe. Change with care.             |
+| `SKIP_BUILD` | `0`                         | `1` = don't run `cargo build`.                   |
+| `FOREGROUND` | `0`                         | `1` = keep the server attached to this terminal. |
+| `LOG_FILE`   | `.dev_server.log`           | Background server's stdout+stderr.               |
+| `PID_FILE`   | `.dev_server.pid`           | Background server's PID.                         |
 
 ---
 
-## Seeded demo logins
+## Framework layout at a glance
 
-All non-admin users share password `demo1234`.
+```
+src/
+  main.rs         bootstrap: config → system DB → session store → axum
+  lib.rs          module map + public re-exports
+  config.rs       env-driven Config
+  db.rs           tenant SqlitePool factory + migrations
+  system.rs       control-plane pool + shared row types
+  session/        session store (dedicated sessions.db)
+  tenancy.rs      TenantId validation
+  error.rs        RepoError + RepoResult
+  health_probes.rs, shutdown.rs
+  middleware/     tenant + auth + tracing
+  http/           router assembly (admin, tenant api, web, portal)
+  api/            JSON handlers (admin, auth, demo)
+  services/       free-fn service layer (auth, system, demo)
+  models/         row / DTO types (auth, demo)
+  web/            server-rendered pages (landing, login, dashboard, portal, demo, ...)
 
-| Login       | Password    | Role       | What they see                                                  |
-| ----------- | ----------- | ---------- | -------------------------------------------------------------- |
-| `admin`     | `admin123`  | admin      | Everything.                                                    |
-| `principal` | `demo1234`  | principal  | Everything except tenant `settings.manage`.                    |
-| `teacher`   | `demo1234`  | teacher    | Students, attendance, exams, timetable, communication.         |
-| `accountant`| `demo1234`  | accountant | Fees + payroll + read students/staff/audit.                    |
-| `librarian` | `demo1234`  | librarian  | Library only + read students.                                  |
-| `parent`    | `demo1234`  | guardian   | Their own child's data + `fees.pay`.                           |
-| `student1`  | `demo1234`  | student    | Their own attendance / fees / marks / timetable / library read.|
-
-Sidebar entries and dashboard launcher tiles are filtered per role by RBAC
-— see [`docs/RBAC.md`](RBAC.md) for how that pipeline works.
-
----
-
-## Managing the background server
-
-```bash
-# tail logs
-tail -f .dev_server.log
-
-# stop the server
-kill $(cat .dev_server.pid)
-
-# start again without wiping the DB
-BIND=0.0.0.0:3000 ./target/release/school_erp &
+migrations/         tenant DB (auth base + demo)
+migrations_system/  control-plane DB (tenant + portal user)
+migrations_session/ session store DB
+templates/          askama HTML templates
 ```
 
----
+To add a real module (e.g. `attendance`), create:
 
-## Fully fresh vs top-up seed
+* `migrations/NNNN_attendance.sql`
+* `src/models/attendance.rs`
+* `src/services/attendance.rs` (free fns + `perm::ATTENDANCE_*` codes)
+* `src/api/attendance.rs` and/or `src/web/attendance.rs`
+* Wire routes in `src/http/api_routes/mod.rs` / `src/http/web/mod.rs`
+* Add nav item (`src/web/layout.rs`) and dashboard tile (`src/web/dashboard.rs`)
 
-- `dev_reset.sh` — full wipe + reseed. Use this when you want a **known
-  baseline**, e.g. before a demo or after a schema migration.
-- `seed_demo.sh` (standalone) — top-up. Only inserts rows that don't already
-  exist. Use this when you want to add the demo dataset to a tenant without
-  losing your other work.
-- `seed_demo.sql` — same rows, delivered via a direct `sqlite3` pipe. Faster
-  for bulk loads. Requires the tenant DB to already exist.
+The `demo` module is the reference implementation for that pattern.

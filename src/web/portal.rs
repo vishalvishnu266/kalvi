@@ -1,11 +1,9 @@
 //! Portal (parent/student self-service) web handlers.
 //!
-//! Student- and guardian-specific views used to live here and read from
-//! the tenant DB via `services::people` / `services::guardians`. Those
-//! services have been removed — a dedicated portal service layer will
-//! replace them. For now the portal exposes only the shared
-//! login/register/logout/home + tenant-link surfaces; the student &
-//! guardian screens are stubbed out at the route layer.
+//! Currently exposes only the shared login / register / logout / home
+//! + tenant-link surfaces. Real student and guardian views will be
+//! reintroduced as portal-specific services once the tenant business
+//! domains are rebuilt.
 
 use argon2::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
