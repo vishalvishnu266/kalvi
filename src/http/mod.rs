@@ -10,7 +10,6 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use crate::db;
-use crate::session::SessionStore;
 use crate::tenancy::{TenantError, TenantId};
 use crate::Config;
 
@@ -21,7 +20,9 @@ use crate::Config;
 /// * `system`   — the master database (`system.db`), stored as a raw
 ///   `SqlitePool`. All tenant-registry / portal-user reads and writes
 ///   go through [`crate::services::system`] free functions.
-/// * `sessions` — the shared session store database (`sessions.db`).
+/// * `sessions` — the shared session store database (`sessions.db`),
+///   also stored as a raw `SqlitePool`. Session SQL lives as free
+///   functions in [`crate::session`].
 /// * `tenants`  — a map of tenant `SqlitePool` handles, populated on
 ///   first use (`provision` / `pool_for`) and evicted on disable.
 ///
@@ -31,13 +32,13 @@ use crate::Config;
 #[derive(Clone)]
 pub struct AppState {
     pub system: SqlitePool,
-    pub sessions: SessionStore,
+    pub sessions: SqlitePool,
     pub config: Config,
     pub tenants: Arc<RwLock<HashMap<TenantId, SqlitePool>>>,
 }
 
 impl AppState {
-    pub fn new(system: SqlitePool, sessions: SessionStore, config: Config) -> Self {
+    pub fn new(system: SqlitePool, sessions: SqlitePool, config: Config) -> Self {
         Self {
             system,
             sessions,

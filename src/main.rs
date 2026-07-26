@@ -1,6 +1,7 @@
 use tower::Layer;
 
 use school_erp::health_probes::Readiness;
+use school_erp::session::{connect_sessions, migrate_sessions};
 use school_erp::shutdown::{close_pools, wait_for_signal};
 use school_erp::{build_router, connect_system, migrate_system, AppState, Config};
 
@@ -24,9 +25,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let session_db_url = config.session_db_url();
     tracing::debug!("main: initializing session store at {}", session_db_url);
-    let sessions = school_erp::session::SessionStore::open(&session_db_url).await?;
-    let sessions_for_shutdown = sessions.clone();
-    let session_pool_for_shutdown = sessions_for_shutdown.pool_clone();
+    let sessions = connect_sessions(&session_db_url).await?;
+    tracing::debug!("main: running session-store migrations");
+    migrate_sessions(&sessions).await?;
+    let session_pool_for_shutdown = sessions.clone();
 
     let state = AppState::new(system, sessions, config.clone());
     let state_for_shutdown = state.clone();
@@ -63,7 +65,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     close_pools(&system_pool_for_shutdown, config.shutdown_timeout).await;
-    session_pool_for_shutdown.await.close().await;
+    session_pool_for_shutdown.close().await;
 
     tracing::info!("shutdown complete");
     Ok(())

@@ -9,7 +9,6 @@ use std::sync::Arc;
 use crate::http::AppState;
 use crate::middleware::auth::{read_cookie_from_headers, SessionUser, COOKIE_SESSION};
 use crate::services::{auth as auth_svc, Actor, RequestCtx};
-use crate::session::SessionStore;
 use crate::tenancy::{validate_tenant_id, TenantError, TenantId};
 
 /// Per-request scope resolved from the `{tenant}` URL segment.
@@ -19,7 +18,7 @@ use crate::tenancy::{validate_tenant_id, TenantError, TenantId};
 pub struct TenantScope {
     pub tenant: TenantId,
     pub pool: SqlitePool,
-    pub sessions: SessionStore,
+    pub sessions: SqlitePool,
     pub ctx: RequestCtx,
 }
 
@@ -54,7 +53,7 @@ impl FromRequestParts<AppState> for TenantScope {
 async fn resolve_ctx(
     tid: &str,
     pool: &SqlitePool,
-    sessions: &SessionStore,
+    sessions: &SqlitePool,
     parts: &Parts,
 ) -> RequestCtx {
     let request_id = uuid::Uuid::new_v4().to_string();

@@ -1,7 +1,7 @@
 //! Authentication + authorization services.
 //!
 //! Free functions over a tenant `SqlitePool` plus the shared
-//! `SessionStore`. All SQL for the `user_account`, `role`,
+//! sessions `SqlitePool`. All SQL for the `user_account`, `role`,
 //! `permission`, `user_role`, and `role_permission` tables lives
 //! in this module.
 
@@ -16,7 +16,7 @@ use sqlx::SqlitePool;
 use crate::error::{RepoError, RepoResult};
 use crate::models::auth::{NewSession, NewUser, Permission, Role, Session, User};
 use crate::services::{ServiceError, ServiceResult};
-use crate::session::SessionStore;
+use crate::session as sessions_svc;
 
 pub const DEFAULT_SESSION_TTL_DAYS: i64 = 14;
 
@@ -217,7 +217,7 @@ pub async fn change_password(
 // ── Sessions ────────────────────────────────────────────────────────
 
 pub async fn issue_session(
-    sessions: &SessionStore,
+    sessions: &SqlitePool,
     user_id: i64,
     user_agent: Option<String>,
     remote_ip: Option<String>,
@@ -233,7 +233,7 @@ pub async fn issue_session(
 }
 
 pub async fn issue_session_with_ttl(
-    sessions: &SessionStore,
+    sessions: &SqlitePool,
     user_id: i64,
     ttl_days: i64,
     user_agent: Option<String>,
@@ -241,36 +241,37 @@ pub async fn issue_session_with_ttl(
 ) -> ServiceResult<Session> {
     let expires_at = chrono::Utc::now().naive_utc() + Duration::days(ttl_days);
     let token = mint_token();
-    Ok(sessions
-        .create(&NewSession {
+    Ok(sessions_svc::create(
+        sessions,
+        &NewSession {
             token,
             user_id,
             tenant_id: None,
             expires_at,
             user_agent,
             remote_ip,
-        })
-        .await?)
+        },
+    )
+    .await?)
 }
 
 pub async fn resolve_session(
     pool: &SqlitePool,
-    sessions: &SessionStore,
+    sessions: &SqlitePool,
     token: &str,
 ) -> ServiceResult<(Session, User)> {
-    let session = sessions
-        .find_active_by_token(token)
+    let session = sessions_svc::find_active_by_token(sessions, token)
         .await?
         .ok_or(ServiceError::Unauthorized)?;
     let user = get_user(pool, session.user_id).await?;
     if !user.is_active {
         return Err(ServiceError::Unauthorized);
     }
-    let _ = sessions.touch(session.id).await;
+    let _ = sessions_svc::touch(sessions, session.id).await;
     Ok((session, user))
 }
 
-pub async fn revoke_session(sessions: &SessionStore, token: &str) -> ServiceResult<()> {
-    sessions.revoke_by_token(token).await?;
+pub async fn revoke_session(sessions: &SqlitePool, token: &str) -> ServiceResult<()> {
+    sessions_svc::revoke_by_token(sessions, token).await?;
     Ok(())
 }

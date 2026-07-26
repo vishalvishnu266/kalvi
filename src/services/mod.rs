@@ -1,6 +1,7 @@
 //! Service layer: **free functions** operating on a tenant `SqlitePool`
-//! (and, for auth, the shared `SessionStore`). There is no repository
-//! layer; SQL for each domain lives in its matching submodule here.
+//! (and, for auth, the shared sessions `SqlitePool`). There is no
+//! repository layer; SQL for each domain lives in its matching
+//! submodule here.
 //!
 //! Real business services (academic, people, fees, ...) have been
 //! stripped — only `auth`, `system`, and a tiny `demo` module remain
