@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#4f46e5">
+  <title>Sunrise K-12 · Dashboard</title>
+  <link rel="stylesheet" href="assets/tokens.css">
+  <link rel="stylesheet" href="assets/global.css">
+  <script type="module" src="components/index.js"></script>
+</head>
+<body>
+  <app-shell page-title="Dashboard" active="dashboard">
+
+    <!-- KPI stats grid -->
+    <section style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-4); margin-bottom: var(--space-6);">
+      <ui-stat label="Students"       value="1,284" delta="+2.1%" trend="up"   icon="student"></ui-stat>
+      <ui-stat label="Present today"  value="1,207" delta="+0.8%" trend="up"   icon="check"></ui-stat>
+      <ui-stat label="Fees collected" value="$42.6k" delta="-4.4%" trend="down" icon="card"></ui-stat>
+      <ui-stat label="Open tickets"   value="23"    delta="0%"    trend="flat" icon="bell"></ui-stat>
+    </section>
+
+    <!-- Two-column area -->
+    <section style="display:grid; grid-template-columns: 2fr 1fr; gap: var(--space-5);">
+
+      <ui-card title="Recent Admissions" subtitle="Last 7 days">
+        <div slot="actions"><ui-button size="sm" variant="ghost">See all</ui-button></div>
+
+        <ui-list-item clickable title="Aarav Kumar"     subtitle="Grade 5 · Roll 12"  trailing="Today">
+          <ui-avatar slot="leading" name="Aarav Kumar"></ui-avatar>
+        </ui-list-item>
+        <ui-list-item clickable title="Meera Sharma"    subtitle="Grade 3 · Roll 04"  trailing="Yesterday">
+          <ui-avatar slot="leading" name="Meera Sharma"></ui-avatar>
+        </ui-list-item>
+        <ui-list-item clickable title="Rohan Iyer"      subtitle="Grade 9 · Roll 27"  trailing="2 d ago">
+          <ui-avatar slot="leading" name="Rohan Iyer"></ui-avatar>
+        </ui-list-item>
+        <ui-list-item clickable title="Zara Fernandes"  subtitle="Grade 1 · Roll 09"  trailing="3 d ago">
+          <ui-avatar slot="leading" name="Zara Fernandes"></ui-avatar>
+        </ui-list-item>
+      </ui-card>
+
+      <ui-card title="Today's Schedule" subtitle="Anita R.">
+        <ui-list-item title="Assembly"           subtitle="08:00 – 08:30" trailing="Hall">
+          <ui-badge slot="trailing" tone="brand" dot>Now</ui-badge>
+        </ui-list-item>
+        <ui-list-item title="Grade 10 · Maths"   subtitle="09:00 – 10:00" trailing="Rm 204"></ui-list-item>
+        <ui-list-item title="PTA Meeting"        subtitle="11:30 – 12:30" trailing="Board Rm"></ui-list-item>
+        <ui-list-item title="Lunch"              subtitle="13:00 – 13:45"></ui-list-item>
+        <ui-list-item title="Sports · Grade 6"   subtitle="15:00 – 16:00" trailing="Ground"></ui-list-item>
+      </ui-card>
+    </section>
+
+    <!-- Announcements -->
+    <section style="margin-top: var(--space-6);">
+      <ui-card title="Announcements" padded>
+        <div slot="actions">
+          <ui-button size="sm" icon="plus" onclick="document.getElementById('announceModal').open()">New</ui-button>
+        </div>
+        <div class="stack">
+          <div class="row">
+            <ui-badge tone="warning" dot>Important</ui-badge>
+            <div class="grow"><strong>Mid-term exams begin Aug 12.</strong> <span class="muted">Please review the schedule with your class teacher.</span></div>
+          </div>
+          <div class="row">
+            <ui-badge tone="info" dot>Notice</ui-badge>
+            <div class="grow"><strong>Bus route 4 delayed by 15 min tomorrow</strong> due to road work.</div>
+          </div>
+          <div class="row">
+            <ui-badge tone="success" dot>Success</ui-badge>
+            <div class="grow"><strong>School inspection passed with A+ rating.</strong></div>
+          </div>
+        </div>
+      </ui-card>
+    </section>
+
+    <!-- Modal example -->
+    <ui-modal id="announceModal" title="New Announcement">
+      <div class="stack">
+        <ui-input label="Title" placeholder="Short headline" required></ui-input>
+        <ui-input label="Message" type="textarea" placeholder="What do you want to tell parents/students?"></ui-input>
+        <ui-input label="Audience" hint="Comma-separated grades" placeholder="e.g. 5, 6, 7"></ui-input>
+      </div>
+      <div slot="footer">
+        <ui-button variant="secondary" data-close>Cancel</ui-button>
+        <ui-button onclick="toast('Announcement published', { tone:'success', desc:'Parents will be notified in 5 minutes.' }); document.getElementById('announceModal').close();">Publish</ui-button>
+      </div>
+    </ui-modal>
+
+  </app-shell>
+
+  <style>
+    @media (max-width: 860px) {
+      section[style*="grid-template-columns: 2fr 1fr"] { grid-template-columns: 1fr !important; }
+    }
+  </style>
+</body>
+</html>

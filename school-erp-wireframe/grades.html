@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Sunrise K-12 · Grades</title>
+  <link rel="stylesheet" href="assets/tokens.css">
+  <link rel="stylesheet" href="assets/global.css">
+  <script type="module" src="components/index.js"></script>
+</head>
+<body>
+  <app-shell page-title="Grades" active="grades">
+
+    <section style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-4); margin-bottom: var(--space-6);">
+      <ui-stat label="Class avg"         value="82.4"  delta="+1.4" trend="up" icon="chart"></ui-stat>
+      <ui-stat label="Top scorer"        value="Meera S." icon="award"></ui-stat>
+      <ui-stat label="Pending grading"   value="7"     delta="-3"    trend="down" icon="edit"></ui-stat>
+    </section>
+
+    <ui-card title="Grade 5-B · Mid-term" subtitle="Mathematics">
+      <div slot="actions">
+        <ui-button size="sm" variant="secondary" icon="download">Export CSV</ui-button>
+        <ui-button size="sm">Publish</ui-button>
+      </div>
+
+      <ui-list-item title="Aarav Kumar" subtitle="Roll 12 · 46 / 50">
+        <ui-avatar slot="leading" name="Aarav Kumar"></ui-avatar>
+        <ui-badge slot="trailing" tone="success">A+</ui-badge>
+      </ui-list-item>
+      <ui-list-item title="Meera Sharma" subtitle="Roll 04 · 49 / 50">
+        <ui-avatar slot="leading" name="Meera Sharma"></ui-avatar>
+        <ui-badge slot="trailing" tone="brand">A++</ui-badge>
+      </ui-list-item>
+      <ui-list-item title="Rohan Iyer" subtitle="Roll 27 · 32 / 50">
+        <ui-avatar slot="leading" name="Rohan Iyer"></ui-avatar>
+        <ui-badge slot="trailing" tone="warning">C</ui-badge>
+      </ui-list-item>
+      <ui-list-item title="Zara Fernandes" subtitle="Roll 09 · 41 / 50">
+        <ui-avatar slot="leading" name="Zara Fernandes"></ui-avatar>
+        <ui-badge slot="trailing" tone="success">A</ui-badge>
+      </ui-list-item>
+      <ui-list-item title="Ishaan Patel" subtitle="Roll 15 · —">
+        <ui-avatar slot="leading" name="Ishaan Patel"></ui-avatar>
+        <ui-badge slot="trailing">Not graded</ui-badge>
+      </ui-list-item>
+    </ui-card>
+
+  </app-shell>
+
+  <style>
+    @media (max-width: 720px) {
+      section[style*="grid-template-columns: 1fr 1fr 1fr"] { grid-template-columns: 1fr 1fr !important; }
+    }
+  </style>
+</body>
+</html>
