@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Components · UI Preview (Shoelace)</title>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.15.1/cdn/themes/light.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.15.1/cdn/themes/dark.css" />
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.15.1/cdn/shoelace-autoloader.js"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;550;600;700&family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" />
+
+  <link rel="stylesheet" href="assets/themes.css" />
+  <link rel="stylesheet" href="assets/app-shell.css" />
+  <script src="assets/boot.js"></script>
+</head>
+<body>
+
+<header class="topbar" style="position:static">
+  <sl-icon name="palette" style="color:var(--brand); font-size:1.25rem;"></sl-icon>
+  <h1>Shoelace Components</h1>
+  <div class="spacer"></div>
+  <sl-select data-font-picker  size="small" hoist style="width: 12rem;"></sl-select>
+  <sl-select data-brand-picker size="small" hoist style="width: 12rem;"></sl-select>
+  <sl-tooltip content="Toggle light/dark">
+    <sl-icon-button name="moon-stars" data-theme-toggle></sl-icon-button>
+  </sl-tooltip>
+</header>
+
+<main class="content" style="max-width: 60rem;">
+
+  <section class="section">
+    <h2>Buttons</h2>
+    <sl-card>
+      <div class="row">
+        <sl-button variant="primary">Primary</sl-button>
+        <sl-button variant="default">Default</sl-button>
+        <sl-button variant="success">Success</sl-button>
+        <sl-button variant="warning">Warning</sl-button>
+        <sl-button variant="danger">Danger</sl-button>
+        <sl-button variant="text">Text</sl-button>
+        <sl-button size="small" variant="primary">Small</sl-button>
+        <sl-button size="large" variant="primary">Large</sl-button>
+        <sl-button variant="primary" outline>Outline</sl-button>
+        <sl-button variant="primary" pill>Pill</sl-button>
+        <sl-button variant="primary">
+          <sl-icon slot="prefix" name="check2"></sl-icon>
+          With icon
+        </sl-button>
+        <sl-button variant="primary">
+          Trailing
+          <sl-icon slot="suffix" name="arrow-right"></sl-icon>
+        </sl-button>
+        <sl-button variant="primary" loading>Loading</sl-button>
+      </div>
+    </sl-card>
+  </section>
+
+  <section class="section">
+    <h2>Icon buttons</h2>
+    <sl-card>
+      <div class="row">
+        <sl-icon-button name="bell" label="Notifications"></sl-icon-button>
+        <sl-icon-button name="moon-stars" label="Toggle theme" data-theme-toggle></sl-icon-button>
+        <sl-icon-button name="gear" label="Settings"></sl-icon-button>
+        <sl-icon-button name="trash" label="Delete" style="color: var(--sl-color-danger-600);"></sl-icon-button>
+      </div>
+    </sl-card>
+  </section>
+
+  <section class="section">
+    <h2>Inputs</h2>
+    <sl-card>
+      <div class="two-cols">
+        <sl-input label="Tenant" placeholder="e.g. acme">
+          <sl-icon slot="prefix" name="building"></sl-icon>
+        </sl-input>
+        <sl-input label="Username" value="jane.doe" autocomplete="username">
+          <sl-icon slot="prefix" name="person"></sl-icon>
+        </sl-input>
+        <sl-input label="Password" type="password" password-toggle autocomplete="current-password">
+          <sl-icon slot="prefix" name="lock"></sl-icon>
+        </sl-input>
+        <sl-input label="Search" placeholder="Search…" clearable pill>
+          <sl-icon slot="prefix" name="search"></sl-icon>
+        </sl-input>
+        <sl-textarea label="Notes" placeholder="Internal notes…" rows="3"></sl-textarea>
+        <sl-select label="Plan" value="starter">
+          <sl-option value="starter">Starter</sl-option>
+          <sl-option value="pro">Pro</sl-option>
+          <sl-option value="enterprise">Enterprise</sl-option>
+        </sl-select>
+      </div>
+    </sl-card>
+  </section>
+
+  <section class="section">
+    <h2>Alerts</h2>
+    <div class="stack">
+      <sl-alert variant="danger" open>
+        <sl-icon slot="icon" name="exclamation-octagon"></sl-icon>
+        <strong>Something went wrong</strong><br />
+        Please retry — if the problem persists, contact support.
+      </sl-alert>
+      <sl-alert variant="success" open>
+        <sl-icon slot="icon" name="check2-circle"></sl-icon>
+        Tenant <strong>acme</strong> created successfully.
+      </sl-alert>
+      <sl-alert variant="warning" open>
+        <sl-icon slot="icon" name="exclamation-triangle"></sl-icon>
+        Your session will expire in 5 minutes.
+      </sl-alert>
+      <sl-alert variant="primary" open closable>
+        <sl-icon slot="icon" name="info-circle"></sl-icon>
+        New academic year starts next Monday.
+      </sl-alert>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Badges</h2>
+    <sl-card>
+      <div class="row">
+        <sl-badge variant="success" pill>Active</sl-badge>
+        <sl-badge variant="warning" pill>Disabled</sl-badge>
+        <sl-badge variant="danger"  pill>Failed</sl-badge>
+        <sl-badge variant="neutral" pill>Pending</sl-badge>
+        <sl-badge variant="primary" pill pulse>New</sl-badge>
+      </div>
+    </sl-card>
+  </section>
+
+  <section class="section">
+    <h2>Avatars</h2>
+    <sl-card>
+      <sl-avatar-group>
+        <sl-avatar initials="JD" label="Jane Doe" style="--size: 2.5rem;"></sl-avatar>
+        <sl-avatar initials="AK" label="Alex Kim" style="--size: 2.5rem; background: var(--sl-color-emerald-500);"></sl-avatar>
+        <sl-avatar initials="MR" label="Maya Rao" style="--size: 2.5rem; background: var(--sl-color-fuchsia-500);"></sl-avatar>
+      </sl-avatar-group>
+    </sl-card>
+  </section>
+
+  <section class="section">
+    <h2>Progress + spinners</h2>
+    <sl-card>
+      <div class="stack" style="max-width:20rem;">
+        <sl-progress-bar value="65"></sl-progress-bar>
+        <div class="row">
+          <sl-spinner style="font-size: 1.25rem;"></sl-spinner>
+          <sl-spinner style="font-size: 1.5rem; --track-color: transparent; --indicator-color: var(--brand);"></sl-spinner>
+        </div>
+      </div>
+    </sl-card>
+  </section>
+
+  <section class="section">
+    <h2>Dialog + drawer + dropdown</h2>
+    <sl-card>
+      <div class="row">
+        <sl-button id="openDialog" variant="primary">Open dialog</sl-button>
+        <sl-button id="openDrawer" variant="default">Open drawer</sl-button>
+        <sl-dropdown>
+          <sl-button slot="trigger" caret>Actions</sl-button>
+          <sl-menu>
+            <sl-menu-item><sl-icon slot="prefix" name="pencil"></sl-icon>Edit</sl-menu-item>
+            <sl-menu-item><sl-icon slot="prefix" name="files"></sl-icon>Duplicate</sl-menu-item>
+            <sl-divider></sl-divider>
+            <sl-menu-item style="color: var(--sl-color-danger-600);">
+              <sl-icon slot="prefix" name="trash"></sl-icon>Delete
+            </sl-menu-item>
+          </sl-menu>
+        </sl-dropdown>
+      </div>
+    </sl-card>
+
+    <sl-dialog id="dlg" label="Confirm deletion">
+      This will permanently delete the tenant.
+      <sl-button slot="footer" variant="default">Cancel</sl-button>
+      <sl-button slot="footer" variant="danger">Delete</sl-button>
+    </sl-dialog>
+
+    <sl-drawer id="drw" label="Filter">
+      <sl-select label="Status">
+        <sl-option value="active">Active</sl-option>
+        <sl-option value="disabled">Disabled</sl-option>
+      </sl-select>
+      <sl-button slot="footer" variant="primary">Apply</sl-button>
+    </sl-drawer>
+  </section>
+
+  <section class="section">
+    <h2>Tabs</h2>
+    <sl-tab-group>
+      <sl-tab slot="nav" panel="overview">Overview</sl-tab>
+      <sl-tab slot="nav" panel="members">Members</sl-tab>
+      <sl-tab slot="nav" panel="billing">Billing</sl-tab>
+      <sl-tab-panel name="overview">Overview content lives here.</sl-tab-panel>
+      <sl-tab-panel name="members">Members content lives here.</sl-tab-panel>
+      <sl-tab-panel name="billing">Billing content lives here.</sl-tab-panel>
+    </sl-tab-group>
+  </section>
+
+</main>
+
+<script>
+  document.getElementById('openDialog').addEventListener('click', () => document.getElementById('dlg').show());
+  document.getElementById('dlg').querySelectorAll('sl-button[slot="footer"]').forEach(b =>
+    b.addEventListener('click', () => document.getElementById('dlg').hide()));
+  document.getElementById('openDrawer').addEventListener('click', () => document.getElementById('drw').show());
+</script>
+
+</body>
+</html>

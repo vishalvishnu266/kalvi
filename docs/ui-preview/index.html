@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <title>UI Preview · School ERP</title>
+  <link rel="stylesheet" href="assets/app.build.css" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="assets/boot.js"></script>
+</head>
+<body class="admin-body">
+
+<header class="admin-header">
+  <div class="admin-header-inner">
+    <div class="brand-mark brand-mark-sm">
+      <i data-lucide="palette" class="w-5 h-5"></i>
+    </div>
+    <div>
+      <div class="text-sm font-semibold tracking-tight">School ERP · UI Preview</div>
+      <div class="text-xs text-zinc-500">Static previews of every screen — semantic classes only</div>
+    </div>
+    <div class="ml-auto flex items-center gap-1">
+      <button data-theme-toggle class="icon-btn" title="Toggle theme">
+        <i data-lucide="moon" class="w-4 h-4 hidden dark:inline"></i>
+        <i data-lucide="sun"  class="w-4 h-4 inline dark:hidden"></i>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-4xl mx-auto px-6 py-10 space-y-8">
+
+  <section>
+    <h2 class="text-lg font-semibold mb-3">Public</h2>
+    <div class="grid sm:grid-cols-2 gap-3">
+      <a class="card p-4 hover:border-brand-300 transition-colors" href="landing.html">
+        <div class="font-medium">landing.html</div>
+        <div class="text-xs text-zinc-500 mt-1">Marketing / hero</div>
+      </a>
+      <a class="card p-4 hover:border-brand-300 transition-colors" href="login.html">
+        <div class="font-medium">login.html</div>
+        <div class="text-xs text-zinc-500 mt-1">Staff login form</div>
+      </a>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="text-lg font-semibold mb-3">Authenticated app</h2>
+    <div class="grid sm:grid-cols-2 gap-3">
+      <a class="card p-4 hover:border-brand-300 transition-colors" href="dashboard.html">
+        <div class="font-medium">dashboard.html</div>
+        <div class="text-xs text-zinc-500 mt-1">Sidebar + topbar + launcher grid</div>
+      </a>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="text-lg font-semibold mb-3">Admin</h2>
+    <div class="grid sm:grid-cols-2 gap-3">
+      <a class="card p-4 hover:border-brand-300 transition-colors" href="admin/tenants.html">
+        <div class="font-medium">admin/tenants.html</div>
+        <div class="text-xs text-zinc-500 mt-1">Tenant list table</div>
+      </a>
+      <a class="card p-4 hover:border-brand-300 transition-colors" href="admin/new_tenant.html">
+        <div class="font-medium">admin/new_tenant.html</div>
+        <div class="text-xs text-zinc-500 mt-1">Tenant creation form</div>
+      </a>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="text-lg font-semibold mb-3">Portal (parents / students)</h2>
+    <div class="grid sm:grid-cols-2 gap-3">
+      <a class="card p-4 hover:border-brand-300 transition-colors" href="portal/index.html">
+        <div class="font-medium">portal/index.html</div>
+        <div class="text-xs text-zinc-500 mt-1">Simple portal landing</div>
+      </a>
+      <a class="card p-4 hover:border-brand-300 transition-colors" href="portal/home.html">
+        <div class="font-medium">portal/home.html</div>
+        <div class="text-xs text-zinc-500 mt-1">Linked tenants list</div>
+      </a>
+      <a class="card p-4 hover:border-brand-300 transition-colors" href="portal/login.html">
+        <div class="font-medium">portal/login.html</div>
+        <div class="text-xs text-zinc-500 mt-1">Portal login</div>
+      </a>
+      <a class="card p-4 hover:border-brand-300 transition-colors" href="portal/register.html">
+        <div class="font-medium">portal/register.html</div>
+        <div class="text-xs text-zinc-500 mt-1">Portal register</div>
+      </a>
+    </div>
+  </section>
+
+  <p class="text-xs text-zinc-500 text-center pt-6">
+    Edit templates directly — they load <code>assets/app.build.css</code>
+    (a copy of <code>static/app.build.css</code>).
+  </p>
+</main>
+
+</body>
+</html>

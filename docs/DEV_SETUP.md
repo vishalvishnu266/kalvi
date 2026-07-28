@@ -17,6 +17,41 @@ When it prints `Done`, open <http://127.0.0.1:3000/>. See
 [`../scripts/README.md`](../scripts/README.md) for the exact `curl`
 commands to create a tenant + admin user + hit the demo endpoints.
 
+### UI stack
+
+The UI is rendered by Askama templates and styled with **Shoelace** Web
+Components (loaded from a CDN — no build step, no npm required). Two
+small stylesheets under `static/` (`themes.css` for brand + font tokens
+and `app-shell.css` for chrome the library doesn't cover) provide the
+app shell.
+
+Three theming axes are wired through the topbar (and admin/portal/landing
+headers) and persisted in `localStorage` — see `static/boot.js`:
+
+| Axis        | Default   | Options                                                       | Applied as                       |
+| ----------- | --------- | ------------------------------------------------------------- | -------------------------------- |
+| Colour mode | auto      | `light`, `dark`                                               | `<html class="sl-theme-dark">`   |
+| Brand theme | `indigo`  | `indigo`, `regal`, `edu-blue`, `emerald`, `rose`              | `<html data-theme="…">`          |
+| Font pack   | `system`  | `system`, `inter`, `manrope`, `dm-sans`, `jakarta`, `outfit`  | `<html data-font="…">`           |
+
+Add a new brand theme by copying an existing `:root[data-theme="…"]`
+block in `themes.css` and appending an entry to `BRAND_THEMES` in
+`boot.js`. Fonts work the same way (`FONT_PACKS` + the Google Fonts
+`<link>` in each template head).
+
+### Auth (temporary)
+
+Login is currently **stubbed out** so the UI can be previewed without
+credentials. Every request that hits the web/portal middleware gets a
+synthetic `SessionUser` injected and every permission check passes.
+Look for `TODO(auth):` markers in:
+
+* `src/http/web/middleware.rs`
+* `src/http/portal/middleware.rs`
+* `src/middleware/auth.rs`
+
+Revert those three files to re-enable real cookie-based auth.
+
 ---
 
 ## What `dev_reset.sh` does

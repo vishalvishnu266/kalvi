@@ -1,23 +1,12 @@
-<nav class="md:hidden fixed bottom-0 inset-x-0 z-30
-            bg-white/90 backdrop-blur border-t border-zinc-200
-            dark:bg-zinc-950/90 dark:border-zinc-800
-            pb-[env(safe-area-inset-bottom)]">
-  <ul class="grid grid-cols-5">
-    {% for item in nav_items %}
-      {% if item.mobile %}
-      <li>
-        <a href="/web/{{ nav.tenant_id }}/{{ item.href }}" data-turbo-frame="page"
-           class="flex flex-col items-center justify-center gap-1 h-16
-                  {% if nav.active == item.key %}
-                    text-brand-600 dark:text-brand-400
-                  {% else %}
-                    text-zinc-500 dark:text-zinc-400
-                  {% endif %}">
-          <i data-lucide="{{ item.icon }}" class="w-5 h-5"></i>
-          <span class="text-[10px] font-medium">{{ item.label }}</span>
-        </a>
-      </li>
-      {% endif %}
-    {% endfor %}
-  </ul>
+<nav class="bottom-nav">
+  {% for item in nav_items %}
+    {% if item.mobile %}
+    <a href="/web/{{ nav.tenant_id }}/{{ item.href }}"
+       data-turbo-frame="page"
+       class="{% if nav.active == item.key %}active{% endif %}">
+      <sl-icon name="{{ item.icon }}"></sl-icon>
+      <span>{{ item.label }}</span>
+    </a>
+    {% endif %}
+  {% endfor %}
 </nav>

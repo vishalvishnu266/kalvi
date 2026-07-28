@@ -1,130 +1,73 @@
 <!doctype html>
-<html lang="en" class="h-full">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="color-scheme" content="light dark" />
   <title>Sign in · School ERP</title>
 
-  <script>
-    (function() {
-      try {
-        var t = localStorage.getItem('theme');
-        if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-          document.documentElement.classList.add('dark');
-        }
-      } catch (e) {}
-    })();
-  </script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.15.1/cdn/themes/light.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.15.1/cdn/themes/dark.css" />
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.15.1/cdn/shoelace-autoloader.js"></script>
 
-  <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
-  <script>
-    tailwind.config = { darkMode: 'class', theme: { extend: {
-      fontFamily: { sans: ['-apple-system','BlinkMacSystemFont','"SF Pro Text"','"SF Pro Display"','"Segoe UI"','Roboto','sans-serif'] },
-      colors: { brand: {50:'#eef2ff',400:'#818cf8',500:'#6366f1',600:'#4f46e5',700:'#4338ca'} }
-    }}};
-  </script>
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-  <link rel="stylesheet" href="/assets/app.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;550;600;700&family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" />
+
+  <link rel="stylesheet" href="/assets/themes.css" />
+  <link rel="stylesheet" href="/assets/app-shell.css" />
+  <script src="/assets/boot.js"></script>
 </head>
-<body class="min-h-full font-sans antialiased
-             bg-gradient-to-br from-zinc-50 via-white to-brand-50
-             dark:from-zinc-950 dark:via-zinc-950 dark:to-zinc-900
-             text-zinc-900 dark:text-zinc-100">
+<body class="auth-body">
 
-  <div class="min-h-screen flex items-center justify-center p-4">
-    <div class="w-full max-w-md">
-
-      <div class="flex flex-col items-center mb-8">
-        <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700
-                    flex items-center justify-center text-white shadow-lg shadow-brand-500/20">
-          <i data-lucide="school" class="w-7 h-7"></i>
-        </div>
-        <h1 class="mt-4 text-2xl font-semibold tracking-tight">Welcome back</h1>
-        <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Sign in to your School ERP</p>
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-brand">
+        <div class="brand-mark"><sl-icon name="mortarboard-fill"></sl-icon></div>
+        <h1>Welcome back</h1>
+        <p>Sign in to your School ERP</p>
       </div>
 
-      <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-hairline
-                  border border-zinc-200 dark:border-zinc-800 p-6 sm:p-8">
-
+      <sl-card>
         {% if let Some(err) = error %}
-        <div class="mb-4 flex items-start gap-3 p-3 rounded-lg
-                    bg-rose-50 border border-rose-200 text-rose-800
-                    dark:bg-rose-500/10 dark:border-rose-500/30 dark:text-rose-300">
-          <i data-lucide="alert-circle" class="w-4 h-4 mt-0.5"></i>
-          <div class="text-sm">{{ err }}</div>
-        </div>
+        <sl-alert variant="danger" open class="alert">
+          <sl-icon slot="icon" name="exclamation-octagon"></sl-icon>
+          {{ err }}
+        </sl-alert>
         {% endif %}
 
-        <form method="post" action="/web/login" data-turbo="false" class="space-y-4">
-          <div>
-            <label class="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1.5">
-              Tenant / School ID
-            </label>
-            <div class="relative">
-              <i data-lucide="building-2" class="w-4 h-4 absolute left-3 top-3 text-zinc-400"></i>
-              {% if tenant_locked %}
-              <input name="tenant" required readonly value="{{ tenant }}"
-                     class="w-full pl-9 pr-3 py-2.5 rounded-lg text-sm cursor-not-allowed
-                            bg-zinc-100 border border-zinc-200 text-zinc-600
-                            dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-300" />
-              {% else %}
-              <input name="tenant" required value="{{ tenant }}" placeholder="e.g. acme"
-                     class="w-full pl-9 pr-3 py-2.5 rounded-lg text-sm
-                            bg-zinc-50 border border-zinc-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
-                            dark:bg-zinc-800 dark:border-zinc-700 dark:focus:border-brand-500" />
-              {% endif %}
-            </div>
-          </div>
+        <form method="post" action="/web/login" data-turbo="false" class="auth-fields">
+          {% if tenant_locked %}
+          <sl-input name="tenant" label="Tenant / School ID" required readonly value="{{ tenant }}">
+            <sl-icon slot="prefix" name="building"></sl-icon>
+          </sl-input>
+          {% else %}
+          <sl-input name="tenant" label="Tenant / School ID" required value="{{ tenant }}" placeholder="e.g. acme">
+            <sl-icon slot="prefix" name="building"></sl-icon>
+          </sl-input>
+          {% endif %}
 
-          <div>
-            <label class="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1.5">
-              Username or Email
-            </label>
-            <div class="relative">
-              <i data-lucide="user" class="w-4 h-4 absolute left-3 top-3 text-zinc-400"></i>
-              <input name="identifier" required value="{{ identifier }}" autocomplete="username"
-                     class="w-full pl-9 pr-3 py-2.5 rounded-lg text-sm
-                            bg-zinc-50 border border-zinc-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
-                            dark:bg-zinc-800 dark:border-zinc-700 dark:focus:border-brand-500" />
-            </div>
-          </div>
+          <sl-input name="identifier" label="Username or Email" required value="{{ identifier }}" autocomplete="username">
+            <sl-icon slot="prefix" name="person"></sl-icon>
+          </sl-input>
 
-          <div>
-            <div class="flex items-center justify-between mb-1.5">
-              <label class="block text-xs font-medium text-zinc-600 dark:text-zinc-400">Password</label>
-              <a href="#" class="text-xs text-brand-600 dark:text-brand-400 hover:underline">Forgot?</a>
-            </div>
-            <div class="relative">
-              <i data-lucide="lock" class="w-4 h-4 absolute left-3 top-3 text-zinc-400"></i>
-              <input type="password" name="password" required autocomplete="current-password"
-                     class="w-full pl-9 pr-3 py-2.5 rounded-lg text-sm
-                            bg-zinc-50 border border-zinc-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
-                            dark:bg-zinc-800 dark:border-zinc-700 dark:focus:border-brand-500" />
-            </div>
-          </div>
+          <sl-input name="password" type="password" label="Password" required autocomplete="current-password" password-toggle>
+            <sl-icon slot="prefix" name="lock"></sl-icon>
+          </sl-input>
 
-          <label class="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
-            <input type="checkbox" class="rounded border-zinc-300 text-brand-600 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-600" />
-            Remember me on this device
+          <label class="remember">
+            <sl-checkbox name="remember">Remember me on this device</sl-checkbox>
           </label>
 
-          <button type="submit"
-                  class="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium
-                         bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800
-                         shadow-sm shadow-brand-600/20 transition-colors">
-            <span>Sign in</span>
-            <i data-lucide="arrow-right" class="w-4 h-4"></i>
-          </button>
+          <sl-button type="submit" variant="primary" size="medium">
+            <sl-icon slot="suffix" name="arrow-right"></sl-icon>
+            Sign in
+          </sl-button>
         </form>
-      </div>
+      </sl-card>
 
-      <p class="mt-6 text-center text-xs text-zinc-500 dark:text-zinc-400">
-        &copy; 2026 School ERP · Secure multi-tenant portal
-      </p>
+      <p class="auth-footer">&copy; 2026 School ERP · Secure multi-tenant portal</p>
     </div>
   </div>
-
-  <script>lucide.createIcons();</script>
 </body>
 </html>

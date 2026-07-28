@@ -1,122 +1,78 @@
 <!doctype html>
-<html lang="en" class="h-full">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="light dark" />
   <title>New Tenant · Admin · School ERP</title>
 
-  <script>
-    (function() {
-      try {
-        var t = localStorage.getItem('theme');
-        if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-          document.documentElement.classList.add('dark');
-        }
-      } catch (e) {}
-    })();
-  </script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.15.1/cdn/themes/light.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.15.1/cdn/themes/dark.css" />
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.15.1/cdn/shoelace-autoloader.js"></script>
 
-  <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
-  <script>
-    tailwind.config = { darkMode: 'class', theme: { extend: {
-      fontFamily: { sans: ['-apple-system','BlinkMacSystemFont','"SF Pro Text"','"Segoe UI"','Roboto','sans-serif'] },
-      colors: { brand: {50:'#eef2ff',400:'#818cf8',500:'#6366f1',600:'#4f46e5',700:'#4338ca'} }
-    }}};
-  </script>
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-  <link rel="stylesheet" href="/assets/app.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;550;600;700&family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" />
+
+  <link rel="stylesheet" href="/assets/themes.css" />
+  <link rel="stylesheet" href="/assets/app-shell.css" />
+  <script src="/assets/boot.js"></script>
 </head>
-<body class="min-h-full font-sans antialiased
-             bg-zinc-50 text-zinc-900
-             dark:bg-zinc-950 dark:text-zinc-100">
+<body class="admin-body">
 
-  <header class="border-b border-zinc-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/70 backdrop-blur">
-    <div class="max-w-3xl mx-auto px-6 py-4 flex items-center gap-3">
-      <a href="/admin/tenants"
-         class="w-8 h-8 rounded-lg flex items-center justify-center
-                text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800">
-        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+  <header class="admin-header">
+    <div class="admin-header-inner" style="max-width: 48rem;">
+      <a href="/admin/tenants" class="icon-btn-link" aria-label="Back">
+        <sl-icon name="arrow-left"></sl-icon>
       </a>
       <div>
-        <div class="text-sm font-semibold tracking-tight">New tenant</div>
-        <div class="text-xs text-zinc-500">Create a tenant row and provision its database</div>
+        <div class="admin-title">New tenant</div>
+        <div class="admin-subtitle">Create a tenant row and provision its database</div>
+      </div>
+      <div class="admin-actions">
+        <sl-select data-font-picker  size="small" hoist placeholder="Font"></sl-select>
+        <sl-select data-brand-picker size="small" hoist placeholder="Theme"></sl-select>
+        <sl-tooltip content="Toggle light/dark">
+          <sl-icon-button name="moon-stars" label="Toggle theme" data-theme-toggle></sl-icon-button>
+        </sl-tooltip>
       </div>
     </div>
   </header>
 
-  <main class="max-w-3xl mx-auto px-6 py-8">
+  <main class="admin-main" style="max-width: 48rem;">
     {% if let Some(msg) = error %}
-    <div class="mb-4 p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-800
-                dark:bg-rose-500/10 dark:border-rose-500/30 dark:text-rose-300 text-sm">
+    <sl-alert variant="danger" open closable class="alert">
+      <sl-icon slot="icon" name="exclamation-octagon"></sl-icon>
       {{ msg }}
-    </div>
+    </sl-alert>
     {% endif %}
 
-    <form method="post" action="/admin/tenants"
-          class="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800
-                 p-6 sm:p-8 space-y-5 shadow-sm">
+    <form method="post" action="/admin/tenants" class="admin-form">
       <div>
-        <label class="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1.5">
-          Tenant ID
-        </label>
-        <input name="tenant_id" required pattern="[A-Za-z0-9_-]{1,64}"
-               value="{{ form.tenant_id }}"
-               placeholder="acme"
-               class="w-full px-3 py-2.5 rounded-lg text-sm font-mono
-                      bg-zinc-50 border border-zinc-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
-                      dark:bg-zinc-800 dark:border-zinc-700 dark:focus:border-brand-500" />
-        <p class="mt-1 text-xs text-zinc-500">Short slug used in URLs (<code>/web/&lt;id&gt;/</code>). Letters, digits, <code>-</code>, <code>_</code>.</p>
+        <sl-input name="tenant_id" label="Tenant ID" required pattern="[A-Za-z0-9_-]{1,64}"
+                  value="{{ form.tenant_id }}" placeholder="acme">
+        </sl-input>
+        <p class="hint">Short slug used in URLs (<code>/web/&lt;id&gt;/</code>). Letters, digits, <code>-</code>, <code>_</code>.</p>
       </div>
 
-      <div>
-        <label class="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1.5">
-          Display name
-        </label>
-        <input name="name" required value="{{ form.name }}"
-               placeholder="Acme Public School"
-               class="w-full px-3 py-2.5 rounded-lg text-sm
-                      bg-zinc-50 border border-zinc-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
-                      dark:bg-zinc-800 dark:border-zinc-700 dark:focus:border-brand-500" />
+      <sl-input name="name" label="Display name" required value="{{ form.name }}" placeholder="Acme Public School">
+      </sl-input>
+
+      <div class="row-2">
+        <sl-input name="plan" label="Plan (optional)" value="{{ form.plan }}"
+                  placeholder="starter / pro / enterprise"></sl-input>
+        <sl-input name="notes" label="Notes (optional)" value="{{ form.notes }}"
+                  placeholder="Internal notes"></sl-input>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1.5">
-            Plan (optional)
-          </label>
-          <input name="plan" value="{{ form.plan }}"
-                 placeholder="starter / pro / enterprise"
-                 class="w-full px-3 py-2.5 rounded-lg text-sm
-                        bg-zinc-50 border border-zinc-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
-                        dark:bg-zinc-800 dark:border-zinc-700 dark:focus:border-brand-500" />
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1.5">
-            Notes (optional)
-          </label>
-          <input name="notes" value="{{ form.notes }}"
-                 placeholder="Internal notes"
-                 class="w-full px-3 py-2.5 rounded-lg text-sm
-                        bg-zinc-50 border border-zinc-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
-                        dark:bg-zinc-800 dark:border-zinc-700 dark:focus:border-brand-500" />
-        </div>
-      </div>
-
-      <div class="flex items-center justify-end gap-2 pt-2">
-        <a href="/admin/tenants"
-           class="px-4 py-2 rounded-lg text-sm text-zinc-700 hover:bg-zinc-100
-                  dark:text-zinc-300 dark:hover:bg-zinc-800">Cancel</a>
-        <button type="submit"
-                class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
-                       bg-brand-600 text-white hover:bg-brand-700 shadow-sm shadow-brand-600/20">
-          <i data-lucide="check" class="w-4 h-4"></i>
-          <span>Create tenant</span>
-        </button>
+      <div class="admin-form-actions">
+        <sl-button href="/admin/tenants" variant="default">Cancel</sl-button>
+        <sl-button type="submit" variant="primary">
+          <sl-icon slot="prefix" name="check2"></sl-icon>
+          Create tenant
+        </sl-button>
       </div>
     </form>
   </main>
-
-  <script>lucide.createIcons();</script>
 </body>
 </html>

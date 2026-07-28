@@ -35,8 +35,11 @@ fn tiles() -> &'static [Tile] {
         href: "demo",
         label: "Demo",
         description: "Reference module wiring",
-        icon: "sparkles",
-        gradient: "from-violet-500 to-purple-600",
+        // Shoelace / Bootstrap icon name (see https://icons.getbootstrap.com/).
+        icon: "stars",
+        // Semantic tile class defined in `static/app-shell.css` — replaces the
+        // old Tailwind `from-*/to-*` dynamic gradient string.
+        gradient: "tile-violet",
         perm: Some(&[DEMO_VIEW]),
     }]
 }

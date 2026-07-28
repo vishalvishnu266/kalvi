@@ -49,7 +49,8 @@ pub fn nav_items() -> &'static [NavItem] {
             key: "dashboard",
             label: "Dashboard",
             href: "",
-            icon: "layout-dashboard",
+            // Shoelace / Bootstrap icon name (https://icons.getbootstrap.com/).
+            icon: "grid-1x2-fill",
             mobile: true,
             perm: None,
         },
@@ -57,7 +58,7 @@ pub fn nav_items() -> &'static [NavItem] {
             key: "demo",
             label: "Demo",
             href: "demo",
-            icon: "sparkles",
+            icon: "stars",
             mobile: true,
             perm: Some(&[DEMO_VIEW]),
         },

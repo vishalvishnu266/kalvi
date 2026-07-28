@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Dashboard · School ERP</title>
+  <link rel="stylesheet" href="assets/app.build.css" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="assets/boot.js"></script>
+</head>
+<body class="app-body">
+
+<div class="app-shell">
+
+  <!-- ═════════════ Sidebar (desktop) ═════════════ -->
+  <aside class="app-sidebar">
+    <div class="app-sidebar-brand">
+      <div class="brand-mark brand-mark-sm">
+        <i data-lucide="school" class="w-5 h-5"></i>
+      </div>
+      <div class="font-semibold tracking-tight">School ERP</div>
+    </div>
+
+    <nav class="app-sidebar-nav">
+      <ul class="app-sidebar-list">
+        <li><a href="#" class="nav-link-active group">
+          <i data-lucide="home" class="nav-link-icon-active"></i><span>Dashboard</span>
+        </a></li>
+        <li><a href="#" class="nav-link group">
+          <i data-lucide="users" class="nav-link-icon"></i><span>Students</span>
+        </a></li>
+        <li><a href="#" class="nav-link group">
+          <i data-lucide="calendar-check" class="nav-link-icon"></i><span>Attendance</span>
+        </a></li>
+        <li><a href="#" class="nav-link group">
+          <i data-lucide="book-open" class="nav-link-icon"></i><span>Academics</span>
+        </a></li>
+        <li><a href="#" class="nav-link group">
+          <i data-lucide="wallet" class="nav-link-icon"></i><span>Fees</span>
+        </a></li>
+        <li><a href="#" class="nav-link group">
+          <i data-lucide="bus" class="nav-link-icon"></i><span>Transport</span>
+        </a></li>
+        <li><a href="#" class="nav-link group">
+          <i data-lucide="settings" class="nav-link-icon"></i><span>Settings</span>
+        </a></li>
+      </ul>
+    </nav>
+
+    <div class="app-sidebar-foot">
+      <div class="app-sidebar-user">
+        <div class="avatar-chip avatar-chip-sm">J</div>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-medium truncate">Jane Doe</div>
+          <div class="text-[11px] text-zinc-500 truncate">Tenant · acme</div>
+        </div>
+        <button class="p-1.5 rounded-md text-zinc-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10" title="Sign out">
+          <i data-lucide="log-out" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+  </aside>
+  <div class="app-sidebar-spacer"></div>
+
+  <!-- ═════════════ Main column ═════════════ -->
+  <div class="app-main-col">
+
+    <!-- Topbar -->
+    <header class="app-header">
+      <div class="md:hidden flex items-center gap-2">
+        <div class="brand-mark brand-mark-sm">
+          <i data-lucide="school" class="w-5 h-5"></i>
+        </div>
+      </div>
+
+      <h1 class="text-lg font-semibold tracking-tight truncate">Dashboard</h1>
+
+      <span class="badge badge-neutral ml-2 border border-zinc-200 dark:border-zinc-700">acme</span>
+
+      <div class="ml-auto flex items-center gap-1">
+        <button class="topbar-search">
+          <i data-lucide="search" class="w-4 h-4"></i>
+          <span>Search…</span>
+          <kbd class="kbd ml-2">⌘K</kbd>
+        </button>
+        <button data-theme-toggle class="icon-btn" title="Toggle theme">
+          <i data-lucide="moon" class="w-4 h-4 hidden dark:inline"></i>
+          <i data-lucide="sun"  class="w-4 h-4 inline dark:hidden"></i>
+        </button>
+        <button class="icon-btn relative" title="Notifications">
+          <i data-lucide="bell" class="w-4 h-4"></i>
+        </button>
+        <div class="avatar-chip avatar-chip-md md:hidden ml-1">J</div>
+      </div>
+    </header>
+
+    <!-- Content -->
+    <main class="app-content">
+
+      <div class="greeting">
+        <h2 class="greeting-title">
+          Welcome, <span class="text-gradient-brand">Jane Doe</span>
+        </h2>
+        <p class="greeting-sub">
+          Pick a module to get started · Tenant ·
+          <span class="font-medium text-zinc-700 dark:text-zinc-300">acme</span>
+        </p>
+      </div>
+
+      <!-- Spotlight-style search -->
+      <div class="max-w-xl mx-auto mb-8">
+        <div class="relative">
+          <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-3.5 text-zinc-400 pointer-events-none"></i>
+          <input type="search" placeholder="Search apps… (⌘K)" class="input-search" />
+          <kbd class="kbd absolute right-3 top-2.5">⌘K</kbd>
+        </div>
+      </div>
+
+      <!-- Launcher grid -->
+      <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-4 sm:gap-6">
+
+        <a href="#" class="menu-tile group">
+          <div class="tile-icon bg-gradient-to-br from-blue-500 to-indigo-600">
+            <i data-lucide="users" class="w-7 h-7 sm:w-9 sm:h-9 drop-shadow"></i>
+          </div>
+          <div class="tile-label">Students</div>
+          <div class="tile-desc">Enrolment · profiles</div>
+        </a>
+
+        <a href="#" class="menu-tile group">
+          <div class="tile-icon bg-gradient-to-br from-emerald-500 to-teal-600">
+            <i data-lucide="calendar-check" class="w-7 h-7 sm:w-9 sm:h-9 drop-shadow"></i>
+          </div>
+          <div class="tile-label">Attendance</div>
+          <div class="tile-desc">Daily · monthly</div>
+        </a>
+
+        <a href="#" class="menu-tile group">
+          <div class="tile-icon bg-gradient-to-br from-fuchsia-500 to-pink-600">
+            <i data-lucide="book-open" class="w-7 h-7 sm:w-9 sm:h-9 drop-shadow"></i>
+          </div>
+          <div class="tile-label">Academics</div>
+          <div class="tile-desc">Curriculum · exams</div>
+        </a>
+
+        <a href="#" class="menu-tile group">
+          <div class="tile-icon bg-gradient-to-br from-amber-500 to-orange-600">
+            <i data-lucide="wallet" class="w-7 h-7 sm:w-9 sm:h-9 drop-shadow"></i>
+          </div>
+          <div class="tile-label">Fees</div>
+          <div class="tile-desc">Invoices · dues</div>
+        </a>
+
+        <a href="#" class="menu-tile group">
+          <div class="tile-icon bg-gradient-to-br from-cyan-500 to-sky-600">
+            <i data-lucide="bus" class="w-7 h-7 sm:w-9 sm:h-9 drop-shadow"></i>
+          </div>
+          <div class="tile-label">Transport</div>
+          <div class="tile-desc">Routes · stops</div>
+        </a>
+
+        <a href="#" class="menu-tile group">
+          <div class="tile-icon bg-gradient-to-br from-rose-500 to-red-600">
+            <i data-lucide="bed" class="w-7 h-7 sm:w-9 sm:h-9 drop-shadow"></i>
+          </div>
+          <div class="tile-label">Hostel</div>
+          <div class="tile-desc">Rooms · allocations</div>
+        </a>
+
+        <a href="#" class="menu-tile group">
+          <div class="tile-icon bg-gradient-to-br from-slate-500 to-zinc-700">
+            <i data-lucide="settings" class="w-7 h-7 sm:w-9 sm:h-9 drop-shadow"></i>
+          </div>
+          <div class="tile-label">Settings</div>
+          <div class="tile-desc">Tenant · users</div>
+        </a>
+      </div>
+
+      <!-- Bottom hint -->
+      <div class="mt-10 flex items-center justify-center gap-2 text-xs text-zinc-400 dark:text-zinc-500">
+        <i data-lucide="keyboard" class="w-3.5 h-3.5"></i>
+        <span>
+          Tip · Press <kbd class="kbd">⌘K</kbd> to focus search ·
+          <kbd class="kbd">Enter</kbd> to open first result ·
+          <kbd class="kbd">Esc</kbd> to clear
+        </span>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ═════════════ Bottom nav (mobile) ═════════════ -->
+<nav class="app-bottom-nav">
+  <ul class="grid grid-cols-5">
+    <li><a href="#" class="tab-active"><i data-lucide="home"           class="w-5 h-5"></i><span class="text-[10px] font-medium">Home</span></a></li>
+    <li><a href="#" class="tab"       ><i data-lucide="users"          class="w-5 h-5"></i><span class="text-[10px] font-medium">Students</span></a></li>
+    <li><a href="#" class="tab"       ><i data-lucide="calendar-check" class="w-5 h-5"></i><span class="text-[10px] font-medium">Attend.</span></a></li>
+    <li><a href="#" class="tab"       ><i data-lucide="wallet"         class="w-5 h-5"></i><span class="text-[10px] font-medium">Fees</span></a></li>
+    <li><a href="#" class="tab"       ><i data-lucide="user"           class="w-5 h-5"></i><span class="text-[10px] font-medium">Me</span></a></li>
+  </ul>
+</nav>
+
+</body>
+</html>

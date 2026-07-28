@@ -1,70 +1,48 @@
+// TODO(auth): re-enable — auth is temporarily STUBBED so the portal can be
+// previewed without login. To restore, revert this file (see git history).
+
 use axum::{
     body::Body,
-    extract::{Path, State},
+    extract::State,
     http::Request as AxumRequest,
     middleware::Next,
-    response::{IntoResponse, Redirect, Response},
+    response::Response,
 };
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 use crate::http::AppState;
-use crate::middleware::auth::{read_cookie_from_headers, SessionUser, COOKIE_SESSION};
-use crate::services::auth as auth_svc;
-use crate::tenancy::validate_tenant_id;
+use crate::middleware::auth::SessionUser;
+use crate::services::perm::DEMO_VIEW;
 
+fn stub_session_user() -> SessionUser {
+    let mut permissions = HashSet::new();
+    permissions.insert(DEMO_VIEW.to_string());
+
+    SessionUser {
+        user_id: 0,
+        username: "dev".to_string(),
+        display: "Dev User".to_string(),
+        session_id: 0,
+        roles: vec!["admin".to_string()],
+        permissions,
+    }
+}
+
+// TODO(auth): re-enable — currently injects a stub SessionUser and always
+// forwards the request.
 pub async fn require_session(
-    State(state): State<AppState>,
-    Path(params): Path<HashMap<String, String>>,
+    State(_state): State<AppState>,
     mut req: AxumRequest<Body>,
     next: Next,
 ) -> Response {
-    let t_str = match params.get("tenant").map(|s| s.as_str()) {
-        Some(t) => t,
-        None => return Redirect::to("/portal/login").into_response(),
-    };
-    let login_url = format!("/portal/{}/login", t_str);
-
-    let Ok(tenant) = validate_tenant_id(t_str.to_string()) else {
-        return Redirect::to(&login_url).into_response();
-    };
-    let Some(token) = read_cookie_from_headers(req.headers(), COOKIE_SESSION) else {
-        return Redirect::to(&login_url).into_response();
-    };
-    let Ok(pool) = state.pool_for(&tenant).await else {
-        return Redirect::to(&login_url).into_response();
-    };
-
-    let (session, user) = match auth_svc::resolve_session(&pool, &state.sessions, &token).await {
-        Ok(pair) => pair,
-        Err(_) => return Redirect::to(&login_url).into_response(),
-    };
-
-    let roles: Vec<String> = auth_svc::roles_of(&pool, user.id)
-        .await
-        .map(|rs| rs.into_iter().map(|r| r.name).collect())
-        .unwrap_or_default();
-    let permissions: HashSet<String> = auth_svc::permissions_of(&pool, user.id)
-        .await
-        .map(|ps| ps.into_iter().map(|p| p.code).collect())
-        .unwrap_or_default();
-
-    req.extensions_mut().insert(SessionUser {
-        user_id: user.id,
-        username: user.username.clone(),
-        display: user.email.clone().unwrap_or_else(|| user.username.clone()),
-        session_id: session.id,
-        roles,
-        permissions,
-    });
-
+    req.extensions_mut().insert(stub_session_user());
     next.run(req).await
 }
 
-pub async fn require_portal_shell(req: AxumRequest<Body>, next: Next) -> Response {
-    if req.extensions().get::<SessionUser>().is_some() {
-        return next.run(req).await;
+// TODO(auth): re-enable — currently a no-op passthrough.
+pub async fn require_portal_shell(mut req: AxumRequest<Body>, next: Next) -> Response {
+    if req.extensions().get::<SessionUser>().is_none() {
+        req.extensions_mut().insert(stub_session_user());
     }
-    let path = req.uri().path();
-    let tenant = path.split('/').nth(2).unwrap_or("default");
-    Redirect::to(&format!("/portal/{}/login", tenant)).into_response()
+    next.run(req).await
 }

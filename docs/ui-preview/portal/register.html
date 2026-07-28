@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Portal Register · School ERP</title>
+  <link rel="stylesheet" href="../assets/app.build.css" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="../assets/boot.js"></script>
+</head>
+<body class="auth-body">
+
+<main class="max-w-md mx-auto px-6 py-10">
+  <h1 class="text-2xl font-semibold tracking-tight mb-4">Create Portal Account</h1>
+
+  <section class="card card-body">
+    <form action="login.html" class="space-y-4">
+      <div class="field">
+        <label class="field-label">Username</label>
+        <input name="username" class="input" />
+      </div>
+      <div class="field">
+        <label class="field-label">Email</label>
+        <input name="email" type="email" class="input" />
+      </div>
+      <div class="field">
+        <label class="field-label">Password</label>
+        <input name="password" type="password" minlength="8" class="input" />
+      </div>
+      <button type="submit" class="btn btn-primary w-full">Register</button>
+    </form>
+
+    <p class="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
+      Already have an account?
+      <a href="login.html" class="text-brand-600 dark:text-brand-400 hover:underline">Sign in</a>
+    </p>
+  </section>
+</main>
+
+</body>
+</html>
