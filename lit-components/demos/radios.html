@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ui-radio · demo</title>
+  <link rel="stylesheet" href="../assets/tokens.css">
+  <link rel="stylesheet" href="../assets/global.css">
+  <link rel="stylesheet" href="./_page.css">
+  <script type="module" src="../components/index.js"></script>
+  <script type="module" src="./_shell.js"></script>
+</head>
+<body>
+  <header class="demo-header">
+    <a class="brand" href="./index.html">← Lit playground</a>
+    <h1>ui-radio</h1>
+    <button id="demo-theme">Toggle theme</button>
+  </header>
+  <nav id="demo-nav"></nav>
+
+  <main class="demo">
+    <section>
+      <h2>Basic group (vertical)</h2>
+      <ui-radio-group name="grade" value="5" id="g1">
+        <ui-radio value="4">Grade 4</ui-radio>
+        <ui-radio value="5">Grade 5</ui-radio>
+        <ui-radio value="6">Grade 6</ui-radio>
+        <ui-radio value="7" disabled>Grade 7 (full)</ui-radio>
+      </ui-radio-group>
+      <p id="log" class="muted" style="margin-top: var(--space-3);">value: 5</p>
+    </section>
+
+    <section>
+      <h2>Horizontal</h2>
+      <ui-radio-group name="tone" value="mild" orientation="horizontal">
+        <ui-radio value="mild">Mild</ui-radio>
+        <ui-radio value="medium">Medium</ui-radio>
+        <ui-radio value="hot">Hot</ui-radio>
+        <ui-radio value="extra">Extra hot</ui-radio>
+      </ui-radio-group>
+    </section>
+
+    <section>
+      <h2>Usage</h2>
+<pre class="code">&lt;ui-radio-group name="grade" value="5"&gt;
+  &lt;ui-radio value="4"&gt;Grade 4&lt;/ui-radio&gt;
+  &lt;ui-radio value="5"&gt;Grade 5&lt;/ui-radio&gt;
+&lt;/ui-radio-group&gt;</pre>
+    </section>
+  </main>
+
+  <script type="module">
+    document.getElementById('g1').addEventListener('ui-change', (e) => {
+      document.getElementById('log').textContent = `value: ${e.detail.value}`;
+    });
+  </script>
+</body>
+</html>

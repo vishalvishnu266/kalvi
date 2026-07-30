@@ -21,6 +21,15 @@ import './ui-select.js';
 import './ui-datepicker.js';
 import './ui-daterange.js';
 import './ui-toast.js';
+// Tier-1 form + data components
+import './ui-checkbox.js';
+import './ui-radio.js';
+import './ui-switch.js';
+import './ui-form.js';
+import './ui-combobox.js';
+import './ui-pagination.js';
+import './ui-empty-state.js';
+import './ui-skeleton.js';
 import './app-shell.js';
 
 // ---- Restore saved theme + primary color before first paint ----

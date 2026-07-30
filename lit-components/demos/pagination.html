@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ui-pagination · demo</title>
+  <link rel="stylesheet" href="../assets/tokens.css">
+  <link rel="stylesheet" href="../assets/global.css">
+  <link rel="stylesheet" href="./_page.css">
+  <script type="module" src="../components/index.js"></script>
+  <script type="module" src="./_shell.js"></script>
+</head>
+<body>
+  <header class="demo-header">
+    <a class="brand" href="./index.html">← Lit playground</a>
+    <h1>ui-pagination</h1>
+    <button id="demo-theme">Toggle theme</button>
+  </header>
+  <nav id="demo-nav"></nav>
+
+  <main class="demo">
+    <section>
+      <h2>Small dataset</h2>
+      <ui-pagination page="1" total="24" per-page="10"></ui-pagination>
+    </section>
+
+    <section>
+      <h2>Large dataset</h2>
+      <ui-pagination id="p1" page="5" total="425" per-page="20"></ui-pagination>
+      <p id="log" class="muted" style="margin-top: var(--space-3);">page 5, showing 81–100 of 425</p>
+    </section>
+
+    <section>
+      <h2>Empty</h2>
+      <ui-pagination page="1" total="0" per-page="10"></ui-pagination>
+    </section>
+
+    <section>
+      <h2>Usage</h2>
+<pre class="code">&lt;ui-pagination page="3" total="125" per-page="10"&gt;&lt;/ui-pagination&gt;
+
+el.addEventListener('ui-change', (e) =&gt; {
+  const { page, from, to } = e.detail;
+});</pre>
+    </section>
+  </main>
+
+  <script type="module">
+    document.getElementById('p1').addEventListener('ui-change', (e) => {
+      document.getElementById('log').textContent =
+        `page ${e.detail.page}, showing ${e.detail.from}–${e.detail.to} of 425`;
+    });
+  </script>
+</body>
+</html>

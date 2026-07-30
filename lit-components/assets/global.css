@@ -19,6 +19,15 @@ ui-datepicker:not(:defined),
 ui-daterange:not(:defined),
 ui-toast:not(:defined),
 ui-toast-host:not(:defined),
+ui-checkbox:not(:defined),
+ui-radio:not(:defined),
+ui-radio-group:not(:defined),
+ui-switch:not(:defined),
+ui-form:not(:defined),
+ui-combobox:not(:defined),
+ui-pagination:not(:defined),
+ui-empty-state:not(:defined),
+ui-skeleton:not(:defined),
 app-shell:not(:defined) {
   visibility: hidden;
 }
@@ -26,7 +35,10 @@ app-shell:not(:defined) {
 ui-icon, ui-button, ui-card, ui-badge, ui-input,
 ui-stat, ui-avatar, ui-list-item, ui-table, ui-tab-bar,
 ui-segmented, ui-modal, ui-select, ui-datepicker, ui-daterange,
-ui-toast, ui-toast-host, app-shell {
+ui-toast, ui-toast-host,
+ui-checkbox, ui-radio, ui-radio-group, ui-switch,
+ui-form, ui-combobox, ui-pagination, ui-empty-state, ui-skeleton,
+app-shell {
   animation: uc-fade-in 180ms ease-out both;
 }
 @keyframes uc-fade-in { from { opacity: 0; } to { opacity: 1; } }

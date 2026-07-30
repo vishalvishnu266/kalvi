@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ui-empty-state · demo</title>
+  <link rel="stylesheet" href="../assets/tokens.css">
+  <link rel="stylesheet" href="../assets/global.css">
+  <link rel="stylesheet" href="./_page.css">
+  <script type="module" src="../components/index.js"></script>
+  <script type="module" src="./_shell.js"></script>
+</head>
+<body>
+  <header class="demo-header">
+    <a class="brand" href="./index.html">← Lit playground</a>
+    <h1>ui-empty-state</h1>
+    <button id="demo-theme">Toggle theme</button>
+  </header>
+  <nav id="demo-nav"></nav>
+
+  <main class="demo">
+    <section>
+      <h2>Empty list</h2>
+      <ui-card>
+        <ui-empty-state
+          icon="users"
+          title="No students yet"
+          description="Add your first student to see attendance, grades, and fees here.">
+          <ui-button slot="actions" icon="plus">Add student</ui-button>
+          <ui-button slot="actions" variant="secondary" icon="upload">Import CSV</ui-button>
+        </ui-empty-state>
+      </ui-card>
+    </section>
+
+    <section>
+      <h2>Compact (inline in a card)</h2>
+      <ui-card title="Announcements" subtitle="Recent" padded>
+        <ui-empty-state
+          compact
+          icon="bell"
+          title="Nothing to announce"
+          description="Create an announcement to send to all guardians.">
+          <ui-button slot="actions" size="sm" icon="plus">New announcement</ui-button>
+        </ui-empty-state>
+      </ui-card>
+    </section>
+
+    <section>
+      <h2>Usage</h2>
+<pre class="code">&lt;ui-empty-state
+  icon="users"
+  title="No students yet"
+  description="Add your first student to see attendance and grades here."&gt;
+  &lt;ui-button slot="actions" icon="plus"&gt;Add student&lt;/ui-button&gt;
+&lt;/ui-empty-state&gt;</pre>
+    </section>
+  </main>
+</body>
+</html>

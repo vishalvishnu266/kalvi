@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ui-skeleton · demo</title>
+  <link rel="stylesheet" href="../assets/tokens.css">
+  <link rel="stylesheet" href="../assets/global.css">
+  <link rel="stylesheet" href="./_page.css">
+  <script type="module" src="../components/index.js"></script>
+  <script type="module" src="./_shell.js"></script>
+</head>
+<body>
+  <header class="demo-header">
+    <a class="brand" href="./index.html">← Lit playground</a>
+    <h1>ui-skeleton</h1>
+    <button id="demo-theme">Toggle theme</button>
+  </header>
+  <nav id="demo-nav"></nav>
+
+  <main class="demo">
+    <section>
+      <h2>Shapes</h2>
+      <div class="stack" style="max-width: 320px;">
+        <ui-skeleton></ui-skeleton>
+        <ui-skeleton width="60%"></ui-skeleton>
+        <ui-skeleton shape="rect" height="120"></ui-skeleton>
+        <ui-skeleton shape="circle" width="48"></ui-skeleton>
+      </div>
+    </section>
+
+    <section>
+      <h2>Multi-line paragraph</h2>
+      <div style="max-width: 400px;">
+        <ui-skeleton lines="4"></ui-skeleton>
+      </div>
+    </section>
+
+    <section>
+      <h2>Card loading state</h2>
+      <ui-card padded>
+        <div style="display: flex; gap: var(--space-3); align-items: center;">
+          <ui-skeleton shape="circle" width="40"></ui-skeleton>
+          <div style="flex: 1;">
+            <ui-skeleton width="140px"></ui-skeleton>
+            <div style="height: 6px"></div>
+            <ui-skeleton width="90px" height="10px"></ui-skeleton>
+          </div>
+        </div>
+        <div style="height: 12px"></div>
+        <ui-skeleton lines="3"></ui-skeleton>
+        <div style="height: 12px"></div>
+        <ui-skeleton shape="rect" height="80"></ui-skeleton>
+      </ui-card>
+    </section>
+
+    <section>
+      <h2>Usage</h2>
+<pre class="code">&lt;ui-skeleton&gt;&lt;/ui-skeleton&gt;
+&lt;ui-skeleton width="60%"&gt;&lt;/ui-skeleton&gt;
+&lt;ui-skeleton shape="circle" width="40"&gt;&lt;/ui-skeleton&gt;
+&lt;ui-skeleton lines="3"&gt;&lt;/ui-skeleton&gt;</pre>
+    </section>
+  </main>
+</body>
+</html>
