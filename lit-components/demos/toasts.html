@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ui-toast · demo</title>
+  <link rel="stylesheet" href="../assets/tokens.css">
+  <link rel="stylesheet" href="../assets/global.css">
+  <link rel="stylesheet" href="./_page.css">
+  <script type="module" src="../components/index.js"></script>
+  <script type="module" src="./_shell.js"></script>
+</head>
+<body>
+  <header class="demo-header">
+    <a class="brand" href="./index.html">← Lit playground</a>
+    <h1>ui-toast</h1>
+    <button id="demo-theme">Toggle theme</button>
+  </header>
+  <nav id="demo-nav"></nav>
+
+  <main class="demo">
+    <section>
+      <h2>Trigger</h2>
+      <p class="muted">Use <code>window.toast(title, { tone, desc, duration })</code> from anywhere.</p>
+      <div class="example-grid">
+        <ui-button id="ok">Success</ui-button>
+        <ui-button id="warn" variant="secondary">Warning</ui-button>
+        <ui-button id="err"  variant="danger">Danger</ui-button>
+        <ui-button id="info" variant="ghost">Info</ui-button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Usage</h2>
+<pre class="code">toast('Saved!', { tone: 'success', desc: 'Now on the server.' });</pre>
+    </section>
+  </main>
+
+  <script type="module">
+    document.getElementById('ok').addEventListener('ui-click',   () => toast('Saved!',      { tone: 'success', desc: 'Your work has been saved.' }));
+    document.getElementById('warn').addEventListener('ui-click', () => toast('Heads up',    { tone: 'warning', desc: 'You have 2 pending invoices.' }));
+    document.getElementById('err').addEventListener('ui-click',  () => toast('Failed',      { tone: 'danger',  desc: 'Could not reach the server.' }));
+    document.getElementById('info').addEventListener('ui-click', () => toast('New release', { tone: 'info',    desc: 'v0.2 rolling out today.' }));
+  </script>
+</body>
+</html>

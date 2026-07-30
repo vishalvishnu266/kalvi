@@ -1,0 +1,4 @@
+# Lit is bundled once into components/vendor/lit-all.min.js — that file IS
+# committed. The npm install artifacts are only needed to regenerate it.
+node_modules/
+package-lock.json

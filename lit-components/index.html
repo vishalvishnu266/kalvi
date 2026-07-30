@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Lit Components · Test Page</title>
+
+  <!-- Tokens must load in the light DOM: shadow roots INHERIT them from :root -->
+  <link rel="stylesheet" href="./assets/tokens.css" />
+  <link rel="stylesheet" href="./assets/global.css" />
+
+  <!-- Load & auto-register every component. -->
+  <script type="module" src="./components/index.js"></script>
+</head>
+<body>
+  <main style="max-width: 960px; margin: 0 auto; padding: var(--space-6);">
+
+    <!-- =========================================================
+         Header + theme controls
+         All configuration flows through HTML attributes only —
+         this is what makes the syntax portable to a future
+         Rust / Vaadin-like DSL.
+         ========================================================= -->
+    <header class="row" style="margin-bottom: var(--space-6);">
+      <div class="grow">
+        <h1 style="font-size: var(--fs-2xl);">Lit Components Playground</h1>
+        <p class="muted">
+          Porting <code>webcomponents/</code> to LitElement — DSL-friendly.
+          Every component has its own demo page in
+          <a href="./demos/index.html">demos/</a>.
+        </p>
+      </div>
+      <a href="./demos/index.html">
+        <ui-button variant="secondary" size="sm" icon="grid">All demos →</ui-button>
+      </a>
+
+      <ui-button id="toggle-theme" variant="secondary" size="sm" icon="moon">
+        Toggle theme
+      </ui-button>
+
+      <label class="row" style="gap: 6px;">
+        <span class="muted" style="font-size: var(--fs-xs);">Primary</span>
+        <input id="primary-picker" type="color" value="#0a84ff"
+               style="width: 32px; height: 32px; border: 1px solid var(--color-border-strong); border-radius: 6px; padding: 0; background: var(--color-surface);" />
+      </label>
+    </header>
+
+    <div class="stack">
+
+      <!-- ------------------------------------------------------- Buttons -->
+      <ui-card title="Buttons" subtitle="variant × size × icon" padded>
+        <div class="row" style="gap: var(--space-3);">
+          <ui-button>Primary</ui-button>
+          <ui-button variant="secondary">Secondary</ui-button>
+          <ui-button variant="ghost">Ghost</ui-button>
+          <ui-button variant="danger">Danger</ui-button>
+          <ui-button disabled>Disabled</ui-button>
+        </div>
+
+        <div class="row" style="gap: var(--space-3); margin-top: var(--space-4);">
+          <ui-button size="sm" icon="plus">Small</ui-button>
+          <ui-button size="md" icon="search">Medium</ui-button>
+          <ui-button size="lg" icon="check">Large</ui-button>
+          <ui-button variant="ghost" icon="settings">Settings</ui-button>
+        </div>
+
+        <div style="margin-top: var(--space-4);">
+          <ui-button full variant="secondary" icon="bell">
+            Full-width secondary button
+          </ui-button>
+        </div>
+
+        <p class="muted" style="margin-top: var(--space-4); font-size: var(--fs-xs);">
+          <span id="click-log">Click a button — the last emitted <code>ui-click</code> shows here.</span>
+        </p>
+      </ui-card>
+
+      <!-- ------------------------------------------------------- Badges -->
+      <ui-card title="Badges" subtitle="tones + optional dot" padded>
+        <div class="row" style="gap: var(--space-2);">
+          <ui-badge>Neutral</ui-badge>
+          <ui-badge tone="success" dot>Present</ui-badge>
+          <ui-badge tone="warning" dot>Late</ui-badge>
+          <ui-badge tone="danger"  dot>Absent</ui-badge>
+          <ui-badge tone="info"    dot>Info</ui-badge>
+          <ui-badge tone="brand">Brand</ui-badge>
+        </div>
+      </ui-card>
+
+      <!-- ------------------------------------------------------- Inputs -->
+      <ui-card title="Inputs" subtitle="text, password, textarea, invalid" padded>
+        <div class="stack" style="gap: var(--space-4);">
+          <ui-input
+            label="Full name"
+            name="fullName"
+            placeholder="e.g. Aarav Kumar"
+            required></ui-input>
+
+          <ui-input
+            type="password"
+            label="Password"
+            name="password"
+            hint="At least 8 characters"
+            required></ui-input>
+
+          <ui-input
+            type="email"
+            label="Email"
+            name="email"
+            placeholder="you@example.com"
+            invalid
+            hint="Please enter a valid email address"></ui-input>
+
+          <ui-input
+            type="textarea"
+            label="Notes"
+            name="notes"
+            placeholder="Anything else…"
+            hint="Optional"></ui-input>
+        </div>
+
+        <p class="muted" style="margin-top: var(--space-4); font-size: var(--fs-xs);">
+          <span id="input-log">Type in a field — the last emitted <code>ui-input</code> event shows here.</span>
+        </p>
+      </ui-card>
+
+      <!-- ------------------------------------------------------- Icons -->
+      <ui-card title="Icons" subtitle="Lucide-inspired inline SVG paths" padded>
+        <div class="row" style="gap: var(--space-4); font-size: 24px;">
+          <ui-icon name="home"     size="24"></ui-icon>
+          <ui-icon name="users"    size="24"></ui-icon>
+          <ui-icon name="search"   size="24"></ui-icon>
+          <ui-icon name="plus"     size="24"></ui-icon>
+          <ui-icon name="check"    size="24"></ui-icon>
+          <ui-icon name="x"        size="24"></ui-icon>
+          <ui-icon name="bell"     size="24"></ui-icon>
+          <ui-icon name="settings" size="24"></ui-icon>
+          <ui-icon name="sun"      size="24"></ui-icon>
+          <ui-icon name="moon"     size="24"></ui-icon>
+        </div>
+      </ui-card>
+
+      <!-- ------------------------------------------------------- Card with slotted actions -->
+      <ui-card title="Composition demo"
+               subtitle="A card with slotted actions and nested components"
+               padded>
+        <div slot="actions">
+          <ui-button size="sm" variant="ghost" icon="settings">Configure</ui-button>
+        </div>
+
+        <div class="stack">
+          <p>You can nest any components inside slots — <code>ui-badge</code>, <code>ui-button</code>, <code>ui-icon</code>…</p>
+          <div class="row">
+            <ui-badge tone="success" dot>Live</ui-badge>
+            <ui-badge tone="brand">v0.1</ui-badge>
+            <ui-icon name="check"></ui-icon>
+            <span class="muted">Everything themable from a single CSS variable set.</span>
+          </div>
+          <div>
+            <ui-button icon="plus">Add item</ui-button>
+            <ui-button variant="secondary" icon="search">Search</ui-button>
+          </div>
+        </div>
+      </ui-card>
+
+    </div>
+  </main>
+
+  <script type="module">
+    // ---- Theme toggle ----
+    const themeBtn = document.getElementById('toggle-theme');
+    themeBtn.addEventListener('ui-click', () => {
+      const isDark = document.documentElement.dataset.theme === 'dark';
+      const next = isDark ? 'light' : 'dark';
+      document.documentElement.dataset.theme = next;
+      localStorage.setItem('erp.theme', next);
+      themeBtn.setAttribute('icon', next === 'dark' ? 'sun' : 'moon');
+      themeBtn.textContent = next === 'dark' ? 'Light mode' : 'Dark mode';
+    });
+
+    // ---- Primary color ----
+    const picker = document.getElementById('primary-picker');
+    picker.addEventListener('input', (e) => {
+      document.documentElement.style.setProperty('--color-primary', e.target.value);
+      localStorage.setItem('erp.primary', e.target.value);
+    });
+
+    // ---- Event listeners to prove custom events bubble ----
+    const clickLog = document.getElementById('click-log');
+    document.addEventListener('ui-click', (e) => {
+      const label = e.target.textContent.trim();
+      clickLog.textContent = `Last ui-click → "${label}"`;
+    });
+
+    const inputLog = document.getElementById('input-log');
+    document.addEventListener('ui-input', (e) => {
+      inputLog.textContent = `Last ui-input → ${e.detail.name} = "${e.detail.value}"`;
+    });
+  </script>
+</body>
+</html>

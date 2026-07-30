@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ui-stat · demo</title>
+  <link rel="stylesheet" href="../assets/tokens.css">
+  <link rel="stylesheet" href="../assets/global.css">
+  <link rel="stylesheet" href="./_page.css">
+  <script type="module" src="../components/index.js"></script>
+  <script type="module" src="./_shell.js"></script>
+</head>
+<body>
+  <header class="demo-header">
+    <a class="brand" href="./index.html">← Lit playground</a>
+    <h1>ui-stat</h1>
+    <button id="demo-theme">Toggle theme</button>
+  </header>
+  <nav id="demo-nav"></nav>
+
+  <main class="demo">
+    <section>
+      <h2>Trends</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-4);">
+        <ui-stat label="Present today" value="412" delta="+3.2%" trend="up" icon="check"></ui-stat>
+        <ui-stat label="Late arrivals" value="18"  delta="+1.1%" trend="up" icon="bell"></ui-stat>
+        <ui-stat label="Absent"        value="7"   delta="-0.5%" trend="down" icon="x"></ui-stat>
+        <ui-stat label="On leave"      value="12"  delta="0%"    trend="flat" icon="users"></ui-stat>
+      </div>
+    </section>
+
+    <section>
+      <h2>Usage</h2>
+<pre class="code">&lt;ui-stat label="Present today" value="412" delta="+3.2%" trend="up" icon="check"&gt;&lt;/ui-stat&gt;</pre>
+    </section>
+  </main>
+</body>
+</html>

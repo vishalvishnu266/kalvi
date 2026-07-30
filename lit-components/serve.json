@@ -1,0 +1,13 @@
+{
+  "//": "Config for `npx serve` (and Vercel's `serve` package).",
+  "//1": "cleanUrls=false → keep the .html extension; no 301 redirect games.",
+  "//2": "trailingSlash=false → /foo.html is NOT rewritten to /foo/.",
+  "//3": "directoryListing=false so /demos/ falls through to demos/index.html.",
+  "cleanUrls": false,
+  "trailingSlash": false,
+  "directoryListing": false,
+  "rewrites": [
+    { "source": "/demos", "destination": "/demos/index.html" },
+    { "source": "/demos/:name", "destination": "/demos/:name.html" }
+  ]
+}

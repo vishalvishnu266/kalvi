@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ui-datepicker · demo</title>
+  <link rel="stylesheet" href="../assets/tokens.css">
+  <link rel="stylesheet" href="../assets/global.css">
+  <link rel="stylesheet" href="./_page.css">
+  <script type="module" src="../components/index.js"></script>
+  <script type="module" src="./_shell.js"></script>
+</head>
+<body>
+  <header class="demo-header">
+    <a class="brand" href="./index.html">← Lit playground</a>
+    <h1>ui-datepicker</h1>
+    <button id="demo-theme">Toggle theme</button>
+  </header>
+  <nav id="demo-nav"></nav>
+
+  <main class="demo">
+    <section>
+      <h2>Basic</h2>
+      <ui-datepicker id="dp" label="Date of birth" value="2015-08-12"></ui-datepicker>
+      <p id="log" class="muted">Value: 2015-08-12</p>
+    </section>
+
+    <section>
+      <h2>Empty (no default)</h2>
+      <ui-datepicker label="Admission date" placeholder="Pick a date…"></ui-datepicker>
+    </section>
+
+    <section>
+      <h2>Usage</h2>
+<pre class="code">&lt;ui-datepicker label="Date of birth" value="2015-08-12"&gt;&lt;/ui-datepicker&gt;</pre>
+    </section>
+  </main>
+
+  <script type="module">
+    document.getElementById('dp').addEventListener('ui-change', (e) => {
+      document.getElementById('log').textContent = `Value: ${e.detail.value || '(cleared)'}`;
+    });
+  </script>
+</body>
+</html>

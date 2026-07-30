@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ERP Component Gallery · Standalone</title>
+  
+  <link rel="stylesheet" href="/themes.css" />
+  <link rel="stylesheet" href="/app-shell.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  
+  <style>
+    body { 
+      margin: 0; 
+      padding: 0;
+      background: var(--bg-gradient); 
+      color: var(--color-text);
+      min-height: 100vh;
+      font-family: var(--font-sans);
+    }
+
+    .gallery-shell {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      height: 100vh;
+    }
+
+    .gallery-sidebar {
+      background: var(--chrome-bg);
+      backdrop-filter: var(--chrome-blur);
+      border-right: 1px solid var(--chrome-border);
+      padding: var(--space-6);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-8);
+      overflow-y: auto;
+    }
+
+    .gallery-main {
+      padding: var(--space-10);
+      overflow-y: auto;
+      scroll-behavior: smooth;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+
+    .control-label {
+      font-size: var(--fs-xs);
+      font-weight: var(--fw-bold);
+      text-transform: uppercase;
+      color: var(--color-text-subtle);
+      letter-spacing: 0.05em;
+    }
+
+    .section-nav {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .section-nav a {
+      display: block;
+      padding: var(--space-2) 0;
+      color: var(--color-text-muted);
+      text-decoration: none;
+      font-size: var(--fs-sm);
+      transition: color 0.2s;
+    }
+
+    .section-nav a:hover { color: var(--color-primary); }
+
+    .comp-section {
+      margin-bottom: var(--space-12);
+      scroll-margin-top: var(--space-10);
+    }
+
+    .comp-header {
+      margin-bottom: var(--space-6);
+      padding-bottom: var(--space-3);
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .preview-box {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-xl);
+      padding: var(--space-8);
+      box-shadow: var(--shadow-md);
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-6);
+      align-items: center;
+    }
+
+    .dark-toggle {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      cursor: pointer;
+      padding: var(--space-3);
+      background: var(--color-surface-alt);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--color-border);
+    }
+
+    input[type="color"] {
+      width: 100%;
+      height: 40px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      background: none;
+    }
+  </style>
+
+  <script type="module" src="/components/index.js"></script>
+</head>
+<body>
+  <div class="gallery-shell">
+    <aside class="gallery-sidebar">
+      <div>
+        <h2 style="margin: 0 0 var(--space-1); font-size: var(--fs-xl);">ERP UI Kit</h2>
+        <p style="font-size: var(--fs-xs); color: var(--color-text-subtle);">Standalone Preview</p>
+      </div>
+
+      <div class="control-group">
+        <div class="control-label">Appearance</div>
+        <button class="dark-toggle" onclick="toggleTheme()">
+          <ui-icon name="moon-stars" id="theme-icon"></ui-icon>
+          <span id="theme-text">Switch to Dark</span>
+        </button>
+      </div>
+
+      <div class="control-group">
+        <div class="control-label">Primary Color</div>
+        <input type="color" id="primary-picker" value="#0a84ff" oninput="updatePrimary(this.value)">
+      </div>
+
+      <div class="control-group">
+        <div class="control-label">Navigation</div>
+        <nav>
+          <ul class="section-nav">
+            <li><a href="#buttons">Buttons & Icons</a></li>
+            <li><a href="#badges">Badges & Avatars</a></li>
+            <li><a href="#stats">Statistics</a></li>
+            <li><a href="#forms">Form Elements</a></li>
+            <li><a href="#data">Data Display</a></li>
+            <li><a href="#navigation">Navigation</a></li>
+            <li><a href="#overlays">Overlays & Feedback</a></li>
+          </ul>
+        </nav>
+      </div>
+    </aside>
+
+    <main class="gallery-main">
+      <section id="buttons" class="comp-section">
+        <div class="comp-header">
+          <h3>Buttons & Icons</h3>
+        </div>
+        <div class="preview-box">
+          <ui-button variant="primary">Primary Action</ui-button>
+          <ui-button variant="secondary">Secondary</ui-button>
+          <ui-button variant="ghost" icon="gear">Settings</ui-button>
+          <ui-button variant="danger" icon="trash">Delete Item</ui-button>
+          <ui-button size="sm">Small</ui-button>
+          <ui-button size="lg">Large Button</ui-button>
+        </div>
+      </section>
+
+      <section id="badges" class="comp-section">
+        <div class="comp-header">
+          <h3>Badges & Avatars</h3>
+        </div>
+        <div class="preview-box">
+          <ui-badge variant="primary">New</ui-badge>
+          <ui-badge variant="success" pill>Active</ui-badge>
+          <ui-badge variant="warning">Pending</ui-badge>
+          <ui-badge variant="danger">High Risk</ui-badge>
+          <div style="width: 100%; height: 20px;"></div>
+          <ui-avatar initials="JD"></ui-avatar>
+          <ui-avatar initials="AS" size="lg" shape="square"></ui-avatar>
+          <ui-avatar src="https://i.pravatar.cc/100" size="xl"></ui-avatar>
+        </div>
+      </section>
+
+      <section id="stats" class="comp-section">
+        <div class="comp-header">
+          <h3>Statistics</h3>
+        </div>
+        <div class="ui-grid" style="--grid-cols: 1; --grid-cols-md: 2; width: 100%;">
+          <ui-stat label="Annual Revenue" value="$42,500" delta="+12%" delta-type="up"></ui-stat>
+          <ui-stat label="Active Students" value="1,240" delta="-2%" delta-type="down"></ui-stat>
+        </div>
+      </section>
+
+      <section id="forms" class="comp-section">
+        <div class="comp-header">
+          <h3>Form Elements</h3>
+        </div>
+        <div class="preview-box" style="display: block;">
+          <div style="max-width: 400px; display: flex; flex-direction: column; gap: var(--space-4);">
+            <ui-input label="Full Name" placeholder="e.g. John Doe"></ui-input>
+            <ui-select label="User Role" id="demo-select"></ui-select>
+            <ui-datepicker label="Joining Date"></ui-datepicker>
+            <ui-daterange label="Leave Period"></ui-daterange>
+            <ui-segmented id="demo-seg" value="list"></ui-segmented>
+          </div>
+        </div>
+      </section>
+
+      <section id="data" class="comp-section">
+        <div class="comp-header">
+          <h3>Data Display</h3>
+        </div>
+        <ui-card>
+          <div slot="header">Recent Transactions</div>
+          <ui-table id="demo-table"></ui-table>
+          <div slot="footer" style="display: flex; justify-content: flex-end;">
+            <ui-button variant="ghost">View All</ui-button>
+          </div>
+        </ui-card>
+      </section>
+
+      <section id="navigation" class="comp-section">
+        <div class="comp-header">
+          <h3>Navigation</h3>
+        </div>
+        <div class="preview-box" style="display: block;">
+          <ui-tab-bar id="demo-tabs" active="overview"></ui-tab-bar>
+          <div style="margin-top: var(--space-6);">
+            <ui-list-item label="System Settings" sublabel="Manage global configurations" icon="gear"></ui-list-item>
+            <ui-list-item label="Security Audit" sublabel="Last checked 2 hours ago" icon="shield-check" active></ui-list-item>
+          </div>
+        </div>
+      </section>
+
+      <section id="overlays" class="comp-section">
+        <div class="comp-header">
+          <h3>Overlays & Feedback</h3>
+        </div>
+        <div class="preview-box">
+          <ui-button variant="primary" onclick="document.getElementById('demo-modal').open = true">Open Modal</ui-button>
+          <ui-button variant="secondary" onclick="document.getElementById('demo-toast').show()">Show Toast</ui-button>
+          
+          <ui-modal id="demo-modal" label="Confirm Action">
+            <p>Are you sure you want to proceed with this operation? This action cannot be undone.</p>
+            <div style="display: flex; justify-content: flex-end; gap: var(--space-3); margin-top: var(--space-6);">
+              <ui-button variant="ghost" onclick="document.getElementById('demo-modal').open = false">Cancel</ui-button>
+              <ui-button variant="primary" onclick="document.getElementById('demo-modal').open = false">Confirm</ui-button>
+            </div>
+          </ui-modal>
+
+          <ui-toast id="demo-toast" variant="success">Changes saved successfully!</ui-toast>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // Theme Logic
+    function toggleTheme() {
+      const html = document.documentElement;
+      const isDark = html.dataset.theme === 'dark';
+      const nextTheme = isDark ? 'light' : 'dark';
+      
+      html.dataset.theme = nextTheme;
+      document.getElementById('theme-text').textContent = isDark ? 'Switch to Dark' : 'Switch to Light';
+      document.getElementById('theme-icon').name = isDark ? 'moon-stars' : 'sun';
+      localStorage.setItem('erp.theme', nextTheme);
+    }
+
+    // Primary Color Logic
+    function updatePrimary(color) {
+      document.documentElement.style.setProperty('--color-primary', color);
+      localStorage.setItem('erp.primary', color);
+    }
+
+    // Init Data for complex components
+    window.addEventListener('load', () => {
+      // Restore Theme
+      const savedTheme = localStorage.getItem('erp.theme');
+      if (savedTheme) {
+        document.documentElement.dataset.theme = savedTheme;
+        if (savedTheme === 'dark') {
+          document.getElementById('theme-text').textContent = 'Switch to Light';
+          document.getElementById('theme-icon').name = 'sun';
+        }
+      }
+
+      // Restore Primary
+      const savedPrimary = localStorage.getItem('erp.primary');
+      if (savedPrimary) {
+        updatePrimary(savedPrimary);
+        document.getElementById('primary-picker').value = savedPrimary;
+      }
+
+      // Setup Select
+      document.getElementById('demo-select').options = [
+        { label: 'Administrator', value: 'admin' },
+        { label: 'Teacher', value: 'teacher' },
+        { label: 'Student', value: 'student' }
+      ];
+
+      // Setup Segmented
+      document.getElementById('demo-seg').options = [
+        { label: 'Grid', value: 'grid', icon: 'grid' },
+        { label: 'List', value: 'list', icon: 'list-ul' }
+      ];
+
+      // Setup Tabs
+      document.getElementById('demo-tabs').tabs = [
+        { label: 'Overview', value: 'overview', icon: 'speedometer2' },
+        { label: 'Analytics', value: 'analytics', icon: 'bar-chart' },
+        { label: 'Settings', value: 'settings', icon: 'gear' }
+      ];
+
+      // Setup Table
+      const table = document.getElementById('demo-table');
+      table.columns = [
+        { key: 'id', header: 'ID' },
+        { key: 'user', header: 'User' },
+        { key: 'status', header: 'Status' },
+        { key: 'amount', header: 'Amount' }
+      ];
+      table.data = [
+        { id: 'TX-101', user: 'John Doe', status: 'Completed', amount: '$120.00' },
+        { id: 'TX-102', user: 'Jane Smith', status: 'Pending', amount: '$85.50' },
+        { id: 'TX-103', user: 'Alex Ross', status: 'Completed', amount: '$240.00' }
+      ];
+    });
+  </script>
+</body>
+</html>

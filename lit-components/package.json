@@ -1,0 +1,19 @@
+{
+  "name": "lit-components",
+  "version": "1.0.0",
+  "description": "This folder is the **LitElement port** of `webcomponents/school-erp-wireframe/components/`.\r It preserves the existing tag names (`ui-button`, `ui-card`, `ui-input`, …) and design\r tokens, but drops the hand-rolled `BaseElement` in favor of [Lit](https://lit.dev),\r which gives us reactive properties, efficient template diffing, and better DX.",
+  "main": "index.js",
+  "scripts": {
+    "vendor-lit": "node scripts/vendor-lit.mjs"
+  },
+  "type": "module",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "lit": "^3.3.3"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.1"
+  }
+}

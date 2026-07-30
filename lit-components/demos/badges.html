@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ui-badge · demo</title>
+  <link rel="stylesheet" href="../assets/tokens.css">
+  <link rel="stylesheet" href="../assets/global.css">
+  <link rel="stylesheet" href="./_page.css">
+  <script type="module" src="../components/index.js"></script>
+  <script type="module" src="./_shell.js"></script>
+</head>
+<body>
+  <header class="demo-header">
+    <a class="brand" href="./index.html">← Lit playground</a>
+    <h1>ui-badge</h1>
+    <button id="demo-theme">Toggle theme</button>
+  </header>
+  <nav id="demo-nav"></nav>
+
+  <main class="demo">
+    <section>
+      <h2>Tones</h2>
+      <div class="example-grid">
+        <ui-badge>Neutral</ui-badge>
+        <ui-badge tone="brand">Brand</ui-badge>
+        <ui-badge tone="success">Success</ui-badge>
+        <ui-badge tone="warning">Warning</ui-badge>
+        <ui-badge tone="danger">Danger</ui-badge>
+        <ui-badge tone="info">Info</ui-badge>
+      </div>
+    </section>
+
+    <section>
+      <h2>With dot</h2>
+      <div class="example-grid">
+        <ui-badge tone="success" dot>Present</ui-badge>
+        <ui-badge tone="warning" dot>Late</ui-badge>
+        <ui-badge tone="danger" dot>Absent</ui-badge>
+        <ui-badge tone="info" dot>Live</ui-badge>
+      </div>
+    </section>
+
+    <section>
+      <h2>Usage</h2>
+<pre class="code">&lt;ui-badge tone="success" dot&gt;Present&lt;/ui-badge&gt;</pre>
+    </section>
+  </main>
+</body>
+</html>

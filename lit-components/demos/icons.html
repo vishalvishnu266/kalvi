@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ui-icon · demo</title>
+  <link rel="stylesheet" href="../assets/tokens.css">
+  <link rel="stylesheet" href="../assets/global.css">
+  <link rel="stylesheet" href="./_page.css">
+  <script type="module" src="../components/index.js"></script>
+  <script type="module" src="./_shell.js"></script>
+</head>
+<body>
+  <header class="demo-header">
+    <a class="brand" href="./index.html">← Lit playground</a>
+    <h1>ui-icon</h1>
+    <button id="demo-theme">Toggle theme</button>
+  </header>
+  <nav id="demo-nav"></nav>
+
+  <main class="demo">
+    <section>
+      <h2>All available icons</h2>
+      <p class="muted">Icons inherit <code>currentColor</code>; theme + primary color affect them automatically.</p>
+      <div class="example-grid" style="font-size: 24px;">
+        <ui-icon name="home"     size="24"></ui-icon>
+        <ui-icon name="users"    size="24"></ui-icon>
+        <ui-icon name="search"   size="24"></ui-icon>
+        <ui-icon name="plus"     size="24"></ui-icon>
+        <ui-icon name="check"    size="24"></ui-icon>
+        <ui-icon name="x"        size="24"></ui-icon>
+        <ui-icon name="bell"     size="24"></ui-icon>
+        <ui-icon name="settings" size="24"></ui-icon>
+        <ui-icon name="sun"      size="24"></ui-icon>
+        <ui-icon name="moon"     size="24"></ui-icon>
+      </div>
+    </section>
+
+    <section>
+      <h2>Sizes</h2>
+      <div class="example-grid">
+        <ui-icon name="bell" size="12"></ui-icon>
+        <ui-icon name="bell" size="18"></ui-icon>
+        <ui-icon name="bell" size="24"></ui-icon>
+        <ui-icon name="bell" size="32"></ui-icon>
+        <ui-icon name="bell" size="48"></ui-icon>
+      </div>
+    </section>
+
+    <section>
+      <h2>Usage</h2>
+<pre class="code">&lt;ui-icon name="home" size="24"&gt;&lt;/ui-icon&gt;</pre>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ui-button · demo</title>
+  <link rel="stylesheet" href="../assets/tokens.css">
+  <link rel="stylesheet" href="../assets/global.css">
+  <link rel="stylesheet" href="./_page.css">
+  <script type="module" src="../components/index.js"></script>
+  <script type="module" src="./_shell.js"></script>
+</head>
+<body>
+  <header class="demo-header">
+    <a class="brand" href="./index.html">← Lit playground</a>
+    <h1>ui-button</h1>
+    <button id="demo-theme">Toggle theme</button>
+  </header>
+  <nav id="demo-nav"></nav>
+
+  <main class="demo">
+    <section>
+      <h2>Variants</h2>
+      <div class="example-grid">
+        <ui-button>Primary</ui-button>
+        <ui-button variant="secondary">Secondary</ui-button>
+        <ui-button variant="ghost">Ghost</ui-button>
+        <ui-button variant="danger">Danger</ui-button>
+        <ui-button disabled>Disabled</ui-button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Sizes</h2>
+      <div class="example-grid">
+        <ui-button size="sm" icon="plus">Small</ui-button>
+        <ui-button size="md" icon="search">Medium</ui-button>
+        <ui-button size="lg" icon="check">Large</ui-button>
+      </div>
+    </section>
+
+    <section>
+      <h2>With icons</h2>
+      <div class="example-grid">
+        <ui-button icon="plus">Add</ui-button>
+        <ui-button variant="ghost" icon="settings">Settings</ui-button>
+        <ui-button variant="secondary" icon="bell">Notify</ui-button>
+        <ui-button variant="danger" icon="x">Delete</ui-button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Full-width</h2>
+      <ui-button full variant="secondary" icon="check">Save changes</ui-button>
+    </section>
+
+    <section>
+      <h2>Events</h2>
+      <p class="muted">Every click emits a bubbling <code>ui-click</code> event.</p>
+      <ui-button icon="bell">Click me</ui-button>
+      <p id="log" class="muted">—</p>
+    </section>
+
+    <section>
+      <h2>Usage</h2>
+<pre class="code">&lt;ui-button variant="primary" size="md" icon="plus"&gt;Add student&lt;/ui-button&gt;</pre>
+    </section>
+  </main>
+
+  <script type="module">
+    document.addEventListener('ui-click', (e) => {
+      document.getElementById('log').textContent =
+        `Last ui-click → "${e.target.textContent.trim()}"`;
+    });
+  </script>
+</body>
+</html>

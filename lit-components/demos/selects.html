@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ui-select · demo</title>
+  <link rel="stylesheet" href="../assets/tokens.css">
+  <link rel="stylesheet" href="../assets/global.css">
+  <link rel="stylesheet" href="./_page.css">
+  <script type="module" src="../components/index.js"></script>
+  <script type="module" src="./_shell.js"></script>
+</head>
+<body>
+  <header class="demo-header">
+    <a class="brand" href="./index.html">← Lit playground</a>
+    <h1>ui-select</h1>
+    <button id="demo-theme">Toggle theme</button>
+  </header>
+  <nav id="demo-nav"></nav>
+
+  <main class="demo">
+    <section>
+      <h2>Basic</h2>
+      <ui-select label="Grade" placeholder="Pick a grade" value="5-B" id="s1">
+        <option value="5-A">Grade 5-A</option>
+        <option value="5-B">Grade 5-B</option>
+        <option value="6-A">Grade 6-A</option>
+        <option value="6-B" disabled>Grade 6-B (full)</option>
+        <option value="7-A">Grade 7-A</option>
+      </ui-select>
+      <p id="log" class="muted">—</p>
+    </section>
+
+    <section>
+      <h2>Searchable + clearable</h2>
+      <ui-select label="Subject" placeholder="Search subjects…" searchable clearable id="s2">
+        <option value="math">Mathematics</option>
+        <option value="sci">Science</option>
+        <option value="eng">English</option>
+        <option value="hist">History</option>
+        <option value="geo">Geography</option>
+        <option value="cs">Computer Science</option>
+        <option value="art">Art</option>
+        <option value="music">Music</option>
+      </ui-select>
+    </section>
+
+    <section>
+      <h2>Multiple</h2>
+      <ui-select label="Extra-curricular" placeholder="Choose activities" searchable multiple id="s3">
+        <option value="cricket">Cricket</option>
+        <option value="chess">Chess</option>
+        <option value="music">Music</option>
+        <option value="debate">Debate</option>
+        <option value="robotics">Robotics</option>
+      </ui-select>
+    </section>
+
+    <section>
+      <h2>Usage</h2>
+<pre class="code">&lt;ui-select label="Grade" value="5-B" searchable clearable&gt;
+  &lt;option value="5-A"&gt;Grade 5-A&lt;/option&gt;
+  &lt;option value="5-B"&gt;Grade 5-B&lt;/option&gt;
+&lt;/ui-select&gt;</pre>
+    </section>
+  </main>
+
+  <script type="module">
+    ['s1','s2','s3'].forEach(id => {
+      document.getElementById(id).addEventListener('ui-change', (e) => {
+        document.getElementById('log').textContent =
+          `${id} → value="${e.detail.value}", labels=[${e.detail.labels.join(', ')}]`;
+      });
+    });
+  </script>
+</body>
+</html>

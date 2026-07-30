@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ui-input · demo</title>
+  <link rel="stylesheet" href="../assets/tokens.css">
+  <link rel="stylesheet" href="../assets/global.css">
+  <link rel="stylesheet" href="./_page.css">
+  <script type="module" src="../components/index.js"></script>
+  <script type="module" src="./_shell.js"></script>
+</head>
+<body>
+  <header class="demo-header">
+    <a class="brand" href="./index.html">← Lit playground</a>
+    <h1>ui-input</h1>
+    <button id="demo-theme">Toggle theme</button>
+  </header>
+  <nav id="demo-nav"></nav>
+
+  <main class="demo">
+    <section>
+      <h2>Types</h2>
+      <div class="stack">
+        <ui-input label="Full name" name="fullName" placeholder="e.g. Aarav Kumar" required></ui-input>
+        <ui-input type="email" label="Email" name="email" placeholder="you@example.com"></ui-input>
+        <ui-input type="password" label="Password" name="password" hint="At least 8 characters"></ui-input>
+        <ui-input type="number" label="Age" name="age" placeholder="0"></ui-input>
+        <ui-input type="textarea" label="Notes" name="notes" placeholder="Anything else…" hint="Optional"></ui-input>
+      </div>
+    </section>
+
+    <section>
+      <h2>Invalid</h2>
+      <ui-input
+        label="Email"
+        type="email"
+        name="email"
+        placeholder="you@example.com"
+        invalid
+        hint="Please enter a valid email address"></ui-input>
+    </section>
+
+    <section>
+      <h2>Events</h2>
+      <p class="muted"><code>ui-input</code> fires on keystroke; <code>ui-change</code> fires on commit.</p>
+      <ui-input label="Type here" name="test" placeholder="Try me…"></ui-input>
+      <p id="log" class="muted">—</p>
+    </section>
+
+    <section>
+      <h2>Usage</h2>
+<pre class="code">&lt;ui-input label="Full name" name="fullName" required&gt;&lt;/ui-input&gt;</pre>
+    </section>
+  </main>
+
+  <script type="module">
+    document.addEventListener('ui-input', (e) => {
+      document.getElementById('log').textContent =
+        `ui-input → ${e.detail.name}="${e.detail.value}"`;
+    });
+    document.addEventListener('ui-change', (e) => {
+      document.getElementById('log').textContent =
+        `ui-change → ${e.detail.name}="${e.detail.value}"`;
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ui-card · demo</title>
+  <link rel="stylesheet" href="../assets/tokens.css">
+  <link rel="stylesheet" href="../assets/global.css">
+  <link rel="stylesheet" href="./_page.css">
+  <script type="module" src="../components/index.js"></script>
+  <script type="module" src="./_shell.js"></script>
+</head>
+<body>
+  <header class="demo-header">
+    <a class="brand" href="./index.html">← Lit playground</a>
+    <h1>ui-card</h1>
+    <button id="demo-theme">Toggle theme</button>
+  </header>
+  <nav id="demo-nav"></nav>
+
+  <main class="demo">
+    <section>
+      <h2>Basic</h2>
+      <ui-card title="Attendance" subtitle="This week" padded>
+        <p>Card body content. Numbers, tables, whatever you like.</p>
+      </ui-card>
+    </section>
+
+    <section>
+      <h2>With slotted actions</h2>
+      <ui-card title="Announcements" subtitle="3 new" padded>
+        <div slot="actions">
+          <ui-button size="sm" variant="ghost" icon="plus">Add</ui-button>
+        </div>
+        <ui-list-item title="Report cards published" subtitle="Aug 12"></ui-list-item>
+        <ui-list-item title="Sports day rescheduled" subtitle="Aug 05"></ui-list-item>
+      </ui-card>
+    </section>
+
+    <section>
+      <h2>Flush + composition</h2>
+      <ui-card title="Composition" subtitle="Nested components" flush padded>
+        <div class="row">
+          <ui-badge tone="success" dot>Live</ui-badge>
+          <ui-badge tone="brand">v0.1</ui-badge>
+          <ui-icon name="check"></ui-icon>
+          <span class="muted">Themable from a single CSS variable set.</span>
+        </div>
+      </ui-card>
+    </section>
+
+    <section>
+      <h2>Usage</h2>
+<pre class="code">&lt;ui-card title="Attendance" subtitle="This week" padded&gt;
+  &lt;div slot="actions"&gt;&lt;ui-button size="sm" variant="ghost"&gt;See all&lt;/ui-button&gt;&lt;/div&gt;
+  … body …
+&lt;/ui-card&gt;</pre>
+    </section>
+  </main>
+</body>
+</html>

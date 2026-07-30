@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ui-list-item · demo</title>
+  <link rel="stylesheet" href="../assets/tokens.css">
+  <link rel="stylesheet" href="../assets/global.css">
+  <link rel="stylesheet" href="./_page.css">
+  <script type="module" src="../components/index.js"></script>
+  <script type="module" src="./_shell.js"></script>
+</head>
+<body>
+  <header class="demo-header">
+    <a class="brand" href="./index.html">← Lit playground</a>
+    <h1>ui-list-item</h1>
+    <button id="demo-theme">Toggle theme</button>
+  </header>
+  <nav id="demo-nav"></nav>
+
+  <main class="demo">
+    <section>
+      <h2>Inside a card</h2>
+      <ui-card title="Students" subtitle="Grade 5">
+        <ui-list-item title="Aarav Kumar" subtitle="Roll 12" clickable>
+          <ui-avatar slot="leading" name="Aarav Kumar" size="sm"></ui-avatar>
+          <ui-badge slot="trailing" tone="success">Present</ui-badge>
+        </ui-list-item>
+        <ui-list-item title="Meera Sharma" subtitle="Roll 13" clickable>
+          <ui-avatar slot="leading" name="Meera Sharma" size="sm"></ui-avatar>
+          <ui-badge slot="trailing" tone="warning">Late</ui-badge>
+        </ui-list-item>
+        <ui-list-item title="Rohan Patel" subtitle="Roll 14" clickable>
+          <ui-avatar slot="leading" name="Rohan Patel" size="sm"></ui-avatar>
+          <ui-badge slot="trailing" tone="danger">Absent</ui-badge>
+        </ui-list-item>
+      </ui-card>
+    </section>
+
+    <section>
+      <h2>Simple text-only rows</h2>
+      <ui-card>
+        <ui-list-item title="Attendance" trailing="Today"></ui-list-item>
+        <ui-list-item title="Fees"       trailing="Aug"></ui-list-item>
+        <ui-list-item title="Grades"     trailing="Term 1"></ui-list-item>
+      </ui-card>
+    </section>
+
+    <section>
+      <h2>Usage</h2>
+<pre class="code">&lt;ui-list-item title="Aarav K." subtitle="Roll 12" clickable&gt;
+  &lt;ui-avatar slot="leading" name="Aarav K." size="sm"&gt;&lt;/ui-avatar&gt;
+  &lt;ui-badge slot="trailing" tone="success"&gt;Present&lt;/ui-badge&gt;
+&lt;/ui-list-item&gt;</pre>
+    </section>
+  </main>
+</body>
+</html>

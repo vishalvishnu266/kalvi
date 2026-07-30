@@ -1,0 +1,11 @@
+{
+  "//": "Config for `npx serve`. Keeps .html URLs stable (no clean-URL rewrites).",
+  "cleanUrls": false,
+  "trailingSlash": false,
+  "directoryListing": true,
+  "rewrites": [
+    { "source": "/lit-components/demos",         "destination": "/lit-components/demos/index.html" },
+    { "source": "/lit-components/demos/:name",   "destination": "/lit-components/demos/:name.html" },
+    { "source": "/lit-components",               "destination": "/lit-components/index.html" }
+  ]
+}

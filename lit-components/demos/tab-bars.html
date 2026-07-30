@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ui-tab-bar · demo</title>
+  <link rel="stylesheet" href="../assets/tokens.css">
+  <link rel="stylesheet" href="../assets/global.css">
+  <link rel="stylesheet" href="./_page.css">
+  <script type="module" src="../components/index.js"></script>
+  <script type="module" src="./_shell.js"></script>
+</head>
+<body>
+  <header class="demo-header">
+    <a class="brand" href="./index.html">← Lit playground</a>
+    <h1>ui-tab-bar</h1>
+    <button id="demo-theme">Toggle theme</button>
+  </header>
+  <nav id="demo-nav"></nav>
+
+  <main class="demo">
+    <section>
+      <h2>Basic tabs</h2>
+      <ui-tab-bar>
+        <a href="#o" data-active>Overview</a>
+        <a href="#a">Attendance</a>
+        <a href="#g">Grades</a>
+        <a href="#f">Fees</a>
+        <a href="#t">Timetable</a>
+      </ui-tab-bar>
+    </section>
+
+    <section>
+      <h2>Usage</h2>
+<pre class="code">&lt;ui-tab-bar&gt;
+  &lt;a href="#" data-active&gt;Overview&lt;/a&gt;
+  &lt;a href="#"&gt;Attendance&lt;/a&gt;
+&lt;/ui-tab-bar&gt;</pre>
+    </section>
+  </main>
+</body>
+</html>

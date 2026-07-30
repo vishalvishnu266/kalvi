@@ -1,0 +1,57 @@
+/* Global resets + host-page utilities for the Lit test page.
+   Component-specific styles live INSIDE each Lit element (Shadow DOM). */
+
+/* Anti-FOUC: hide any custom element until it upgrades. */
+ui-icon:not(:defined),
+ui-button:not(:defined),
+ui-card:not(:defined),
+ui-badge:not(:defined),
+ui-input:not(:defined),
+ui-stat:not(:defined),
+ui-avatar:not(:defined),
+ui-list-item:not(:defined),
+ui-table:not(:defined),
+ui-tab-bar:not(:defined),
+ui-segmented:not(:defined),
+ui-modal:not(:defined),
+ui-select:not(:defined),
+ui-datepicker:not(:defined),
+ui-daterange:not(:defined),
+ui-toast:not(:defined),
+ui-toast-host:not(:defined),
+app-shell:not(:defined) {
+  visibility: hidden;
+}
+
+ui-icon, ui-button, ui-card, ui-badge, ui-input,
+ui-stat, ui-avatar, ui-list-item, ui-table, ui-tab-bar,
+ui-segmented, ui-modal, ui-select, ui-datepicker, ui-daterange,
+ui-toast, ui-toast-host, app-shell {
+  animation: uc-fade-in 180ms ease-out both;
+}
+@keyframes uc-fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  color: var(--color-text);
+  background: var(--color-bg);
+  font-family: var(--font-sans);
+  font-size: var(--fs-md);
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4 { margin: 0; letter-spacing: -0.015em; line-height: 1.2; }
+
+a { color: var(--color-primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.stack   { display: flex; flex-direction: column; gap: var(--space-4); }
+.row     { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+.grow    { flex: 1 1 auto; }
+.muted   { color: var(--color-text-muted); }

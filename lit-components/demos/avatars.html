@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ui-avatar · demo</title>
+  <link rel="stylesheet" href="../assets/tokens.css">
+  <link rel="stylesheet" href="../assets/global.css">
+  <link rel="stylesheet" href="./_page.css">
+  <script type="module" src="../components/index.js"></script>
+  <script type="module" src="./_shell.js"></script>
+</head>
+<body>
+  <header class="demo-header">
+    <a class="brand" href="./index.html">← Lit playground</a>
+    <h1>ui-avatar</h1>
+    <button id="demo-theme">Toggle theme</button>
+  </header>
+  <nav id="demo-nav"></nav>
+
+  <main class="demo">
+    <section>
+      <h2>Sizes (initials fallback)</h2>
+      <div class="example-grid">
+        <ui-avatar name="Aarav Kumar" size="sm"></ui-avatar>
+        <ui-avatar name="Aarav Kumar"></ui-avatar>
+        <ui-avatar name="Aarav Kumar" size="lg"></ui-avatar>
+        <ui-avatar name="Aarav Kumar" size="xl"></ui-avatar>
+      </div>
+    </section>
+
+    <section>
+      <h2>With image src</h2>
+      <div class="example-grid">
+        <ui-avatar name="Anita R." src="https://i.pravatar.cc/80?img=1" size="sm"></ui-avatar>
+        <ui-avatar name="Anita R." src="https://i.pravatar.cc/80?img=1"></ui-avatar>
+        <ui-avatar name="Anita R." src="https://i.pravatar.cc/80?img=1" size="lg"></ui-avatar>
+        <ui-avatar name="Anita R." src="https://i.pravatar.cc/80?img=1" size="xl"></ui-avatar>
+      </div>
+    </section>
+
+    <section>
+      <h2>Usage</h2>
+<pre class="code">&lt;ui-avatar name="Aarav Kumar" size="lg"&gt;&lt;/ui-avatar&gt;</pre>
+    </section>
+  </main>
+</body>
+</html>

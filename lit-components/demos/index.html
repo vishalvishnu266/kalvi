@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Lit Components · Demos</title>
+  <link rel="stylesheet" href="../assets/tokens.css">
+  <link rel="stylesheet" href="../assets/global.css">
+  <link rel="stylesheet" href="./_page.css">
+  <script type="module" src="../components/index.js"></script>
+  <script type="module" src="./_shell.js"></script>
+</head>
+<body>
+  <header class="demo-header">
+    <a class="brand" href="../index.html">← Playground</a>
+    <h1>Component demos</h1>
+    <button id="demo-theme">Toggle theme</button>
+  </header>
+  <nav id="demo-nav"></nav>
+
+  <main class="demo">
+    <section>
+      <h2>Choose a component</h2>
+      <p class="muted">Each page shows a single component with all its variants, event previews and copy-pasteable usage.</p>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-3); margin-top: var(--space-4);">
+        <a class="dcard" href="./icons.html">
+          <ui-icon name="check" size="20"></ui-icon>
+          <div><strong>ui-icon</strong><div class="muted">Inline SVG icons</div></div>
+        </a>
+        <a class="dcard" href="./buttons.html">
+          <ui-icon name="plus" size="20"></ui-icon>
+          <div><strong>ui-button</strong><div class="muted">Primary / secondary / ghost / danger</div></div>
+        </a>
+        <a class="dcard" href="./badges.html">
+          <ui-icon name="bell" size="20"></ui-icon>
+          <div><strong>ui-badge</strong><div class="muted">Status pills with tones</div></div>
+        </a>
+        <a class="dcard" href="./inputs.html">
+          <ui-icon name="edit" size="20"></ui-icon>
+          <div><strong>ui-input</strong><div class="muted">Text / password / textarea</div></div>
+        </a>
+        <a class="dcard" href="./cards.html">
+          <ui-icon name="library" size="20"></ui-icon>
+          <div><strong>ui-card</strong><div class="muted">Container with header + slots</div></div>
+        </a>
+        <a class="dcard" href="./stats.html">
+          <ui-icon name="chart" size="20"></ui-icon>
+          <div><strong>ui-stat</strong><div class="muted">KPI cards</div></div>
+        </a>
+        <a class="dcard" href="./avatars.html">
+          <ui-icon name="users" size="20"></ui-icon>
+          <div><strong>ui-avatar</strong><div class="muted">Initials or image</div></div>
+        </a>
+        <a class="dcard" href="./list-items.html">
+          <ui-icon name="clipboard" size="20"></ui-icon>
+          <div><strong>ui-list-item</strong><div class="muted">Rows for cards</div></div>
+        </a>
+        <a class="dcard" href="./tables.html">
+          <ui-icon name="grid" size="20"></ui-icon>
+          <div><strong>ui-table</strong><div class="muted">Responsive tables</div></div>
+        </a>
+        <a class="dcard" href="./tab-bars.html">
+          <ui-icon name="bookmark" size="20"></ui-icon>
+          <div><strong>ui-tab-bar</strong><div class="muted">Top tabs</div></div>
+        </a>
+        <a class="dcard" href="./segmented.html">
+          <ui-icon name="filter" size="20"></ui-icon>
+          <div><strong>ui-segmented</strong><div class="muted">macOS segmented control</div></div>
+        </a>
+        <a class="dcard" href="./modals.html">
+          <ui-icon name="settings" size="20"></ui-icon>
+          <div><strong>ui-modal</strong><div class="muted">Overlay dialog</div></div>
+        </a>
+        <a class="dcard" href="./selects.html">
+          <ui-icon name="chevronDown" size="20"></ui-icon>
+          <div><strong>ui-select</strong><div class="muted">Searchable single/multi</div></div>
+        </a>
+        <a class="dcard" href="./datepicker.html">
+          <ui-icon name="calendar" size="20"></ui-icon>
+          <div><strong>ui-datepicker</strong><div class="muted">Single date</div></div>
+        </a>
+        <a class="dcard" href="./daterange.html">
+          <ui-icon name="calendar" size="20"></ui-icon>
+          <div><strong>ui-daterange</strong><div class="muted">Date range + presets</div></div>
+        </a>
+        <a class="dcard" href="./toasts.html">
+          <ui-icon name="message" size="20"></ui-icon>
+          <div><strong>ui-toast</strong><div class="muted">Notifications</div></div>
+        </a>
+        <a class="dcard" href="./app-shell.html">
+          <ui-icon name="home" size="20"></ui-icon>
+          <div><strong>app-shell</strong><div class="muted">Full page layout</div></div>
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <style>
+    .dcard {
+      display: flex; align-items: center; gap: var(--space-3);
+      padding: var(--space-4);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      background: var(--color-surface);
+      color: var(--color-text);
+      text-decoration: none;
+      transition: transform var(--dur-fast) var(--ease),
+                  border-color var(--dur-fast) var(--ease),
+                  box-shadow var(--dur-fast) var(--ease);
+    }
+    .dcard:hover {
+      transform: translateY(-2px);
+      border-color: var(--color-primary);
+      box-shadow: var(--shadow-md);
+    }
+    .dcard ui-icon {
+      color: var(--color-primary);
+      background: var(--color-primary-soft);
+      padding: 8px; border-radius: var(--radius-md);
+    }
+  </style>
+</body>
+</html>
