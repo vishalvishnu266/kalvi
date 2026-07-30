@@ -28,6 +28,12 @@ ui-combobox:not(:defined),
 ui-pagination:not(:defined),
 ui-empty-state:not(:defined),
 ui-skeleton:not(:defined),
+ui-tooltip:not(:defined),
+ui-avatar-group:not(:defined),
+ui-breadcrumb:not(:defined),
+ui-drawer:not(:defined),
+ui-dropdown-menu:not(:defined),
+ui-file-upload:not(:defined),
 app-shell:not(:defined) {
   visibility: hidden;
 }
@@ -38,6 +44,8 @@ ui-segmented, ui-modal, ui-select, ui-datepicker, ui-daterange,
 ui-toast, ui-toast-host,
 ui-checkbox, ui-radio, ui-radio-group, ui-switch,
 ui-form, ui-combobox, ui-pagination, ui-empty-state, ui-skeleton,
+ui-tooltip, ui-avatar-group, ui-breadcrumb, ui-drawer,
+ui-dropdown-menu, ui-file-upload,
 app-shell {
   animation: uc-fade-in 180ms ease-out both;
 }

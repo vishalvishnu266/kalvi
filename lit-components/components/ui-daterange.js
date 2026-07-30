@@ -39,11 +39,12 @@ class UIDateRange extends LitBaseElement {
     .trigger .caret { margin-left: auto; color: var(--color-text-subtle); }
 
     /* ----- LEFT-SIDE DRAWER -----
-       Wider drawer so the preset column + calendar column both fit. */
+       Wider so both calendars sit side-by-side without scroll on a typical
+       laptop (1366 × 768 and up). */
     .pop {
       position: fixed;
       top: 0; left: 0; bottom: 0;
-      width: min(560px, 96vw);
+      width: min(760px, 96vw);
       background: var(--color-surface);
       border-right: 1px solid var(--color-border);
       box-shadow: var(--shadow-lg);
@@ -54,15 +55,17 @@ class UIDateRange extends LitBaseElement {
       overflow: hidden; max-height: 100dvh;
     }
     :host([open]) .pop { display: flex; transform: translateX(0); }
-    /* Two-column body: presets on the left, calendars scroll on the right. */
+    /* Two-column body: presets on the left, calendars area on the right. */
     .drawer-body {
       display: grid;
-      grid-template-columns: 140px minmax(0, 1fr);
+      grid-template-columns: 150px minmax(0, 1fr);
       flex: 1;
       min-height: 0;
       overflow: hidden;
     }
-    @media (max-width: 520px) {
+    /* Below ~720px there isn't enough room for both months + presets;
+       collapse presets to a chip strip on top. */
+    @media (max-width: 720px) {
       .drawer-body { grid-template-columns: 1fr; }
     }
     .drawer-head {
@@ -111,7 +114,7 @@ class UIDateRange extends LitBaseElement {
     .presets button[aria-pressed="true"] {
       background: var(--color-primary); color: var(--color-primary-contrast);
     }
-    @media (max-width: 520px) {
+    @media (max-width: 720px) {
       .presets {
         flex-direction: row; overflow-x: auto; overflow-y: hidden;
         border-right: 0; border-bottom: 1px solid var(--color-border);
@@ -120,17 +123,33 @@ class UIDateRange extends LitBaseElement {
       .presets button { flex: 0 0 auto; border-radius: var(--radius-pill); border: 1px solid var(--color-border); background: var(--color-surface); font-size: var(--fs-xs); padding: 5px 10px; }
     }
 
-    /* Calendars stack vertically inside the right column and scroll if needed. */
+    /* ONE nav row above BOTH calendars, then calendars side-by-side. */
+    .cals-head {
+      display: flex; align-items: center; gap: 4px;
+      padding: 8px 14px 0;
+      flex: 0 0 auto;
+    }
+    .cals-head .titles {
+      flex: 1;
+      display: grid; grid-template-columns: 1fr 1fr;
+      text-align: center;
+      font-size: var(--fs-sm); font-weight: var(--fw-semibold);
+      color: var(--color-text);
+    }
     .cals {
-      padding: 12px 14px;
-      display: grid; grid-template-columns: 1fr; gap: 20px;
+      padding: 6px 14px 12px;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
       overflow-y: auto;
       flex: 1;
       min-height: 0;
     }
-    .cal { min-width: 220px; }
-    .cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-    .cal-head .month { font-size: var(--fs-sm); font-weight: var(--fw-semibold); }
+    /* Stack calendars only when it's really tight. */
+    @media (max-width: 540px) {
+      .cals-head .titles { grid-template-columns: 1fr; }
+      .cals              { grid-template-columns: 1fr; }
+      .cals-head .titles > span:last-child { display: none; }
+    }
+    .cal { min-width: 0; }
     .nav-btn {
       appearance: none; border: 0; background: transparent; cursor: pointer;
       color: var(--color-text-muted); width: 26px; height: 26px;
@@ -175,22 +194,8 @@ class UIDateRange extends LitBaseElement {
     }
     .foot .actions { display: flex; gap: 8px; flex-shrink: 0; }
 
-    @media (max-width: 720px) {
-      .pop {
-        position: fixed;
-        left: 8px; right: 8px; top: auto;
-        bottom: calc(var(--bottomnav-h, 62px) + 16px + env(safe-area-inset-bottom, 0));
-        width: auto; min-width: 0; max-width: none;
-        max-height: min(80dvh, 600px);
-        overflow-y: auto;
-        border-radius: var(--radius-xl);
-      }
-      :host([open]) .pop { grid-template-columns: 1fr; }
-      .presets { flex-direction: row; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--color-border); }
-      .presets button { flex: 0 0 auto; white-space: nowrap; }
-      .cals { grid-template-columns: 1fr; }
-      .grid button { height: 36px; }
-    }
+    /* Nothing else — the mobile bottom-sheet layout was replaced by the
+       drawer above, so no extra media rules needed here. */
   `;
 
   constructor() {
@@ -308,15 +313,6 @@ class UIDateRange extends LitBaseElement {
 
     return html`
       <div class="cal">
-        <div class="cal-head">
-          ${isLeft
-            ? html`<button class="nav-btn" @click=${() => this.#onNav(-1)}><ui-icon name="chevronRight" size="14" style="transform: rotate(180deg)"></ui-icon></button>`
-            : html`<span></span>`}
-          <div class="month">${monthName}</div>
-          ${!isLeft
-            ? html`<button class="nav-btn" @click=${() => this.#onNav(1)}><ui-icon name="chevronRight" size="14"></ui-icon></button>`
-            : html`<span></span>`}
-        </div>
         <div class="dow"><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div><div>S</div></div>
         <div class="grid">
           ${cells.map(c => {
@@ -378,6 +374,18 @@ class UIDateRange extends LitBaseElement {
                       @click=${() => this.#applyPreset(k)}>${l}</button>`)}
           </div>
           <div class="cals-wrap">
+            <div class="cals-head">
+              <button class="nav-btn" title="Previous month" @click=${() => this.#onNav(-1)}>
+                <ui-icon name="chevronLeft" size="14"></ui-icon>
+              </button>
+              <div class="titles">
+                <span>${leftDate.toLocaleString(undefined, { month: 'long', year: 'numeric' })}</span>
+                <span>${rightDate.toLocaleString(undefined, { month: 'long', year: 'numeric' })}</span>
+              </div>
+              <button class="nav-btn" title="Next month" @click=${() => this.#onNav(1)}>
+                <ui-icon name="chevronRight" size="14"></ui-icon>
+              </button>
+            </div>
             <div class="cals">
               ${this.#renderMonth(leftDate, true)}
               ${this.#renderMonth(rightDate, false)}

@@ -26,7 +26,13 @@ const COMPONENTS = [
   ['ui-pagination',  'pagination.html'],
   ['ui-empty-state', 'empty-state.html'],
   ['ui-skeleton',    'skeleton.html'],
-  ['app-shell',      'app-shell.html'],
+  ['ui-tooltip',       'tooltips.html'],
+  ['ui-avatar-group',  'avatar-groups.html'],
+  ['ui-breadcrumb',    'breadcrumbs.html'],
+  ['ui-drawer',        'drawers.html'],
+  ['ui-dropdown-menu', 'dropdowns.html'],
+  ['ui-file-upload',   'file-upload.html'],
+  ['app-shell',        'app-shell.html'],
 ];
 
 function mount() {

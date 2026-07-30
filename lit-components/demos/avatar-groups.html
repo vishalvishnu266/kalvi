@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ui-avatar-group · demo</title>
+  <link rel="stylesheet" href="../assets/tokens.css">
+  <link rel="stylesheet" href="../assets/global.css">
+  <link rel="stylesheet" href="./_page.css">
+  <script type="module" src="../components/index.js"></script>
+  <script type="module" src="./_shell.js"></script>
+</head>
+<body>
+  <header class="demo-header">
+    <a class="brand" href="./index.html">← Lit playground</a>
+    <h1>ui-avatar-group</h1>
+    <button id="demo-theme">Toggle theme</button>
+  </header>
+  <nav id="demo-nav"></nav>
+
+  <main class="demo">
+    <section>
+      <h2>Overflow at max=4</h2>
+      <ui-avatar-group max="4">
+        <ui-avatar name="Aarav K."></ui-avatar>
+        <ui-avatar name="Meera S."></ui-avatar>
+        <ui-avatar name="Rohan P."></ui-avatar>
+        <ui-avatar name="Diya V."></ui-avatar>
+        <ui-avatar name="Ishaan T."></ui-avatar>
+        <ui-avatar name="Kavya N."></ui-avatar>
+        <ui-avatar name="Priya M."></ui-avatar>
+      </ui-avatar-group>
+    </section>
+
+    <section>
+      <h2>Sizes</h2>
+      <div class="example-grid" style="gap: 24px;">
+        <ui-avatar-group size="sm" max="3">
+          <ui-avatar name="Aarav K."></ui-avatar>
+          <ui-avatar name="Meera S."></ui-avatar>
+          <ui-avatar name="Rohan P."></ui-avatar>
+          <ui-avatar name="Diya V."></ui-avatar>
+          <ui-avatar name="Ishaan T."></ui-avatar>
+        </ui-avatar-group>
+
+        <ui-avatar-group max="3">
+          <ui-avatar name="Aarav K."></ui-avatar>
+          <ui-avatar name="Meera S."></ui-avatar>
+          <ui-avatar name="Rohan P."></ui-avatar>
+          <ui-avatar name="Diya V."></ui-avatar>
+          <ui-avatar name="Ishaan T."></ui-avatar>
+        </ui-avatar-group>
+
+        <ui-avatar-group size="lg" max="3">
+          <ui-avatar name="Aarav K."></ui-avatar>
+          <ui-avatar name="Meera S."></ui-avatar>
+          <ui-avatar name="Rohan P."></ui-avatar>
+          <ui-avatar name="Diya V."></ui-avatar>
+          <ui-avatar name="Ishaan T."></ui-avatar>
+        </ui-avatar-group>
+      </div>
+    </section>
+
+    <section>
+      <h2>Usage</h2>
+<pre class="code">&lt;ui-avatar-group max="3"&gt;
+  &lt;ui-avatar name="Aarav K."&gt;&lt;/ui-avatar&gt;
+  &lt;ui-avatar name="Meera S."&gt;&lt;/ui-avatar&gt;
+  &lt;ui-avatar name="Rohan P."&gt;&lt;/ui-avatar&gt;
+  &lt;ui-avatar name="Diya V."&gt;&lt;/ui-avatar&gt;
+&lt;/ui-avatar-group&gt;</pre>
+    </section>
+  </main>
+</body>
+</html>

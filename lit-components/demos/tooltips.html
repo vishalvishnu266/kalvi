@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ui-tooltip · demo</title>
+  <link rel="stylesheet" href="../assets/tokens.css">
+  <link rel="stylesheet" href="../assets/global.css">
+  <link rel="stylesheet" href="./_page.css">
+  <script type="module" src="../components/index.js"></script>
+  <script type="module" src="./_shell.js"></script>
+</head>
+<body>
+  <header class="demo-header">
+    <a class="brand" href="./index.html">← Lit playground</a>
+    <h1>ui-tooltip</h1>
+    <button id="demo-theme">Toggle theme</button>
+  </header>
+  <nav id="demo-nav"></nav>
+
+  <main class="demo">
+    <section>
+      <h2>Placements</h2>
+      <div class="example-grid" style="gap: 24px;">
+        <ui-tooltip text="Tooltip on top" placement="top">
+          <ui-button variant="secondary">Top</ui-button>
+        </ui-tooltip>
+        <ui-tooltip text="Tooltip on bottom" placement="bottom">
+          <ui-button variant="secondary">Bottom</ui-button>
+        </ui-tooltip>
+        <ui-tooltip text="Tooltip on left" placement="left">
+          <ui-button variant="secondary">Left</ui-button>
+        </ui-tooltip>
+        <ui-tooltip text="Tooltip on right" placement="right">
+          <ui-button variant="secondary">Right</ui-button>
+        </ui-tooltip>
+      </div>
+    </section>
+
+    <section>
+      <h2>On icons</h2>
+      <div class="example-grid">
+        <ui-tooltip text="Delete permanently"><ui-button variant="danger" icon="x"></ui-button></ui-tooltip>
+        <ui-tooltip text="Refresh data"><ui-button variant="ghost" icon="activity"></ui-button></ui-tooltip>
+        <ui-tooltip text="Settings"><ui-button variant="ghost" icon="settings"></ui-button></ui-tooltip>
+        <ui-tooltip text="Notifications" placement="bottom"><ui-button variant="ghost" icon="bell"></ui-button></ui-tooltip>
+      </div>
+    </section>
+
+    <section>
+      <h2>Usage</h2>
+<pre class="code">&lt;ui-tooltip text="Delete permanently" placement="top"&gt;
+  &lt;ui-button variant="danger" icon="x"&gt;&lt;/ui-button&gt;
+&lt;/ui-tooltip&gt;</pre>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ui-dropdown-menu · demo</title>
+  <link rel="stylesheet" href="../assets/tokens.css">
+  <link rel="stylesheet" href="../assets/global.css">
+  <link rel="stylesheet" href="./_page.css">
+  <script type="module" src="../components/index.js"></script>
+  <script type="module" src="./_shell.js"></script>
+</head>
+<body>
+  <header class="demo-header">
+    <a class="brand" href="./index.html">← Lit playground</a>
+    <h1>ui-dropdown-menu</h1>
+    <button id="demo-theme">Toggle theme</button>
+  </header>
+  <nav id="demo-nav"></nav>
+
+  <main class="demo">
+    <section>
+      <h2>Row actions (⋮)</h2>
+      <ui-card padded>
+        <ui-list-item title="Aarav Kumar" subtitle="Grade 5 · Roll 12">
+          <ui-avatar slot="leading" name="Aarav Kumar" size="sm"></ui-avatar>
+          <ui-dropdown-menu slot="trailing" align="end" id="d1">
+            <ui-button slot="trigger" variant="ghost" size="sm" icon="more"></ui-button>
+            <a href="#view">View profile</a>
+            <a href="#edit">Edit</a>
+            <a href="#duplicate">Duplicate</a>
+            <hr>
+            <a href="#delete" data-tone="danger">Delete</a>
+          </ui-dropdown-menu>
+        </ui-list-item>
+        <ui-list-item title="Meera Sharma" subtitle="Grade 5 · Roll 13">
+          <ui-avatar slot="leading" name="Meera Sharma" size="sm"></ui-avatar>
+          <ui-dropdown-menu slot="trailing" align="end">
+            <ui-button slot="trigger" variant="ghost" size="sm" icon="more"></ui-button>
+            <a href="#view">View profile</a>
+            <a href="#edit">Edit</a>
+            <hr>
+            <a href="#archive" data-tone="danger">Archive</a>
+          </ui-dropdown-menu>
+        </ui-list-item>
+      </ui-card>
+      <p id="log" class="muted" style="margin-top: var(--space-3);">—</p>
+    </section>
+
+    <section>
+      <h2>Left-aligned menu</h2>
+      <ui-dropdown-menu align="start">
+        <ui-button slot="trigger" variant="secondary" icon="settings">Actions</ui-button>
+        <a href="#new">New announcement</a>
+        <a href="#import">Import CSV</a>
+        <a href="#export">Export CSV</a>
+        <hr>
+        <button disabled>Print report (coming soon)</button>
+      </ui-dropdown-menu>
+    </section>
+
+    <section>
+      <h2>Usage</h2>
+<pre class="code">&lt;ui-dropdown-menu align="end"&gt;
+  &lt;ui-button slot="trigger" variant="ghost" icon="more"&gt;&lt;/ui-button&gt;
+  &lt;a href="#edit"&gt;Edit&lt;/a&gt;
+  &lt;a href="#duplicate"&gt;Duplicate&lt;/a&gt;
+  &lt;hr&gt;
+  &lt;a href="#delete" data-tone="danger"&gt;Delete&lt;/a&gt;
+&lt;/ui-dropdown-menu&gt;</pre>
+    </section>
+  </main>
+
+  <script type="module">
+    document.addEventListener('ui-select', (e) => {
+      document.getElementById('log').textContent =
+        `Selected: ${e.detail.item.textContent.trim()} (${e.detail.href || 'button'})`;
+    });
+  </script>
+</body>
+</html>

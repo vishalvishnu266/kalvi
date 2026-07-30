@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ui-drawer · demo</title>
+  <link rel="stylesheet" href="../assets/tokens.css">
+  <link rel="stylesheet" href="../assets/global.css">
+  <link rel="stylesheet" href="./_page.css">
+  <script type="module" src="../components/index.js"></script>
+  <script type="module" src="./_shell.js"></script>
+</head>
+<body>
+  <header class="demo-header">
+    <a class="brand" href="./index.html">← Lit playground</a>
+    <h1>ui-drawer</h1>
+    <button id="demo-theme">Toggle theme</button>
+  </header>
+  <nav id="demo-nav"></nav>
+
+  <main class="demo">
+    <section>
+      <h2>Triggers</h2>
+      <div class="example-grid">
+        <ui-button id="or">Right (default)</ui-button>
+        <ui-button variant="secondary" id="ol">Left</ui-button>
+        <ui-button variant="secondary" id="ob">Bottom</ui-button>
+        <ui-button variant="ghost" id="olg">Large size</ui-button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Usage</h2>
+<pre class="code">&lt;ui-drawer id="d" placement="right" size="md" title="Profile"&gt;
+  &lt;p&gt;Body content&lt;/p&gt;
+  &lt;div slot="footer"&gt;
+    &lt;ui-button variant="secondary" data-close&gt;Close&lt;/ui-button&gt;
+    &lt;ui-button&gt;Save&lt;/ui-button&gt;
+  &lt;/div&gt;
+&lt;/ui-drawer&gt;
+document.getElementById('d').openDrawer();</pre>
+    </section>
+  </main>
+
+  <ui-drawer id="dr" placement="right" size="md" title="Student profile">
+    <div class="stack">
+      <div class="row">
+        <ui-avatar name="Aarav Kumar" size="lg"></ui-avatar>
+        <div style="flex: 1;">
+          <h3 style="margin:0; font-size: var(--fs-md);">Aarav Kumar</h3>
+          <p class="muted" style="margin:2px 0 0; font-size: var(--fs-xs);">Grade 5 · Roll 12</p>
+        </div>
+      </div>
+      <ui-list-item title="Attendance" trailing="92%"></ui-list-item>
+      <ui-list-item title="Avg. grade" trailing="A"></ui-list-item>
+      <ui-list-item title="Fees paid" trailing="✓"></ui-list-item>
+    </div>
+    <div slot="footer">
+      <ui-button variant="secondary" data-close>Close</ui-button>
+      <ui-button>Edit</ui-button>
+    </div>
+  </ui-drawer>
+  <ui-drawer id="dl" placement="left" size="sm" title="Filters">
+    <p>Left-side filter panel.</p>
+    <ui-checkbox checked>Present</ui-checkbox><br>
+    <ui-checkbox>Late</ui-checkbox><br>
+    <ui-checkbox>Absent</ui-checkbox>
+    <div slot="footer"><ui-button data-close>Done</ui-button></div>
+  </ui-drawer>
+  <ui-drawer id="db" placement="bottom" title="Add note">
+    <ui-input type="textarea" label="Note" placeholder="Type here…"></ui-input>
+    <div slot="footer">
+      <ui-button variant="secondary" data-close>Cancel</ui-button>
+      <ui-button>Save</ui-button>
+    </div>
+  </ui-drawer>
+  <ui-drawer id="dlg" placement="right" size="lg" title="Large drawer">
+    <p>Drawers come in sizes: <code>sm</code>, <code>md</code>, <code>lg</code>, <code>xl</code>.</p>
+  </ui-drawer>
+
+  <script type="module">
+    document.getElementById('or').addEventListener('ui-click', () => document.getElementById('dr').openDrawer());
+    document.getElementById('ol').addEventListener('ui-click', () => document.getElementById('dl').openDrawer());
+    document.getElementById('ob').addEventListener('ui-click', () => document.getElementById('db').openDrawer());
+    document.getElementById('olg').addEventListener('ui-click', () => document.getElementById('dlg').openDrawer());
+  </script>
+</body>
+</html>

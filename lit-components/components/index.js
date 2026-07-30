@@ -30,6 +30,13 @@ import './ui-combobox.js';
 import './ui-pagination.js';
 import './ui-empty-state.js';
 import './ui-skeleton.js';
+// Tier-2 UX components
+import './ui-tooltip.js';
+import './ui-avatar-group.js';
+import './ui-breadcrumb.js';
+import './ui-drawer.js';
+import './ui-dropdown-menu.js';
+import './ui-file-upload.js';
 import './app-shell.js';
 
 // ---- Restore saved theme + primary color before first paint ----
