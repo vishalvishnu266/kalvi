@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ui-timeline · demo</title>
+  <link rel="stylesheet" href="../assets/tokens.css">
+  <link rel="stylesheet" href="../assets/global.css">
+  <link rel="stylesheet" href="./_page.css">
+  <script type="module" src="../components/index.js"></script>
+  <script type="module" src="./_shell.js"></script>
+</head>
+<body>
+  <header class="demo-header">
+    <a class="brand" href="./index.html">← Lit playground</a>
+    <h1>ui-timeline</h1>
+    <button id="demo-theme">Toggle theme</button>
+  </header>
+  <nav id="demo-nav"></nav>
+
+  <main class="demo">
+    <section>
+      <h2>Student activity log</h2>
+      <ui-card padded>
+        <ui-timeline>
+          <ui-timeline-item icon="check" tone="success" time="10:24 AM">
+            <strong>Fees paid</strong>
+            <div class="muted">Invoice #INV-1042 · ₹4,500</div>
+          </ui-timeline-item>
+          <ui-timeline-item icon="edit" tone="info" time="Yesterday">
+            <strong>Profile updated</strong>
+            <div class="muted">Guardian phone changed</div>
+          </ui-timeline-item>
+          <ui-timeline-item icon="bell" tone="warning" time="Aug 10">
+            <strong>Late arrival flagged</strong>
+            <div class="muted">Third late day this month</div>
+          </ui-timeline-item>
+          <ui-timeline-item icon="x" tone="danger" time="Aug 4">
+            <strong>Absent</strong>
+            <div class="muted">Reason: unwell</div>
+          </ui-timeline-item>
+          <ui-timeline-item icon="plus" tone="muted" time="Jul 15">
+            <strong>Admitted</strong>
+            <div class="muted">Enrolled in Grade 5-B</div>
+          </ui-timeline-item>
+        </ui-timeline>
+      </ui-card>
+    </section>
+
+    <section>
+      <h2>Usage</h2>
+<pre class="code">&lt;ui-timeline&gt;
+  &lt;ui-timeline-item icon="check" tone="success" time="10:24 AM"&gt;
+    &lt;strong&gt;Fees paid&lt;/strong&gt;
+    &lt;div&gt;Invoice #INV-1042 · ₹4,500&lt;/div&gt;
+  &lt;/ui-timeline-item&gt;
+&lt;/ui-timeline&gt;</pre>
+    </section>
+  </main>
+</body>
+</html>

@@ -37,6 +37,14 @@ import './ui-breadcrumb.js';
 import './ui-drawer.js';
 import './ui-dropdown-menu.js';
 import './ui-file-upload.js';
+// Tier-3 heavy-hitters
+import './ui-progress.js';
+import './ui-stepper.js';
+import './ui-inline-edit.js';
+import './ui-timeline.js';
+import './ui-kanban.js';
+import './ui-command.js';
+import './ui-data-table.js';
 import './app-shell.js';
 
 // ---- Restore saved theme + primary color before first paint ----

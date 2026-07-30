@@ -32,6 +32,13 @@ const COMPONENTS = [
   ['ui-drawer',        'drawers.html'],
   ['ui-dropdown-menu', 'dropdowns.html'],
   ['ui-file-upload',   'file-upload.html'],
+  ['ui-progress',      'progress.html'],
+  ['ui-stepper',       'stepper.html'],
+  ['ui-inline-edit',   'inline-edit.html'],
+  ['ui-timeline',      'timeline.html'],
+  ['ui-kanban',        'kanban.html'],
+  ['ui-command',       'command.html'],
+  ['ui-data-table',    'data-table.html'],
   ['app-shell',        'app-shell.html'],
 ];
 

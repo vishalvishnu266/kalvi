@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ui-progress · demo</title>
+  <link rel="stylesheet" href="../assets/tokens.css">
+  <link rel="stylesheet" href="../assets/global.css">
+  <link rel="stylesheet" href="./_page.css">
+  <script type="module" src="../components/index.js"></script>
+  <script type="module" src="./_shell.js"></script>
+</head>
+<body>
+  <header class="demo-header">
+    <a class="brand" href="./index.html">← Lit playground</a>
+    <h1>ui-progress</h1>
+    <button id="demo-theme">Toggle theme</button>
+  </header>
+  <nav id="demo-nav"></nav>
+
+  <main class="demo">
+    <section>
+      <h2>Linear</h2>
+      <div class="stack" style="max-width: 480px;">
+        <ui-progress value="30" label="Fee collection" show-value></ui-progress>
+        <ui-progress value="72" label="Syllabus completed" tone="success" show-value></ui-progress>
+        <ui-progress value="45" label="Warning zone" tone="warning" show-value></ui-progress>
+        <ui-progress value="90" label="Danger" tone="danger" show-value></ui-progress>
+        <ui-progress indeterminate label="Syncing…"></ui-progress>
+      </div>
+    </section>
+
+    <section>
+      <h2>Circular</h2>
+      <div class="example-grid" style="gap: 24px;">
+        <ui-progress shape="circle" value="25" label="Q1"></ui-progress>
+        <ui-progress shape="circle" value="65" label="Q2" tone="success"></ui-progress>
+        <ui-progress shape="circle" value="90" label="Q3" tone="warning" size="72"></ui-progress>
+        <ui-progress shape="circle" value="12" label="Q4" tone="danger" size="88"></ui-progress>
+      </div>
+    </section>
+
+    <section>
+      <h2>Usage</h2>
+<pre class="code">&lt;ui-progress value="65" label="Fee collection" show-value&gt;&lt;/ui-progress&gt;
+&lt;ui-progress shape="circle" value="72" label="Complete" size="72"&gt;&lt;/ui-progress&gt;
+&lt;ui-progress indeterminate&gt;&lt;/ui-progress&gt;</pre>
+    </section>
+  </main>
+</body>
+</html>

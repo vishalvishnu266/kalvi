@@ -34,6 +34,17 @@ ui-breadcrumb:not(:defined),
 ui-drawer:not(:defined),
 ui-dropdown-menu:not(:defined),
 ui-file-upload:not(:defined),
+ui-progress:not(:defined),
+ui-stepper:not(:defined),
+ui-inline-edit:not(:defined),
+ui-timeline:not(:defined),
+ui-timeline-item:not(:defined),
+ui-kanban:not(:defined),
+ui-kanban-column:not(:defined),
+ui-kanban-card:not(:defined),
+ui-command:not(:defined),
+ui-command-item:not(:defined),
+ui-data-table:not(:defined),
 app-shell:not(:defined) {
   visibility: hidden;
 }
@@ -46,6 +57,10 @@ ui-checkbox, ui-radio, ui-radio-group, ui-switch,
 ui-form, ui-combobox, ui-pagination, ui-empty-state, ui-skeleton,
 ui-tooltip, ui-avatar-group, ui-breadcrumb, ui-drawer,
 ui-dropdown-menu, ui-file-upload,
+ui-progress, ui-stepper, ui-inline-edit,
+ui-timeline, ui-timeline-item,
+ui-kanban, ui-kanban-column, ui-kanban-card,
+ui-command, ui-command-item, ui-data-table,
 app-shell {
   animation: uc-fade-in 180ms ease-out both;
 }

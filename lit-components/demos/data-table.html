@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ui-data-table · demo</title>
+  <link rel="stylesheet" href="../assets/tokens.css">
+  <link rel="stylesheet" href="../assets/global.css">
+  <link rel="stylesheet" href="./_page.css">
+  <script type="module" src="../components/index.js"></script>
+  <script type="module" src="./_shell.js"></script>
+</head>
+<body>
+  <header class="demo-header">
+    <a class="brand" href="./index.html">← Lit playground</a>
+    <h1>ui-data-table</h1>
+    <button id="demo-theme">Toggle theme</button>
+  </header>
+  <nav id="demo-nav"></nav>
+
+  <main class="demo">
+    <section>
+      <h2>Students</h2>
+      <ui-data-table id="t" searchable selectable per-page="8"></ui-data-table>
+      <p id="log" class="muted" style="margin-top: var(--space-3);">—</p>
+    </section>
+
+    <section>
+      <h2>Usage</h2>
+<pre class="code">&lt;ui-data-table id="t" searchable selectable per-page="10"&gt;&lt;/ui-data-table&gt;
+
+t.columns = [
+  { key: 'name',   label: 'Name',   sortable: true },
+  { key: 'grade',  label: 'Grade',  sortable: true, align: 'center' },
+  { key: 'status', label: 'Status',
+    render: (v) =&gt; `&lt;ui-badge tone="${v==='present'?'success':'danger'}"&gt;${v}&lt;/ui-badge&gt;` },
+];
+t.rows = [{ name:'Aarav', grade:5, status:'present' }, …];</pre>
+    </section>
+  </main>
+
+  <script type="module">
+    const FIRST = ['Aarav','Meera','Rohan','Diya','Ishaan','Kavya','Priya','Vihaan','Anaya','Arjun','Sara','Reyansh','Nisha','Kabir','Anika','Vivaan','Aisha','Om','Riya','Kian','Zara','Aryan'];
+    const LAST  = ['Kumar','Sharma','Patel','Verma','Thakur','Nair','Mehta','Rao','Iyer','Khan','Das','Bose'];
+    const rand  = (a) => a[Math.floor(Math.random() * a.length)];
+
+    const t = document.getElementById('t');
+    t.columns = [
+      { key: 'name',   label: 'Name',   sortable: true },
+      { key: 'grade',  label: 'Grade',  sortable: true, align: 'center' },
+      { key: 'roll',   label: 'Roll',   sortable: true, align: 'right' },
+      { key: 'fees',   label: 'Fees (₹)', sortable: true, align: 'right',
+        render: (v) => v.toLocaleString('en-IN') },
+      { key: 'status', label: 'Status', sortable: true,
+        render: (v) => `<ui-badge tone="${v==='present'?'success':v==='late'?'warning':'danger'}" dot>${v}</ui-badge>` },
+    ];
+    t.rows = Array.from({length: 60}, (_, i) => ({
+      name:   `${rand(FIRST)} ${rand(LAST)}`,
+      grade:  1 + (i % 8),
+      roll:   i + 1,
+      fees:   [3500,4500,5000,6000,7500][i % 5],
+      status: ['present','late','absent'][i % 3],
+    }));
+
+    t.addEventListener('ui-sort',  (e) => document.getElementById('log').textContent = `Sorted by ${e.detail.key} (${e.detail.dir})`);
+    t.addEventListener('ui-page',  (e) => document.getElementById('log').textContent = `Page: ${e.detail.page}`);
+    t.addEventListener('ui-select-rows', (e) => document.getElementById('log').textContent = `Selected: ${e.detail.rows.length} rows`);
+  </script>
+</body>
+</html>
