@@ -29,7 +29,7 @@ pub fn build(invoices: &[Invoice]) -> Page {
     let sum_overdue = invoices.iter().filter(|i| i.status == "overdue").map(|i| i.amount).sum::<u32>();
     let count_over  = invoices.iter().filter(|i| i.status == "overdue").count();
 
-    let kpis = grid().cols_min("220px")
+    let kpis = grid().cols_min(MinCol::W220)
         .add(stat("Collected",   fmt_inr(sum_paid))
              .icon("check").tone_success())    // helper below
         .add(stat("Pending",     fmt_inr(sum_pending)).icon("bell"))

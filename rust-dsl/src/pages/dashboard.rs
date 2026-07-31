@@ -5,7 +5,7 @@ use crate::prelude::*;
 
 pub fn build() -> Page {
     // KPI stats
-    let kpis = grid().cols_min("220px")
+    let kpis = grid().cols_min(MinCol::W220)
         .add(stat("Total students",     "1,248").icon("users").trend(Trend::Up).delta("+2.1%"))
         .add(stat("Present today",      "1,102").icon("check").trend(Trend::Up).delta("+3.2%"))
         .add(stat("Fee collection",     "82%").icon("card").trend(Trend::Up).delta("+5.6%"))
@@ -36,7 +36,7 @@ pub fn build() -> Page {
               .add(Node::raw("<strong>Admitted</strong><div style=\"color:var(--color-text-muted);font-size:var(--fs-xs);\">Grade 5-B</div>")));
 
     // Progress cards
-    let progress_cards = grid().cols_min("240px")
+    let progress_cards = grid().cols_min(MinCol::W240)
         .add(card().padded().add(progress(72).label("Syllabus (Grade 5)").tone(ProgTone::Success).show_value()))
         .add(card().padded().add(progress(45).label("Warning zone").tone(ProgTone::Warning).show_value()))
         .add(card().padded().add(progress(90).label("Attendance").tone(ProgTone::Info).show_value()));
