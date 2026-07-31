@@ -19,7 +19,7 @@
 // and awaits it. We expose that promise here.
 
 import './core.js';
-import { startLazyLoader } from './lazy.js';
+import { startLazyLoader, rescan } from './lazy.js';
 
 // Kick off `extras.js` immediately (parallel with the lazy scan below).
 // It's a single dynamic import so the browser fetches it as its own chunk
@@ -29,16 +29,8 @@ const extrasPromise = import('./extras.js').catch((err) => {
   console.error('[extras] failed to load', err);
 });
 
-// Kick off the lazy loader: scans the DOM for heavy tags right now and
-// starts watching for future additions. The returned promise resolves
-// when the INITIAL batch is done.
-const lazyPromise = startLazyLoader();
-
-// Public "everything the current page needs is defined" promise.
-// The FOUCE gate uses this to decide when to reveal <body>.
-window.__lit_ready = Promise.all([extrasPromise, lazyPromise]).then(() => {
-  // Also wait for every custom-element tag currently in the DOM to be
-  // upgraded — this is what guarantees no visible flash.
+/** Wait for every custom-element tag currently in the DOM to be upgraded. */
+function whenAllDefined() {
   const tags = new Set();
   document.querySelectorAll('*').forEach((el) => {
     const t = el.tagName.toLowerCase();
@@ -47,4 +39,31 @@ window.__lit_ready = Promise.all([extrasPromise, lazyPromise]).then(() => {
   return Promise.all(
     Array.from(tags).map((t) => customElements.whenDefined(t))
   );
-});
+}
+
+/**
+ * Build a fresh "page is ready" promise for the CURRENT document body.
+ *
+ * Call this on first load AND on every Turbo navigation. It:
+ *   1. (Re)starts the lazy loader — re-attaches the MutationObserver to
+ *      the (possibly new) document element.
+ *   2. Waits for extras.js to finish loading (once, cached after).
+ *   3. Waits for every custom-element tag on the new body to upgrade.
+ *
+ * Exposed as `window.__lit_ready_now` so the inline FOUCE gate and the
+ * Turbo integration in page.rs can always get a FRESH promise instead of
+ * the stale one-shot promise.
+ */
+function pageReady() {
+  return Promise.all([
+    extrasPromise,
+    startLazyLoader(), // re-scans body + re-attaches observer
+  ]).then(whenAllDefined);
+}
+
+// Fresh-promise factory — call this on every navigation.
+window.__lit_ready_now = pageReady;
+
+// Back-compat: some code (the inline gate on first paint) still awaits
+// this. On first load it's the same promise pageReady() produces.
+window.__lit_ready = pageReady();

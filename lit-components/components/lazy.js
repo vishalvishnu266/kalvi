@@ -56,6 +56,7 @@ export function requestTag(tag) {
 
 /** Scan a subtree for any lazy tags and request them in parallel. */
 function scan(root) {
+  if (!root) return Promise.resolve();
   const promises = [];
   // Root itself may be an element.
   if (root.nodeType === 1 && LAZY_MAP[root.tagName.toLowerCase()]) {
@@ -72,19 +73,35 @@ function scan(root) {
 }
 
 /**
+ * Rescan the current document body for any lazy tags that appeared
+ * (e.g. after a Turbo navigation). Returns a promise that resolves
+ * once every needed lazy chunk has finished loading.
+ *
+ * Safe to call any number of times — already-loaded modules are
+ * short-circuited by the `requested` Set.
+ */
+export function rescan() {
+  return scan(document.body || document.documentElement);
+}
+
+let observer = null;
+
+/**
  * Start observing the document for lazy tags. Returns a promise that
  * resolves once the INITIAL scan (and its imports) have finished — the
  * FOUCE gate awaits this before revealing the page.
+ *
+ * Re-called safely on Turbo navigation; the observer is (re)attached to
+ * the current `document.documentElement` so newly-swapped bodies are
+ * covered too.
  */
 export function startLazyLoader() {
-  const initial = scan(document.body || document.documentElement);
-
-  const mo = new MutationObserver((mutations) => {
+  if (observer) observer.disconnect();
+  observer = new MutationObserver((mutations) => {
     for (const m of mutations) {
       m.addedNodes.forEach((n) => { if (n.nodeType === 1) scan(n); });
     }
   });
-  mo.observe(document.documentElement, { childList: true, subtree: true });
-
-  return initial;
+  observer.observe(document.documentElement, { childList: true, subtree: true });
+  return rescan();
 }

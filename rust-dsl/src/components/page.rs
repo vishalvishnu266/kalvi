@@ -174,25 +174,27 @@ impl Component for Page {
         document.body.classList.remove('ce-ready');
       }});
       document.addEventListener('turbo:load', function () {{
-        // Re-run the "wait for custom elements" logic on the new body.
-        var promise = (window.__lit_ready && typeof window.__lit_ready.then === 'function')
-          ? window.__lit_ready
-          : Promise.resolve();
-        promise.then(function () {{
-          var tags = new Set();
-          document.querySelectorAll('*').forEach(function (el) {{
-            var t = el.tagName.toLowerCase();
-            if (t.indexOf('-') !== -1) tags.add(t);
-          }});
-          return Promise.all(Array.from(tags).map(function (t) {{ return customElements.whenDefined(t); }}));
-        }}).finally(function () {{
+        // Build a FRESH readiness promise for the newly-swapped body.
+        // (Using the one-shot window.__lit_ready would resolve instantly
+        // on every navigation after the first, before lazy chunks for
+        // the new page have loaded — that was the "spinner stuck /
+        // page doesn't appear" bug.)
+        var settled = false;
+        function finish() {{
+          if (settled) return;
+          settled = true;
           document.body.classList.add('ce-ready');
           hideLoader();
-          // Tiny debug counter so you can visually confirm no full reload.
           window.__turbo_swaps = (window.__turbo_swaps || 0) + 1;
           var badge = document.getElementById('turbo-swap-badge');
           if (badge) badge.textContent = 'Turbo swaps: ' + window.__turbo_swaps;
-        }});
+        }}
+        var ready = (typeof window.__lit_ready_now === 'function')
+          ? window.__lit_ready_now()
+          : Promise.resolve();
+        ready.then(finish).catch(finish);
+        // Hard safety net: never leave the page hidden more than 1.5s.
+        setTimeout(finish, 1500);
       }});
     }})();
   </script>
