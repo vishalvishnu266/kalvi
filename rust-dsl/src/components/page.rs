@@ -78,7 +78,9 @@ impl Component for Page {
   <link rel="stylesheet" href="{base}/assets/global.css">
   <link rel="stylesheet" href="{base}/assets/layout.css">
   <link rel="modulepreload" href="{base}/components/index.js">
-  <!-- Hotwire Turbo Drive — intercepts <a> clicks and swaps <body> without a full reload. -->
+  <!-- Hotwire Turbo Drive: required for Hotwire Native — turns page
+       navigations into HTML body swaps that the native shell can treat
+       as native screens. No custom lifecycle code needed. -->
   <script type="module" src="https://cdn.jsdelivr.net/npm/@hotwired/turbo@8.0.4/dist/turbo.es2017-esm.min.js"></script>
   <style>
     /* Hide the app until custom elements are defined, but show a spinner. */
@@ -148,54 +150,6 @@ impl Component for Page {
       }})();
       // Safety net: never leave the page hidden.
       setTimeout(reveal, TIMEOUT_MS);
-    }})();
-
-    /* ---------- Turbo Drive integration ---------- */
-    // On Turbo navigation the browser does NOT reload the page, so our
-    // FOUCE gate above only runs once (on the first visit). We still
-    // want the loader to scan any lazy tags that appeared on the new
-    // page, and we want the loading spinner to briefly show during nav.
-    (function () {{
-      var loader;
-      function showLoader() {{
-        loader = document.createElement('div');
-        loader.id = 'app-loading';
-        loader.setAttribute('aria-live', 'polite');
-        loader.setAttribute('aria-busy', 'true');
-        loader.innerHTML = '<div class="spinner" role="status" aria-label="Loading"></div>';
-        document.body.appendChild(loader);
-      }}
-      function hideLoader() {{
-        if (loader) {{ loader.classList.add('hidden'); setTimeout(function () {{ loader && loader.remove(); loader = null; }}, 220); }}
-      }}
-      document.addEventListener('turbo:visit',        showLoader);
-      document.addEventListener('turbo:before-render', function () {{
-        // New body is about to be swapped in — keep it hidden until CEs upgrade.
-        document.body.classList.remove('ce-ready');
-      }});
-      document.addEventListener('turbo:load', function () {{
-        // Build a FRESH readiness promise for the newly-swapped body.
-        // (Using the one-shot window.__lit_ready would resolve instantly
-        // on every navigation after the first, before lazy chunks for
-        // the new page have loaded — that was the "spinner stuck /
-        // page doesn't appear" bug.)
-        var settled = false;
-        function finish() {{
-          if (settled) return;
-          settled = true;
-          document.body.classList.add('ce-ready');
-          hideLoader();
-          window.__turbo_swaps = (window.__turbo_swaps || 0) + 1;
-          var badge = document.getElementById('turbo-swap-badge');
-          if (badge) badge.textContent = 'Turbo swaps: ' + window.__turbo_swaps;
-        }}
-        var ready = (typeof window.__lit_ready_now === 'function')
-          ? window.__lit_ready_now()
-          : Promise.resolve();
-        ready.then(finish).catch(finish);
-        // Hard safety net: never leave the page hidden more than 1.5s.
-        setTimeout(finish, 1500);
-      }});
     }})();
   </script>
 </body>

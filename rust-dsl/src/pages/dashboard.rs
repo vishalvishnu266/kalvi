@@ -41,12 +41,9 @@ pub fn build() -> Page {
         .add(card().padded().add(progress(45).label("Warning zone").tone(ProgTone::Warning).show_value()))
         .add(card().padded().add(progress(90).label("Attendance").tone(ProgTone::Info).show_value()));
 
-    // ── Cross-page navigation bar ──
-    // Plain <a> tags → Turbo Drive intercepts them and swaps <body>
-    // without a full page reload. Watch the Network tab: you'll see
-    // ONE fetch per click (the HTML), no re-download of CSS/JS.
-    // The badge on the right shows how many Turbo swaps have happened
-    // in this session — if it increments, Turbo is working.
+    // Cross-page nav — plain <a> links. In the browser Turbo Drive
+    // handles them; in Hotwire Native the shell treats each as a
+    // native screen. Nothing special required.
     let dsl_nav = Node::raw(r##"
         <nav style="display:flex;gap:16px;align-items:center;padding:12px 16px;
                     background:var(--color-surface);border:1px solid var(--color-border);
@@ -57,9 +54,6 @@ pub fn build() -> Page {
           <a href="/dsl/fees"       style="color:var(--color-primary);text-decoration:none;">Fees</a>
           <a href="/dsl/attendance" style="color:var(--color-primary);text-decoration:none;">Attendance</a>
           <a href="/dsl"            style="color:var(--color-text-muted);text-decoration:none;margin-left:auto;">Index</a>
-          <span id="turbo-swap-badge"
-                style="padding:4px 10px;border-radius:999px;background:var(--color-primary);
-                       color:#fff;font-size:12px;font-weight:600;">Turbo swaps: 0</span>
         </nav>
     "##);
 
