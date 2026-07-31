@@ -1,0 +1,20 @@
+[package]
+name = "lit-ui"
+version = "0.1.0"
+edition = "2021"
+description = "Vaadin-style, macro-free Rust DSL that renders to Lit web components."
+license = "MIT OR Apache-2.0"
+
+# The library part — reusable from any Rust project (Axum, Actix, etc.).
+[lib]
+name = "lit_ui"
+path = "src/lib.rs"
+
+# Example binary that prints a full HTML page to stdout.
+# Run with:  cargo run --example demo > demo.html
+[[example]]
+name = "demo"
+path = "examples/demo.rs"
+
+[dependencies]
+# Intentionally none — the DSL is dependency-free.

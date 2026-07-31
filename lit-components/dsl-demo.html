@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>lit-ui — DSL demo</title>
+  <link rel="stylesheet" href="/lit-components/assets/tokens.css">
+  <link rel="stylesheet" href="/lit-components/assets/global.css">
+  <script type="module" src="/lit-components/components/index.js"></script>
+</head>
+<body>
+  <main style="max-width: 720px; margin: 40px auto; padding: 0 var(--space-5); display: flex; flex-direction: column; gap: var(--space-4);">
+<ui-card title="Welcome to lit-ui" subtitle="Macro-free Rust DSL over the Lit component kit" padded><span slot="actions"><ui-button variant="ghost" size="sm" icon="info">Docs</ui-button></span>Everything on this page was built by chaining Rust methods. The output is plain HTML — no runtime, no framework hooks. Perfect for Axum / Askama / Hotwire handlers.</ui-card><ui-card title="Add student" padded><ui-input type="text" label="Full name" name="fullName" placeholder="e.g. Aarav Kumar" required></ui-input><ui-input type="email" label="Guardian email" name="email" required></ui-input><ui-input type="textarea" label="Notes" name="notes" hint="Optional"></ui-input></ui-card><ui-card padded><ui-button variant="primary" size="md" icon="check">Save</ui-button><ui-button variant="secondary" size="md">Cancel</ui-button><ui-button variant="danger" size="md" icon="x">Delete</ui-button><ui-button variant="primary" size="md" disabled>Disabled</ui-button></ui-card>
+  </main>
+</body>
+</html>
