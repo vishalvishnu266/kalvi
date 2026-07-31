@@ -1,17 +1,19 @@
 //! `<ui-card>` — a container with an optional header, an "actions" slot,
 //! and a default body slot.
 //!
-//! ```ignore
-//! use lit_ui::prelude::*;
+//! ## Padding is on by default
 //!
-//! let html = card()
-//!     .title("Attendance")
-//!     .subtitle("This week")
-//!     .padded()
-//!     .action(button().label("See all").variant(Variant::Ghost))
-//!     .add(input().label("Search"))
-//!     .render();
+//! Every real usage in the codebase wanted a padded card, so `card()` is
+//! **padded by default**. Only opt out when you need edge-to-edge content
+//! (a full-bleed image, an embedded table/kanban with its own chrome):
+//!
+//! ```ignore
+//! card().add(input().label("Name"))                 // padded — normal case
+//! card().flush().add(table)                         // flush  — table borders reach the edge
 //! ```
+//!
+//! `.padded()` is kept as a deprecated no-op for backwards compatibility —
+//! existing call sites keep compiling. Sweep them at your leisure.
 
 use crate::core::{wrap, Attr, Child, Component};
 
@@ -19,17 +21,23 @@ use crate::core::{wrap, Attr, Child, Component};
 pub struct Card {
     title: Option<String>,
     subtitle: Option<String>,
+    /// Whether to render internal body padding. Defaults to `true`.
     padded: bool,
+    /// `flush` is the explicit opposite of `padded` on the underlying web
+    /// component. We keep the attribute so the CSS can still target it
+    /// (some Lit implementations use `flush` as the "on" signal), but the
+    /// Rust builder now drives it purely via `padded`.
     flush: bool,
     actions: Vec<Child>,
     children: Vec<Child>,
 }
 
-/// Start building a new card.
+/// Start building a new card. **Padded by default** — call [`Card::flush`]
+/// to remove the body padding for edge-to-edge content.
 pub fn card() -> Card {
     Card {
         title: None, subtitle: None,
-        padded: false, flush: false,
+        padded: true, flush: false,       // ← default flipped: padded on
         actions: Vec::new(), children: Vec::new(),
     }
 }
@@ -37,8 +45,21 @@ pub fn card() -> Card {
 impl Card {
     pub fn title(mut self, s: impl Into<String>)    -> Self { self.title    = Some(s.into()); self }
     pub fn subtitle(mut self, s: impl Into<String>) -> Self { self.subtitle = Some(s.into()); self }
-    pub fn padded(mut self) -> Self { self.padded = true; self }
-    pub fn flush(mut self)  -> Self { self.flush  = true; self }
+
+    /// **Deprecated.** Cards are padded by default now — this is a no-op
+    /// kept only so existing call sites don't need to be edited in one
+    /// go. New code should just write `card()`.
+    #[deprecated(note = "cards are padded by default; remove the `.padded()` call")]
+    pub fn padded(self) -> Self { self }
+
+    /// Remove the body padding — use for full-bleed images, embedded
+    /// tables, kanbans, or anything else that must touch the card edge.
+    /// Also clears the `padded` flag so both attributes are consistent.
+    pub fn flush(mut self) -> Self {
+        self.padded = false;
+        self.flush  = true;
+        self
+    }
 
     /// Add an element to the header's "actions" slot (top-right of the card).
     pub fn action(mut self, child: impl Component + 'static) -> Self {

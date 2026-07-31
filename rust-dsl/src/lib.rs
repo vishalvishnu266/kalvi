@@ -9,7 +9,6 @@
 //!
 //! let markup = card()
 //!     .title("Add student")
-//!     .padded()
 //!     .add(input().label("Full name").required())
 //!     .add(button().label("Save").variant(Variant::Primary))
 //!     .render();
@@ -58,8 +57,8 @@ pub mod prelude {
 
     // Layout primitives — all class-based, standardised, responsive.
     pub use crate::layout::{
-        container, row, column, grid, spacer, section,
-        Container, Row, Column, Grid, Spacer, Section,
+        container, row, row_actions, column, grid, spacer, section, divider,
+        Container, Row, Column, Grid, Spacer, Section, Divider, DividerAxis,
         Gap, Align, Justify,
         // Typed knobs that map to layout.css class names:
         Breakpoint, ContainerSize, MinW, MinCol, Cols,
@@ -73,7 +72,7 @@ pub mod prelude {
 
     // Tier-1 ports
     pub use crate::components::badge::{badge, Badge, Tone};
-    pub use crate::components::icon::{icon, Icon};
+    pub use crate::components::icon::{icon, Icon, IconName, Icons, IntoIconName};
     pub use crate::components::avatar::{avatar, Avatar, AvatarSize};
     pub use crate::components::stat::{stat, Stat, Trend};
     pub use crate::components::list_item::{list_item, ListItem};

@@ -391,6 +391,72 @@ impl Component for Spacer {
 }
 
 // ---------------------------------------------------------------------------
+// Divider — thin visual separator (horizontal by default, vertical inside a Row)
+// ---------------------------------------------------------------------------
+
+/// Orientation of a [`Divider`]. Horizontal is the default and works in any
+/// block context; Vertical is meant to sit between siblings inside a `Row`
+/// (or any flex container).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DividerAxis { Horizontal, Vertical }
+
+pub struct Divider { axis: DividerAxis }
+
+/// A 1-px separator line. `divider()` is horizontal; call `.vertical()` to
+/// switch. Styled by the `lu-divider*` rules in `layout.css` — no inline CSS.
+pub fn divider() -> Divider { Divider { axis: DividerAxis::Horizontal } }
+
+impl Divider {
+    pub fn vertical(mut self)   -> Self { self.axis = DividerAxis::Vertical;   self }
+    pub fn horizontal(mut self) -> Self { self.axis = DividerAxis::Horizontal; self }
+}
+
+impl Component for Divider {
+    fn render(&self) -> String {
+        let cls = match self.axis {
+            DividerAxis::Horizontal => "lu-divider",
+            DividerAxis::Vertical   => "lu-divider lu-divider-vertical",
+        };
+        // <hr> for horizontal (semantic + accessible); <span> for vertical
+        // so it can live inline in a flex row without breaking layout.
+        match self.axis {
+            DividerAxis::Horizontal => format!(r#"<hr class="{cls}">"#),
+            DividerAxis::Vertical   => format!(r#"<span class="{cls}" role="separator" aria-orientation="vertical"></span>"#),
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Action row — the ONE preset every page uses for button bars.
+// ---------------------------------------------------------------------------
+
+/// Convenience preset for a **horizontal action bar** — a `row()` pre-configured
+/// with:
+///
+/// * `Gap::Md`        — consistent spacing between actions,
+/// * `Align::Center`  — icon-buttons and plain buttons share the same baseline,
+/// * default wrap enabled — bars wrap gracefully on narrow viewports.
+///
+/// Use this everywhere you have a group of buttons (dialogs, form footers,
+/// toolbars, card footers). It's just `row().gap(Md).align(Center)` — nothing
+/// magical — but centralising it means every action bar in the app looks the
+/// same and you never have to remember the tokens.
+///
+/// ```ignore
+/// row_actions()
+///     .add(button().label("Save").variant(Variant::Primary).icon(Icons::CHECK))
+///     .add(button().label("Cancel").variant(Variant::Secondary))
+///     .add(button().label("Delete").variant(Variant::Danger).icon(Icons::DELETE));
+/// ```
+///
+/// Need the buttons pushed to the right? Chain `.justify(Justify::End)`.
+/// Need Save on the right and Cancel on the left? Insert a `spacer()`
+/// between them.
+pub fn row_actions() -> Row {
+    row().gap(Gap::Md).align(Align::Center)
+}
+
+// ---------------------------------------------------------------------------
 // Section
 // ---------------------------------------------------------------------------
 

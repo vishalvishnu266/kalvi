@@ -11,6 +11,7 @@
 //!     .render();
 //! ```
 
+use crate::components::icon::IntoIconName;
 use crate::core::{escape_html, wrap, Attr, Child, Component};
 
 /// Visual variant of a button.
@@ -80,8 +81,12 @@ impl Button {
 
     pub fn variant(mut self, v: Variant) -> Self { self.variant = v; self }
     pub fn size(mut self, s: Size)       -> Self { self.size = s; self }
-    pub fn icon(mut self, name: impl Into<String>) -> Self {
-        self.icon = Some(name.into()); self
+    /// Attach an icon. Accepts:
+    ///   * a typed [`crate::components::icon::IconName`] constant
+    ///     (e.g. `Icons::CHECK`) — recommended, autocompletes,
+    ///   * a `&'static str` or `String` for one-off / dynamic names.
+    pub fn icon(mut self, name: impl IntoIconName) -> Self {
+        self.icon = Some(name.into_icon_name()); self
     }
     pub fn full(mut self)     -> Self { self.full = true; self }
     pub fn disabled(mut self) -> Self { self.disabled = true; self }

@@ -20,16 +20,18 @@ fn main() -> std::io::Result<()> {
     let html = page()
         .title("lit-ui — DSL demo")
 
-        // Header card with a slotted action button
+        // Header card with a slotted action button. `Icons::INFO` is a
+        // compile-time-checked constant — try changing it to `Icons::INFOO`
+        // and you'll get a clean Rust compile error instead of a silently
+        // missing icon at runtime.
         .add(card()
             .title("Welcome to lit-ui")
             .subtitle("Macro-free Rust DSL over the Lit component kit")
-            .padded()
             .action(button()
                 .label("Docs")
                 .variant(Variant::Ghost)
                 .size(Size::Sm)
-                .icon("info"))
+                .icon(Icons::INFO))
             .add(Node::text(
                 "Everything on this page was built by chaining Rust methods. \
                  The output is plain HTML — no runtime, no framework hooks. \
@@ -39,7 +41,6 @@ fn main() -> std::io::Result<()> {
         // Form card demonstrating .add()
         .add(card()
             .title("Add student")
-            .padded()
             .add(input().label("Full name").name("fullName")
                         .placeholder("e.g. Aarav Kumar").required())
             .add(input().label("Guardian email").name("email")
@@ -48,15 +49,20 @@ fn main() -> std::io::Result<()> {
                         .kind(InputType::Textarea)
                         .hint("Optional")))
 
-        // Actions row — .children() to add several buttons at once
+        // Actions row — use `row_actions()`, the standard preset for every
+        // action bar. It's just `row().gap(Md).align(Center)` under the hood,
+        // but centralising it guarantees every bar in the app looks identical.
+        // Previously passing buttons straight to `card().children(...)` put
+        // them into the card's block-flow slot — that's why they stacked and
+        // the icon-vs-plain buttons had different vertical alignment.
         .add(card()
-            .padded()
-            .children(vec![
-                button().label("Save").variant(Variant::Primary).icon("check"),
-                button().label("Cancel").variant(Variant::Secondary),
-                button().label("Delete").variant(Variant::Danger).icon("x"),
-                button().label("Disabled").disabled(),
-            ]))
+            .add(row_actions()
+                .add(button().label("Save").variant(Variant::Primary).icon(Icons::CHECK))
+                .add(button().label("Cancel").variant(Variant::Secondary))
+                .add(divider().vertical()) // visual separator between safe and destructive actions
+                .add(button().label("Delete").variant(Variant::Danger).icon(Icons::DELETE))
+                .add(spacer())             // push the disabled example to the far right
+                .add(button().label("Disabled").disabled())))
         .render();
 
     // Write next to the Lit components so `npx serve` from the repo root

@@ -97,6 +97,25 @@
 /* ---------- Spacer ---------- */
 .lu-spacer { flex: 1 1 auto; }
 
+/* ---------- Divider ---------- */
+/* Horizontal: sits between block-flow siblings (default <hr>).            */
+/* Vertical:   sits between flex-row siblings — sizes itself to align with */
+/*             its neighbours automatically.                                */
+.lu-divider {
+  border: none;
+  background: var(--color-border);
+  height: 1px;
+  width: 100%;
+  margin: 0;
+  flex-shrink: 0;
+}
+.lu-divider-vertical {
+  display: inline-block;
+  width: 1px;
+  height: 1.5em;      /* matches typical button/text height */
+  align-self: center; /* line up with center-aligned flex children */
+}
+
 /* ---------- Section (semantic titled block) ---------- */
 .lu-section {
   display: flex; flex-direction: column;
