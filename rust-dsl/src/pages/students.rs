@@ -37,7 +37,7 @@ pub fn build(students: &[Student]) -> Page {
     let late    = students.iter().filter(|s| s.status == "late").count();
     let absent  = students.iter().filter(|s| s.status == "absent").count();
 
-    let kpis = grid().cols_min("220px")
+    let kpis = grid().cols_min(MinCol::W200)
         .add(stat("Total students", students.len().to_string()).icon("users").trend(Trend::Up).delta("+2.1%"))
         .add(stat("Present today",  present.to_string()).icon("check").trend(Trend::Up).delta("+3.2%"))
         .add(stat("Late arrivals",  late.to_string()).icon("bell").trend(Trend::Up).delta("+0.8%"))
