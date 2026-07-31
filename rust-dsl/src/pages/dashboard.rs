@@ -41,8 +41,32 @@ pub fn build() -> Page {
         .add(card().padded().add(progress(45).label("Warning zone").tone(ProgTone::Warning).show_value()))
         .add(card().padded().add(progress(90).label("Attendance").tone(ProgTone::Info).show_value()));
 
+    // ── Cross-page navigation bar ──
+    // Plain <a> tags → Turbo Drive intercepts them and swaps <body>
+    // without a full page reload. Watch the Network tab: you'll see
+    // ONE fetch per click (the HTML), no re-download of CSS/JS.
+    // The badge on the right shows how many Turbo swaps have happened
+    // in this session — if it increments, Turbo is working.
+    let dsl_nav = Node::raw(r##"
+        <nav style="display:flex;gap:16px;align-items:center;padding:12px 16px;
+                    background:var(--color-surface);border:1px solid var(--color-border);
+                    border-radius:12px;flex-wrap:wrap;">
+          <strong style="margin-right:8px;">DSL demos:</strong>
+          <a href="/dsl/dashboard"  style="color:var(--color-primary);text-decoration:none;">Dashboard</a>
+          <a href="/dsl/students"   style="color:var(--color-primary);text-decoration:none;">Students</a>
+          <a href="/dsl/fees"       style="color:var(--color-primary);text-decoration:none;">Fees</a>
+          <a href="/dsl/attendance" style="color:var(--color-primary);text-decoration:none;">Attendance</a>
+          <a href="/dsl"            style="color:var(--color-text-muted);text-decoration:none;margin-left:auto;">Index</a>
+          <span id="turbo-swap-badge"
+                style="padding:4px 10px;border-radius:999px;background:var(--color-primary);
+                       color:#fff;font-size:12px;font-weight:600;">Turbo swaps: 0</span>
+        </nav>
+    "##);
+
     page().title("Dashboard · ERP demo").add(
         container().max_width("1280px").add(column().gap(Gap::Lg)
+            // Cross-page Turbo navigation
+            .add(dsl_nav)
             // Header
             .add(row().align(Align::Center).gap(Gap::Md)
                 .add(breadcrumb().item(Crumb::current("Dashboard")))
