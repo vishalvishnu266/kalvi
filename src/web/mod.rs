@@ -14,6 +14,7 @@ pub mod assets;
 pub mod auth;
 pub mod dashboard;
 pub mod demo;
+pub mod dsl;
 pub mod error;
 pub mod filters;
 pub mod landing;

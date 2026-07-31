@@ -34,6 +34,9 @@ mime_guess = "2"
 rust-embed = { version = "8", features = ["debug-embed"] }
 urlencoding = "2"
 
+# Typed Rust DSL over the Lit web components (see rust-dsl/).
+lit-ui = { path = "rust-dsl" }
+
 [dev-dependencies]
 # Integration tests talk to a real running server over HTTP via reqwest's
 # blocking client. Start the server first (e.g. `bash scripts/dev_reset.sh`)

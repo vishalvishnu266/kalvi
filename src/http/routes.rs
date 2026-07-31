@@ -11,7 +11,7 @@ use axum::{
 use crate::http::api_routes;
 pub use crate::middleware::tenant::TenantScope;
 use crate::middleware::tracing as wtr;
-use crate::web::{assets as wa, landing as wl};
+use crate::web::{assets as wa, dsl as wd, landing as wl};
 
 pub type ServiceHttpError = ServiceError;
 
@@ -42,7 +42,18 @@ pub fn build_router(state: AppState, readiness: Readiness) -> Router {
 
     let global = Router::new()
         .route("/", get(wl::index))
-        .route("/assets/{*path}", get(wa::serve));
+        .route("/assets/{*path}", get(wa::serve))
+        // lit-components/ folder served straight from disk (dev-friendly).
+        .route(
+            "/lit-components/{*path}",
+            get(wa::serve_lit_components),
+        )
+        // Rust-DSL rendered demo pages (mock data — no services).
+        .route("/dsl",            get(wd::index))
+        .route("/dsl/students",   get(wd::students_page))
+        .route("/dsl/fees",       get(wd::fees_page))
+        .route("/dsl/attendance", get(wd::attendance_page))
+        .route("/dsl/dashboard",  get(wd::dashboard_page));
 
     let web_global = crate::http::web::global_routes();
     let portal_global = crate::http::portal::global_routes();

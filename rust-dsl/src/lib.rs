@@ -43,6 +43,11 @@ pub mod core;
 pub mod layout;
 pub mod components;
 
+/// Reusable full-page builders (Students, Fees, Attendance, Dashboard).
+/// Framework-agnostic: each returns a [`crate::components::page::Page`] that
+/// the caller can `.render()` to HTML.
+pub mod pages;
+
 /// Re-exports the everyday pieces you want in scope.
 ///
 /// A single `use lit_ui::prelude::*;` brings in every free-function
