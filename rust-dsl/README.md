@@ -38,42 +38,126 @@ Produces (formatted for readability):
   same HTML attributes the Lit components already accept, so you can freely
   switch between "hand-written HTML" and "typed Rust" per page.
 
-## Included in this initial cut
+## Included
 
-Only a representative slice — enough to prove the pattern and build a real
-page:
+**Layout primitives** (no external CSS needed):
 
-| Rust builder | Web component |
+| Rust builder | What it does |
 | --- | --- |
-| `button()` | `<ui-button>` |
-| `input()`  | `<ui-input>` |
-| `card()`   | `<ui-card>` |
-| `page()`   | Full HTML shell that loads the Lit kit |
+| `container()` | Centered wrapper with `max-width` (default 1200px). `.fluid()` to fill. |
+| `row()`       | Horizontal flex with responsive wrap. `.gap()` / `.align()` / `.justify()` / `.nowrap()`. |
+| `column()`    | Vertical flex. `.flex(n)` grows inside a Row. `.min_width("300px")`. |
+| `grid()`      | Auto-fit grid. `.cols_min("220px")` for responsive KPI/card grids. |
+| `spacer()`    | Flexible gap that pushes flex siblings apart. |
+| `section()`   | Semantic `<section>` with title/subtitle + right-side actions header. |
 
-Adding more components is 30–60 lines of Rust each. Follow the pattern in
-`src/components/button.rs`:
+**Components** (typed builders → `<ui-*>` Lit elements):
+
+| Rust builder     | Web component |
+| ---              | --- |
+| `page()`         | Full HTML shell that loads the Lit kit |
+| `button()`       | `<ui-button>` |
+| `input()`        | `<ui-input>` |
+| `card()`         | `<ui-card>` |
+| `badge()`        | `<ui-badge>` |
+| `icon()`         | `<ui-icon>` |
+| `avatar()`       | `<ui-avatar>` |
+| `stat()`         | `<ui-stat>` |
+| `list_item()`    | `<ui-list-item>` |
+| `select()`       | `<ui-select>` |
+| `checkbox()`     | `<ui-checkbox>` |
+| `radio()` + `radio_group()` | `<ui-radio>` + `<ui-radio-group>` |
+| `switch()`       | `<ui-switch>` |
+| `form()`         | `<ui-form>` |
+| `table()`        | `<ui-table>` (hand-rolled `<table>`) |
+| `data_table()`   | `<ui-data-table>` (typed columns + rows via inline `<script>`) |
+| `pagination()`   | `<ui-pagination>` |
+| `breadcrumb()` + `Crumb::link/current` | `<ui-breadcrumb>` |
+| `avatar_group()`  | `<ui-avatar-group>` |
+| `tooltip(text)`   | `<ui-tooltip>` |
+| `tab_bar()` + `Tab::new(...).active()` | `<ui-tab-bar>` |
+| `segmented()` + `Segment::new(...)`    | `<ui-segmented>` |
+| `empty_state(title)` | `<ui-empty-state>` |
+| `skeleton()`      | `<ui-skeleton>` |
+| `progress(v)`     | `<ui-progress>` (linear + circular) |
+| `drawer()`        | `<ui-drawer>` |
+| `dropdown_menu()` + `MenuItem::link/action`/`.divider()` | `<ui-dropdown-menu>` |
+| `modal()`         | `<ui-modal>` |
+| `stepper()`       | `<ui-stepper>` |
+| `timeline()` + `timeline_item()` | `<ui-timeline>` + `<ui-timeline-item>` |
+| `kanban()` + `kanban_column()` + `kanban_card()` | full kanban board |
+| `file_upload()`   | `<ui-file-upload>` |
+| `datepicker()`    | `<ui-datepicker>` |
+| `date_range()`    | `<ui-daterange>` |
+| `combobox()` + `ComboOption::new(...)` | `<ui-combobox>` |
+| `inline_edit(value)` | `<ui-inline-edit>` |
+| `toast(title)` + `toast_host()` | `<ui-toast>` + `<ui-toast-host>` |
+| `command()` + `command_item(label)` | `<ui-command>` + `<ui-command-item>` |
+
+Every `<ui-*>` element on the JS side now has a typed Rust builder. New
+components are 30–60 lines each — follow the pattern in
+`src/components/badge.rs`.
+
+## Responsive by default
+
+The DSL emits the same HTML you'd write by hand, so **every responsive rule
+lives in the Lit component CSS** and applies automatically:
+
+* `app-shell` collapses its menu bar into a bottom tab bar under 860 px.
+* `data-table` scrolls horizontally on narrow screens.
+* `drawer`, `select`, `datepicker`, `daterange` become bottom sheets on mobile.
+* `grid().cols_min("220px")` fluidly reflows KPI cards down to 1 column.
+* `row()` wraps by default (opt-out with `.nowrap()`) so multi-column
+  layouts fold into stacks on narrow devices.
+
+For a page-level example, open the pre-generated Students page:
+
+* <http://localhost:3000/lit-components/dsl-students.html>
+
+Resize the browser — the KPI grid, the table, and the two-column body all
+reflow with no per-page code.
+
+## Adding a new component
+
+The pattern is 30–60 lines of Rust. Copy `src/components/badge.rs` and:
 
 1. Create a struct with fields for each attribute.
 2. Add a free-function constructor (`pub fn foo() -> Foo`).
 3. Add method-chaining setters (`.label`, `.variant`, …).
 4. Implement `Component`'s `render()` — build a `Vec<Attr>`, call `wrap(...)`.
+5. Register it in `src/components/mod.rs` and export from `prelude` in `src/lib.rs`.
 
-## Try the demo
+## Try the demos
 
-Because you don't need Cargo just to view the output, we've pre-rendered the
-example page:
-
-* Start any static server from the repo root:
-  ```bash
-  npx serve            # or python -m http.server 3000
-  ```
-* Open: <http://localhost:3000/lit-components/dsl-demo.html>
-
-The same page can be produced with:
+Two pages are pre-rendered so you can preview without Cargo:
 
 ```bash
-cargo run -p lit-ui --example demo > lit-components/dsl-demo.html
+# from the repo root
+npx serve           # or:  python -m http.server 3000
 ```
+
+Then open:
+
+* <http://localhost:3000/lit-components/dsl-demo.html> — tiny form + button demo
+* <http://localhost:3000/lit-components/dsl-students.html> — realistic ERP
+  "Students" page with KPIs, sortable/filterable/paged table, side form,
+  breadcrumbs, and a responsive two-column layout.
+
+Both pages come from real Rust files. Each example **writes the HTML file
+directly** (no shell redirection needed) into `../lit-components/`:
+
+```bash
+cargo run -p lit-ui --example demo
+# wrote 1523 bytes → …/lit-components/dsl-demo.html
+# open  → http://localhost:3000/lit-components/dsl-demo.html
+
+cargo run -p lit-ui --example students
+# wrote 3812 bytes → …/lit-components/dsl-students.html
+# open  → http://localhost:3000/lit-components/dsl-students.html
+```
+
+The output path is resolved from `CARGO_MANIFEST_DIR`, so you can invoke
+`cargo run` from anywhere in the workspace.
 
 ## Children API — `.add()` vs `.children()`
 
@@ -104,16 +188,32 @@ rust-dsl/
 ├── Cargo.toml
 ├── README.md
 ├── src/
-│   ├── lib.rs
+│   ├── lib.rs                  # Prelude re-exports
 │   ├── core.rs                 # Component trait + escaping + tag helpers
+│   ├── layout.rs               # container, row, column, grid, spacer + Gap/Align/Justify
 │   └── components/
 │       ├── mod.rs
+│       ├── page.rs             # HTML shell (fluid; use container() inside)
 │       ├── button.rs
 │       ├── input.rs
 │       ├── card.rs
-│       └── page.rs
+│       ├── badge.rs
+│       ├── icon.rs
+│       ├── avatar.rs
+│       ├── stat.rs
+│       ├── list_item.rs
+│       ├── select.rs
+│       ├── checkbox.rs
+│       ├── radio.rs            # radio + radio_group
+│       ├── switch.rs
+│       ├── form.rs
+│       ├── table.rs            # hand-rolled table wrapped in <ui-table>
+│       ├── data_table.rs       # typed columns + rows via inline <script>
+│       ├── pagination.rs
+│       └── breadcrumb.rs
 └── examples/
-    └── demo.rs                 # Prints an HTML page to stdout
+    ├── demo.rs                 # Tiny form + button demo
+    └── students.rs             # Full ERP "Students" page
 ```
 
 ## Integration hint (Axum)

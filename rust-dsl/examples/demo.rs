@@ -1,18 +1,21 @@
-//! Print a full HTML page to stdout so you can preview the DSL output.
+//! Tiny form + button demo — writes an HTML file straight into the sibling
+//! `lit-components/` folder so you can open it in a browser immediately.
 //!
 //! ```sh
-//! # from repo root, generate a page and open it in a browser
-//! cargo run -p lit-ui --example demo > lit-components/dsl-demo.html
-//! start http://localhost:3000/lit-components/dsl-demo.html
+//! cargo run -p lit-ui --example demo
+//! # writes -> ../lit-components/dsl-demo.html
+//! # open   -> http://localhost:3000/lit-components/dsl-demo.html
 //! ```
 //!
-//! The generated page links to `/lit-components/{assets,components}/…`, so
-//! serve the repo root with `npx serve` (or `python -m http.server`) and open
-//! it via that URL.
+//! The output path is resolved relative to this file, so it works from
+//! anywhere: `cargo run` from repo root, from `rust-dsl/`, or from anywhere
+//! else inside the workspace.
 
 use lit_ui::prelude::*;
+use std::fs;
+use std::path::PathBuf;
 
-fn main() {
+fn main() -> std::io::Result<()> {
     // Build the page purely in Rust — no macros, no templates.
     let html = page()
         .title("lit-ui — DSL demo")
@@ -33,7 +36,7 @@ fn main() {
                  Perfect for Axum / Askama / Hotwire handlers."
             )))
 
-        // Form card demonstrating .add() + .children()
+        // Form card demonstrating .add()
         .add(card()
             .title("Add student")
             .padded()
@@ -54,8 +57,25 @@ fn main() {
                 button().label("Delete").variant(Variant::Danger).icon("x"),
                 button().label("Disabled").disabled(),
             ]))
-
         .render();
 
-    println!("{html}");
+    // Write next to the Lit components so `npx serve` from the repo root
+    // finds it at `/lit-components/dsl-demo.html`.
+    let out = output_path("dsl-demo.html");
+    fs::create_dir_all(out.parent().unwrap())?;
+    fs::write(&out, &html)?;
+
+    eprintln!("wrote {} bytes → {}", html.len(), out.display());
+    eprintln!("open  → http://localhost:3000/lit-components/dsl-demo.html");
+    Ok(())
+}
+
+/// Resolves `<repo-root>/lit-components/<file>` relative to this source file
+/// so the example always writes to the right place regardless of the
+/// current working directory Cargo was invoked from.
+fn output_path(filename: &str) -> PathBuf {
+    // CARGO_MANIFEST_DIR = the crate that owns this example (`rust-dsl/`).
+    // Its parent is the repo root, and the target folder is `lit-components/`.
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    root.parent().unwrap().join("lit-components").join(filename)
 }

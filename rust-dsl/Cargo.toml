@@ -16,5 +16,11 @@ path = "src/lib.rs"
 name = "demo"
 path = "examples/demo.rs"
 
+# Realistic ERP "Students" page assembled purely from the DSL.
+# Run with:  cargo run --example students > ../lit-components/dsl-students.html
+[[example]]
+name = "students"
+path = "examples/students.rs"
+
 [dependencies]
 # Intentionally none — the DSL is dependency-free.

@@ -57,6 +57,9 @@ impl Component for Page {
         let mut body = String::new();
         for c in &self.children { body.push_str(&c.render()); }
 
+        // The <body> is fluid (100% width). Use `container()` inside for
+        // centred max-width sections; use `container().fluid()` (or nothing)
+        // for full-bleed layouts like dashboards / kanban boards.
         format!(
             r#"<!doctype html>
 <html lang="en">
@@ -69,9 +72,7 @@ impl Component for Page {
   <script type="module" src="{base}/components/index.js"></script>
 </head>
 <body>
-  <main style="max-width: 720px; margin: 40px auto; padding: 0 var(--space-5); display: flex; flex-direction: column; gap: var(--space-4);">
 {body}
-  </main>
 </body>
 </html>
 "#,
