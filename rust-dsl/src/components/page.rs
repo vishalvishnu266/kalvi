@@ -69,6 +69,7 @@ impl Component for Page {
   <title>{title}</title>
   <link rel="stylesheet" href="{base}/assets/tokens.css">
   <link rel="stylesheet" href="{base}/assets/global.css">
+  <link rel="stylesheet" href="{base}/assets/layout.css">
   <script type="module" src="{base}/components/index.js"></script>
 </head>
 <body>

@@ -1,115 +1,162 @@
-//! Layout primitives — minimal but compositional.
+//! Layout primitives — **class-based**, standardised, responsive.
 //!
-//! Five plain wrappers around a `<div>` with sensible flex/grid CSS.
-//! Combine them to build any responsive layout without touching CSS:
+//! ## Rules the DSL enforces
 //!
-//! ```ignore
-//! use lit_ui::prelude::*;
+//! * **Zero inline layout CSS.** Rust builders emit `class="lu-…"` names
+//!   only. All layout rules live in `lit-components/assets/layout.css`.
+//! * **Typed enums** for gap, alignment, and justification map 1:1 to
+//!   class-name suffixes so IDEs (and the Rust compiler) catch typos.
+//! * **Responsive is opt-in via typed helpers.** Call `.mobile_stack()`
+//!   on a `Row` or `Grid` to have it collapse to a Column on mobile
+//!   (≤ 640 px). Similar `.tablet_stack()` for ≤ 900 px. No CSS to write.
 //!
-//! container()
-//!   .add(row()
-//!       .add(column().flex(2).add(main_content))
-//!       .add(column().flex(1).add(sidebar_content)))
-//!   .add(grid().cols_min("240px").children(stat_cards));
-//! ```
+//! ## Available primitives
 //!
-//! ## Why these five?
-//!
-//! * **`Container`** — centers content and caps width. Every page starts here.
-//! * **`Row`** — horizontal flex. Wraps automatically → responsive on mobile.
-//! * **`Column`** — vertical flex. Use `.flex(2)` to grow proportionally.
-//! * **`Grid`** — CSS grid with `auto-fit, minmax(min, 1fr)` responsive columns.
-//! * **`Spacer`** — flexible gap that pushes siblings apart in a flex row.
-//!
-//! All spacing uses the design tokens (`--space-*`) so a theme change re-skins
-//! every layout at once.
+//! * [`container()`] — centred wrapper with `max-width`.
+//! * [`row()`]       — horizontal flex, wraps by default.
+//! * [`column()`]    — vertical flex.
+//! * [`grid()`]      — CSS grid with auto-fit responsive columns.
+//! * [`spacer()`]    — pushes flex siblings apart.
+//! * [`section()`]   — semantic `<section>` with title / subtitle / actions.
 
 use crate::core::{escape_html, wrap, Attr, Child, Component};
 
-/// Size scale used for gaps and paddings.
-/// Maps to `--space-{n}` design tokens.
+// ---------------------------------------------------------------------------
+// Enums (typed knobs)
+// ---------------------------------------------------------------------------
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Gap { None, Xs, Sm, Md, Lg, Xl, Xxl }
 impl Gap {
-    fn var(self) -> &'static str {
+    fn class(self) -> &'static str {
         match self {
-            Gap::None => "0",
-            Gap::Xs   => "var(--space-1)",
-            Gap::Sm   => "var(--space-2)",
-            Gap::Md   => "var(--space-4)",
-            Gap::Lg   => "var(--space-5)",
-            Gap::Xl   => "var(--space-6)",
-            Gap::Xxl  => "var(--space-8)",
+            Gap::None => "lu-gap-none",
+            Gap::Xs   => "lu-gap-xs",
+            Gap::Sm   => "lu-gap-sm",
+            Gap::Md   => "lu-gap-md",
+            Gap::Lg   => "lu-gap-lg",
+            Gap::Xl   => "lu-gap-xl",
+            Gap::Xxl  => "lu-gap-xxl",
         }
     }
 }
 
-/// Alignment along the cross axis (align-items).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Align { Start, Center, End, Stretch, Baseline }
 impl Align {
-    fn css(self) -> &'static str {
+    fn class(self) -> &'static str {
         match self {
-            Align::Start    => "flex-start",
-            Align::Center   => "center",
-            Align::End      => "flex-end",
-            Align::Stretch  => "stretch",
-            Align::Baseline => "baseline",
+            Align::Start    => "lu-align-start",
+            Align::Center   => "lu-align-center",
+            Align::End      => "lu-align-end",
+            Align::Stretch  => "lu-align-stretch",
+            Align::Baseline => "lu-align-baseline",
         }
     }
 }
 
-/// Distribution along the main axis (justify-content).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Justify { Start, Center, End, Between, Around, Evenly }
 impl Justify {
-    fn css(self) -> &'static str {
+    fn class(self) -> &'static str {
         match self {
-            Justify::Start   => "flex-start",
-            Justify::Center  => "center",
-            Justify::End     => "flex-end",
-            Justify::Between => "space-between",
-            Justify::Around  => "space-around",
-            Justify::Evenly  => "space-evenly",
+            Justify::Start   => "lu-justify-start",
+            Justify::Center  => "lu-justify-center",
+            Justify::End     => "lu-justify-end",
+            Justify::Between => "lu-justify-between",
+            Justify::Around  => "lu-justify-around",
+            Justify::Evenly  => "lu-justify-evenly",
         }
     }
+}
+
+/// The breakpoint at which a Row/Grid stacks into a Column.
+///
+/// * `Mobile` → ≤ 640 px
+/// * `Tablet` → ≤ 900 px
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Breakpoint { Mobile, Tablet }
+impl Breakpoint {
+    fn stack_class(self) -> &'static str {
+        match self { Breakpoint::Mobile => "lu-stack-m", Breakpoint::Tablet => "lu-stack-t" }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Class-list helper — small string builder for `class="..."`
+// ---------------------------------------------------------------------------
+
+/// Compose a single `class="…"` attribute from an iterator of `&str` parts.
+/// Empty parts are skipped so callers can freely include conditional classes.
+fn class_attr<'a, I: IntoIterator<Item = &'a str>>(parts: I) -> Attr {
+    let mut s = String::new();
+    for p in parts.into_iter().filter(|p| !p.is_empty()) {
+        if !s.is_empty() { s.push(' '); }
+        s.push_str(p);
+    }
+    Attr::kv("class", s)
 }
 
 // ---------------------------------------------------------------------------
 // Container
 // ---------------------------------------------------------------------------
 
-/// Centers content and caps its max width. Every page starts here.
+/// Size preset for [`Container`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ContainerSize { Sm, Md, Lg, Xl, Fluid }
+impl ContainerSize {
+    fn class(self) -> &'static str {
+        match self {
+            ContainerSize::Sm    => "lu-container-sm",
+            ContainerSize::Md    => "lu-container-md",
+            ContainerSize::Lg    => "lu-container-lg",
+            ContainerSize::Xl    => "lu-container-xl",
+            ContainerSize::Fluid => "lu-container-fluid",
+        }
+    }
+}
+
 pub struct Container {
-    max_width: String,   // any CSS length; default 1200px
+    size: ContainerSize,
     padded: bool,
     children: Vec<Child>,
 }
 
 pub fn container() -> Container {
-    Container { max_width: "1200px".into(), padded: true, children: Vec::new() }
+    Container { size: ContainerSize::Lg, padded: true, children: Vec::new() }
 }
 
 impl Container {
-    pub fn max_width(mut self, w: impl Into<String>) -> Self { self.max_width = w.into(); self }
-    pub fn fluid(mut self)   -> Self { self.max_width = "100%".into(); self }
+    pub fn size(mut self, s: ContainerSize) -> Self { self.size = s; self }
+    pub fn fluid(mut self)      -> Self { self.size = ContainerSize::Fluid; self }
     pub fn no_padding(mut self) -> Self { self.padded = false; self }
     pub fn add(mut self, c: impl Component + 'static) -> Self { self.children.push(Box::new(c)); self }
     pub fn children<I, C>(mut self, iter: I) -> Self
     where I: IntoIterator<Item = C>, C: Component + 'static {
         for c in iter { self.children.push(Box::new(c)); } self
     }
+
+    /// **Deprecated shortcut kept for backwards compat.**
+    /// Prefer `.size(ContainerSize::Lg)` etc.
+    pub fn max_width(mut self, w: impl Into<String>) -> Self {
+        let w = w.into();
+        self.size = match w.as_str() {
+            "640px"  | "sm" => ContainerSize::Sm,
+            "960px"  | "md" => ContainerSize::Md,
+            "1280px" | "xl" => ContainerSize::Xl,
+            "100%"   | "fluid" => ContainerSize::Fluid,
+            _ => ContainerSize::Lg,
+        };
+        self
+    }
 }
 
 impl Component for Container {
     fn render(&self) -> String {
-        let pad = if self.padded { "var(--space-5)" } else { "0" };
-        let style = format!(
-            "max-width:{};margin-left:auto;margin-right:auto;padding-left:{};padding-right:{};box-sizing:border-box;",
-            escape_html(&self.max_width), pad, pad,
-        );
+        let nopad = if !self.padded { "lu-container-nopad" } else { "" };
+        let attrs = [class_attr(["lu-container", self.size.class(), nopad])];
         let body: String = self.children.iter().map(|c| c.render()).collect();
-        wrap("div", &[Attr::kv("style", style)], &body)
+        wrap("div", &attrs, &body)
     }
 }
 
@@ -117,18 +164,19 @@ impl Component for Container {
 // Row
 // ---------------------------------------------------------------------------
 
-/// Horizontal flex layout. Wraps by default so it collapses to a stack on
-/// narrow screens automatically.
 pub struct Row {
     gap: Gap,
     align: Align,
     justify: Justify,
     wrap: bool,
+    stack_at: Option<Breakpoint>,
+    hide_at: Option<Breakpoint>,
     children: Vec<Child>,
 }
 
 pub fn row() -> Row {
-    Row { gap: Gap::Md, align: Align::Stretch, justify: Justify::Start, wrap: true, children: Vec::new() }
+    Row { gap: Gap::Md, align: Align::Stretch, justify: Justify::Start,
+          wrap: true, stack_at: None, hide_at: None, children: Vec::new() }
 }
 
 impl Row {
@@ -136,6 +184,17 @@ impl Row {
     pub fn align(mut self, a: Align)     -> Self { self.align = a; self }
     pub fn justify(mut self, j: Justify) -> Self { self.justify = j; self }
     pub fn nowrap(mut self)              -> Self { self.wrap = false; self }
+
+    /// Collapse into a Column at `breakpoint` (or narrower).
+    /// Children go full-width, `min_width`s neutralised.
+    pub fn stack_at(mut self, b: Breakpoint) -> Self { self.stack_at = Some(b); self }
+    /// Convenience: `stack_at(Breakpoint::Mobile)`.
+    pub fn mobile_stack(self) -> Self { self.stack_at(Breakpoint::Mobile) }
+    /// Convenience: `stack_at(Breakpoint::Tablet)`.
+    pub fn tablet_stack(self) -> Self { self.stack_at(Breakpoint::Tablet) }
+    /// Hide this Row at `breakpoint` (or narrower).
+    pub fn hide_at(mut self, b: Breakpoint) -> Self { self.hide_at = Some(b); self }
+
     pub fn add(mut self, c: impl Component + 'static) -> Self { self.children.push(Box::new(c)); self }
     pub fn children<I, C>(mut self, iter: I) -> Self
     where I: IntoIterator<Item = C>, C: Component + 'static {
@@ -145,15 +204,15 @@ impl Row {
 
 impl Component for Row {
     fn render(&self) -> String {
-        let style = format!(
-            "display:flex;flex-direction:row;flex-wrap:{};gap:{};align-items:{};justify-content:{};min-width:0;",
-            if self.wrap { "wrap" } else { "nowrap" },
-            self.gap.var(),
-            self.align.css(),
-            self.justify.css(),
-        );
+        let stack = self.stack_at.map(|b| b.stack_class()).unwrap_or("");
+        let hide  = self.hide_at.map(|b| match b { Breakpoint::Mobile=>"lu-hide-m", Breakpoint::Tablet=>"lu-hide-t" }).unwrap_or("");
+        let nowrap = if !self.wrap { "lu-nowrap" } else { "" };
+        let attrs = [class_attr([
+            "lu-row", self.gap.class(), self.align.class(), self.justify.class(),
+            nowrap, stack, hide,
+        ])];
         let body: String = self.children.iter().map(|c| c.render()).collect();
-        wrap("div", &[Attr::kv("style", style)], &body)
+        wrap("div", &attrs, &body)
     }
 }
 
@@ -161,31 +220,65 @@ impl Component for Row {
 // Column
 // ---------------------------------------------------------------------------
 
-/// Vertical flex layout. Use `.flex(n)` inside a Row to grow proportionally.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MinW { W200, W260, W280, W300, W320, W400 }
+impl MinW {
+    fn class(self) -> &'static str {
+        match self {
+            MinW::W200 => "lu-min-w-200",
+            MinW::W260 => "lu-min-w-260",
+            MinW::W280 => "lu-min-w-280",
+            MinW::W300 => "lu-min-w-300",
+            MinW::W320 => "lu-min-w-320",
+            MinW::W400 => "lu-min-w-400",
+        }
+    }
+}
+
 pub struct Column {
     gap: Gap,
     align: Align,
     justify: Justify,
-    flex: Option<u32>,
-    min_width: Option<String>,
+    flex: Option<u8>,             // 1..=5
+    min_w: Option<MinW>,
+    hide_at: Option<Breakpoint>,
     children: Vec<Child>,
 }
 
 pub fn column() -> Column {
-    Column {
-        gap: Gap::Md, align: Align::Stretch, justify: Justify::Start,
-        flex: None, min_width: None, children: Vec::new(),
-    }
+    Column { gap: Gap::Md, align: Align::Stretch, justify: Justify::Start,
+             flex: None, min_w: None, hide_at: None, children: Vec::new() }
 }
 
 impl Column {
     pub fn gap(mut self, g: Gap)         -> Self { self.gap = g; self }
     pub fn align(mut self, a: Align)     -> Self { self.align = a; self }
     pub fn justify(mut self, j: Justify) -> Self { self.justify = j; self }
-    /// Grow factor when this column sits inside a Row.
-    pub fn flex(mut self, n: u32)        -> Self { self.flex = Some(n); self }
-    /// Prevents crushing on very narrow screens. Default `0` (allow shrink).
-    pub fn min_width(mut self, w: impl Into<String>) -> Self { self.min_width = Some(w.into()); self }
+
+    /// Grow factor when this column sits inside a Row (1..=5).
+    /// Values outside the range are clamped.
+    pub fn flex(mut self, n: u8) -> Self {
+        self.flex = Some(n.clamp(1, 5)); self
+    }
+
+    /// Prevent this column being crushed on wider screens (typed choices).
+    pub fn min_w(mut self, w: MinW) -> Self { self.min_w = Some(w); self }
+    /// Back-compat alias — accepts a string like "300px". Prefer [`min_w`].
+    pub fn min_width(mut self, w: impl Into<String>) -> Self {
+        let w = w.into();
+        self.min_w = Some(match w.as_str() {
+            "200px" => MinW::W200,
+            "260px" => MinW::W260,
+            "280px" => MinW::W280,
+            "300px" => MinW::W300,
+            "320px" => MinW::W320,
+            "400px" => MinW::W400,
+            _       => MinW::W300, // sensible default
+        });
+        self
+    }
+    pub fn hide_at(mut self, b: Breakpoint) -> Self { self.hide_at = Some(b); self }
+
     pub fn add(mut self, c: impl Component + 'static) -> Self { self.children.push(Box::new(c)); self }
     pub fn children<I, C>(mut self, iter: I) -> Self
     where I: IntoIterator<Item = C>, C: Component + 'static {
@@ -195,16 +288,18 @@ impl Column {
 
 impl Component for Column {
     fn render(&self) -> String {
-        let flex = self.flex.map(|f| format!("flex:{} 1 0;", f)).unwrap_or_default();
-        let minw = self.min_width.as_deref().map(|w|
-            format!("min-width:{};", escape_html(w))
-        ).unwrap_or_default();
-        let style = format!(
-            "display:flex;flex-direction:column;gap:{};align-items:{};justify-content:{};{}{}min-width:0;",
-            self.gap.var(), self.align.css(), self.justify.css(), flex, minw,
-        );
+        let flex_class = self.flex.map(|n| match n {
+            1 => "lu-flex-1", 2 => "lu-flex-2", 3 => "lu-flex-3",
+            4 => "lu-flex-4", _ => "lu-flex-5",
+        }).unwrap_or("");
+        let min_w = self.min_w.map(|m| m.class()).unwrap_or("");
+        let hide  = self.hide_at.map(|b| match b { Breakpoint::Mobile=>"lu-hide-m", Breakpoint::Tablet=>"lu-hide-t" }).unwrap_or("");
+        let attrs = [class_attr([
+            "lu-col", self.gap.class(), self.align.class(), self.justify.class(),
+            flex_class, min_w, hide,
+        ])];
         let body: String = self.children.iter().map(|c| c.render()).collect();
-        wrap("div", &[Attr::kv("style", style)], &body)
+        wrap("div", &attrs, &body)
     }
 }
 
@@ -212,36 +307,63 @@ impl Component for Column {
 // Grid
 // ---------------------------------------------------------------------------
 
-/// Auto-fit grid — a responsive way to say "as many columns of at least N
-/// wide as fit, otherwise wrap". Perfect for KPI/stat cards.
-///
-/// * `.cols_min("220px")` → `repeat(auto-fit, minmax(220px, 1fr))`
-/// * `.cols_count(3)`     → `repeat(3, 1fr)` (fixed columns; not fluid)
+/// Fixed column count for [`Grid`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Cols { Two, Three, Four, Six }
+impl Cols {
+    fn class(self) -> &'static str {
+        match self { Cols::Two=>"lu-grid-cols-2", Cols::Three=>"lu-grid-cols-3", Cols::Four=>"lu-grid-cols-4", Cols::Six=>"lu-grid-cols-6" }
+    }
+}
+
+/// Minimum column width for an auto-fit [`Grid`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MinCol { W200, W220, W240, W280, W320 }
+impl MinCol {
+    fn class(self) -> &'static str {
+        match self { MinCol::W200=>"lu-grid-fit-200", MinCol::W220=>"lu-grid-fit-220",
+                     MinCol::W240=>"lu-grid-fit-240", MinCol::W280=>"lu-grid-fit-280", MinCol::W320=>"lu-grid-fit-320" }
+    }
+}
+
 pub struct Grid {
-    template: String,  // Full grid-template-columns value
+    template_class: &'static str,
     gap: Gap,
+    stack_at: Option<Breakpoint>,
     children: Vec<Child>,
 }
 
 pub fn grid() -> Grid {
-    Grid {
-        template: "repeat(auto-fit, minmax(220px, 1fr))".into(),
-        gap: Gap::Md,
-        children: Vec::new(),
-    }
+    // Default matches the old `repeat(auto-fit, minmax(220px, 1fr))` behaviour.
+    Grid { template_class: MinCol::W220.class(), gap: Gap::Md, stack_at: None, children: Vec::new() }
 }
 
 impl Grid {
-    pub fn cols_min(mut self, min_col_width: impl Into<String>) -> Self {
-        self.template = format!("repeat(auto-fit, minmax({}, 1fr))", min_col_width.into());
+    /// Auto-fit responsive columns — pick the smallest column width you want.
+    pub fn cols_min(mut self, m: MinCol) -> Self { self.template_class = m.class(); self }
+    /// Fixed number of equal columns (does NOT reflow — use `cols_min` for that).
+    pub fn cols(mut self, c: Cols) -> Self { self.template_class = c.class(); self }
+    /// Back-compat alias — accepts a "220px" style string. Prefer [`cols_min`].
+    pub fn cols_min_str(mut self, s: impl Into<String>) -> Self {
+        let s = s.into();
+        self.template_class = match s.as_str() {
+            "200px" => MinCol::W200.class(),
+            "220px" => MinCol::W220.class(),
+            "240px" => MinCol::W240.class(),
+            "280px" => MinCol::W280.class(),
+            "320px" => MinCol::W320.class(),
+            _       => MinCol::W220.class(),
+        };
         self
     }
-    pub fn cols_count(mut self, n: u32) -> Self {
-        self.template = format!("repeat({}, minmax(0, 1fr))", n);
-        self
-    }
-    pub fn template(mut self, css: impl Into<String>) -> Self { self.template = css.into(); self }
+
     pub fn gap(mut self, g: Gap) -> Self { self.gap = g; self }
+
+    /// Collapse the grid to a single column at this breakpoint (or narrower).
+    pub fn stack_at(mut self, b: Breakpoint) -> Self { self.stack_at = Some(b); self }
+    pub fn mobile_stack(self) -> Self { self.stack_at(Breakpoint::Mobile) }
+    pub fn tablet_stack(self) -> Self { self.stack_at(Breakpoint::Tablet) }
+
     pub fn add(mut self, c: impl Component + 'static) -> Self { self.children.push(Box::new(c)); self }
     pub fn children<I, C>(mut self, iter: I) -> Self
     where I: IntoIterator<Item = C>, C: Component + 'static {
@@ -251,12 +373,10 @@ impl Grid {
 
 impl Component for Grid {
     fn render(&self) -> String {
-        let style = format!(
-            "display:grid;grid-template-columns:{};gap:{};min-width:0;",
-            escape_html(&self.template), self.gap.var(),
-        );
+        let stack = self.stack_at.map(|b| b.stack_class()).unwrap_or("");
+        let attrs = [class_attr(["lu-grid", self.template_class, self.gap.class(), stack])];
         let body: String = self.children.iter().map(|c| c.render()).collect();
-        wrap("div", &[Attr::kv("style", style)], &body)
+        wrap("div", &attrs, &body)
     }
 }
 
@@ -264,33 +384,16 @@ impl Component for Grid {
 // Spacer
 // ---------------------------------------------------------------------------
 
-/// A flexible spacer — pushes siblings apart inside a `Row` or `Column`.
 pub struct Spacer;
 pub fn spacer() -> Spacer { Spacer }
-
 impl Component for Spacer {
-    fn render(&self) -> String {
-        "<div style=\"flex:1 1 auto;\"></div>".into()
-    }
+    fn render(&self) -> String { r#"<div class="lu-spacer"></div>"#.into() }
 }
 
 // ---------------------------------------------------------------------------
-// Section (titled block with optional subtitle + right-side actions)
+// Section
 // ---------------------------------------------------------------------------
 
-/// A titled block — the canonical "H2 + subtitle + right-side actions,
-/// then body content" pattern that every ERP page needs 5-10 times.
-///
-/// ```ignore
-/// section()
-///     .title("Fees")
-///     .subtitle("August 2026")
-///     .action(button().label("Export").icon("upload"))
-///     .add(fees_table)
-/// ```
-///
-/// Renders semantically as `<section>` so screen readers hear it as a
-/// landmark region.
 pub struct Section {
     title: Option<String>,
     subtitle: Option<String>,
@@ -305,15 +408,8 @@ pub fn section() -> Section {
 impl Section {
     pub fn title(mut self, s: impl Into<String>)    -> Self { self.title    = Some(s.into()); self }
     pub fn subtitle(mut self, s: impl Into<String>) -> Self { self.subtitle = Some(s.into()); self }
-
-    /// Add a control (button, tabs, badge, …) to the header's right side.
-    pub fn action(mut self, c: impl Component + 'static) -> Self {
-        self.actions.push(Box::new(c)); self
-    }
-    /// Add a body child.
-    pub fn add(mut self, c: impl Component + 'static) -> Self {
-        self.children.push(Box::new(c)); self
-    }
+    pub fn action(mut self, c: impl Component + 'static) -> Self { self.actions.push(Box::new(c)); self }
+    pub fn add(mut self, c: impl Component + 'static)    -> Self { self.children.push(Box::new(c)); self }
     pub fn children<I, C>(mut self, iter: I) -> Self
     where I: IntoIterator<Item = C>, C: Component + 'static {
         for c in iter { self.children.push(Box::new(c)); } self
@@ -322,31 +418,19 @@ impl Section {
 
 impl Component for Section {
     fn render(&self) -> String {
-        let mut out = String::from(
-            r#"<section style="display:flex;flex-direction:column;gap:var(--space-3);min-width:0;">"#
-        );
-
         let has_header = self.title.is_some() || self.subtitle.is_some() || !self.actions.is_empty();
+        let mut out = String::from(r#"<section class="lu-section">"#);
+
         if has_header {
-            out.push_str(
-                r#"<header style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;min-width:0;">"#
-            );
+            out.push_str(r#"<header class="lu-section-header">"#);
             if let Some(ref t) = self.title {
-                out.push_str(&format!(
-                    r#"<h2 style="margin:0;font-size:var(--fs-lg);font-weight:var(--fw-semibold);letter-spacing:-0.01em;color:var(--color-text);">{}</h2>"#,
-                    crate::core::escape_html(t)
-                ));
+                out.push_str(&format!("<h2>{}</h2>", escape_html(t)));
             }
             if let Some(ref s) = self.subtitle {
-                out.push_str(&format!(
-                    r#"<span style="color:var(--color-text-muted);font-size:var(--fs-sm);">{}</span>"#,
-                    crate::core::escape_html(s)
-                ));
+                out.push_str(&format!(r#"<span class="lu-section-subtitle">{}</span>"#, escape_html(s)));
             }
             if !self.actions.is_empty() {
-                out.push_str(
-                    r#"<div style="margin-left:auto;display:flex;align-items:center;gap:var(--space-2);">"#
-                );
+                out.push_str(r#"<div class="lu-section-actions">"#);
                 for a in &self.actions { out.push_str(&a.render()); }
                 out.push_str("</div>");
             }

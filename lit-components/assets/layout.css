@@ -1,0 +1,186 @@
+/* =========================================================
+   lit-ui layout system (shared, standardised, responsive)
+   ---------------------------------------------------------
+   Loaded automatically by every page that `lit_ui::page()`
+   renders. Rust emits class names only — NO inline `style=""`
+   for layout — so responsive behaviour is centralised here.
+
+   Naming: `.lu-<what>` for structural class, `.lu-<what>-<mod>` for a modifier.
+   Breakpoint suffixes:
+     no suffix   : all viewports
+     -m          : applies at mobile width  (max-width: 640px)
+     -t          : applies at tablet width  (max-width: 900px)
+
+   Anything visual (color, typography, radius, shadow) stays
+   in tokens.css / component shadow-DOM. This file is 100%
+   layout (display, flex, grid, gap, dimensions, wrap).
+   ========================================================= */
+
+/* ---------- Container (centred, max-width) ---------- */
+.lu-container {
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--space-5);
+  padding-right: var(--space-5);
+  box-sizing: border-box;
+  width: 100%;
+}
+.lu-container-fluid  { max-width: 100%; }
+.lu-container-sm     { max-width: 640px; }
+.lu-container-md     { max-width: 960px; }
+.lu-container-lg     { max-width: 1200px; }
+.lu-container-xl     { max-width: 1400px; }
+.lu-container-nopad  { padding-left: 0; padding-right: 0; }
+
+/* ---------- Flex primitives ---------- */
+.lu-row, .lu-col {
+  display: flex;
+  min-width: 0;                    /* prevent flex-child overflow */
+}
+.lu-row { flex-direction: row;    flex-wrap: wrap; }
+.lu-col { flex-direction: column; }
+.lu-nowrap { flex-wrap: nowrap; }
+
+/* Alignment */
+.lu-align-start    { align-items: flex-start; }
+.lu-align-center   { align-items: center; }
+.lu-align-end      { align-items: flex-end; }
+.lu-align-stretch  { align-items: stretch; }
+.lu-align-baseline { align-items: baseline; }
+
+.lu-justify-start   { justify-content: flex-start; }
+.lu-justify-center  { justify-content: center; }
+.lu-justify-end     { justify-content: flex-end; }
+.lu-justify-between { justify-content: space-between; }
+.lu-justify-around  { justify-content: space-around; }
+.lu-justify-evenly  { justify-content: space-evenly; }
+
+/* Gap scale (maps 1:1 to Rust Gap enum) */
+.lu-gap-none { gap: 0; }
+.lu-gap-xs   { gap: var(--space-1); }
+.lu-gap-sm   { gap: var(--space-2); }
+.lu-gap-md   { gap: var(--space-4); }
+.lu-gap-lg   { gap: var(--space-5); }
+.lu-gap-xl   { gap: var(--space-6); }
+.lu-gap-xxl  { gap: var(--space-8); }
+
+/* Flex-child sizing (used on .lu-col inside a .lu-row) */
+.lu-flex-1 { flex: 1 1 0; }
+.lu-flex-2 { flex: 2 1 0; }
+.lu-flex-3 { flex: 3 1 0; }
+.lu-flex-4 { flex: 4 1 0; }
+.lu-flex-5 { flex: 5 1 0; }
+
+/* min-width helpers — protects flex children from being crushed */
+.lu-min-w-200 { min-width: 200px; }
+.lu-min-w-260 { min-width: 260px; }
+.lu-min-w-280 { min-width: 280px; }
+.lu-min-w-300 { min-width: 300px; }
+.lu-min-w-320 { min-width: 320px; }
+.lu-min-w-400 { min-width: 400px; }
+
+/* ---------- Grid (auto-fit for responsive card walls) ---------- */
+.lu-grid {
+  display: grid;
+  min-width: 0;
+}
+.lu-grid-fit-200 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.lu-grid-fit-220 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.lu-grid-fit-240 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.lu-grid-fit-280 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.lu-grid-fit-320 { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+.lu-grid-cols-2  { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.lu-grid-cols-3  { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.lu-grid-cols-4  { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.lu-grid-cols-6  { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+
+/* ---------- Spacer ---------- */
+.lu-spacer { flex: 1 1 auto; }
+
+/* ---------- Section (semantic titled block) ---------- */
+.lu-section {
+  display: flex; flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.lu-section-header {
+  display: flex; align-items: baseline; gap: 12px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.lu-section-header h2 {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-semibold);
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+}
+.lu-section-subtitle {
+  color: var(--color-text-muted);
+  font-size: var(--fs-sm);
+}
+.lu-section-actions {
+  margin-left: auto;
+  display: flex; align-items: center; gap: var(--space-2);
+}
+
+/* =========================================================
+   RESPONSIVE MODIFIERS
+   =========================================================
+   These are the STANDARD contract every page uses.
+
+   Add one of these classes to a Row/Grid to change its
+   behaviour at that breakpoint — nothing else needed.
+   ========================================================= */
+
+/* Visibility */
+.lu-hide-m       { }
+.lu-hide-t       { }
+.lu-mobile-only  { display: none; }
+.lu-tablet-only  { display: none; }
+
+/* Row → Column stacking helpers */
+@media (max-width: 640px) {
+  .lu-hide-m           { display: none !important; }
+  .lu-mobile-only      { display: initial; }
+
+  /* .lu-row.lu-stack-m: a Row that becomes a Column on mobile.
+     Children go full-width; min-width and flex sizing are neutralised. */
+  .lu-row.lu-stack-m {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .lu-row.lu-stack-m > .lu-col,
+  .lu-row.lu-stack-m > * {
+    flex: 1 1 100% !important;
+    min-width: 0 !important;
+    width: 100%;
+  }
+
+  /* Grids collapse to one column on mobile when marked. */
+  .lu-grid.lu-stack-m {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Container padding tightens on very small screens. */
+  .lu-container { padding-left: var(--space-4); padding-right: var(--space-4); }
+}
+
+@media (max-width: 900px) {
+  .lu-hide-t           { display: none !important; }
+  .lu-tablet-only      { display: initial; }
+
+  .lu-row.lu-stack-t {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .lu-row.lu-stack-t > .lu-col,
+  .lu-row.lu-stack-t > * {
+    flex: 1 1 100% !important;
+    min-width: 0 !important;
+    width: 100%;
+  }
+  .lu-grid.lu-stack-t {
+    grid-template-columns: 1fr !important;
+  }
+}

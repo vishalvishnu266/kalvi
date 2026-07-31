@@ -56,11 +56,13 @@ pub mod prelude {
     // Core
     pub use crate::core::{Component, Node, RenderExt};
 
-    // Layout primitives
+    // Layout primitives — all class-based, standardised, responsive.
     pub use crate::layout::{
         container, row, column, grid, spacer, section,
         Container, Row, Column, Grid, Spacer, Section,
         Gap, Align, Justify,
+        // Typed knobs that map to layout.css class names:
+        Breakpoint, ContainerSize, MinW, MinCol, Cols,
     };
 
     // Original slice
