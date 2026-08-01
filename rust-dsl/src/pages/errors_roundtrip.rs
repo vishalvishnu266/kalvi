@@ -117,14 +117,20 @@ pub fn validate(input: &Input) -> Validation {
 
 fn looks_like_email(s: &str) -> bool {
     // Deliberately minimal — full RFC 5322 is not the point of this demo.
+    // Rules: exactly one '@', at least one char before it, and a '.'
+    // somewhere in the domain part with at least two chars on either side
+    // of that dot ("a@b.c" is the shortest string we accept). Written with
+    // `saturating_sub` so short inputs (e.g. "a@") never panic in debug
+    // builds via `usize` underflow.
     let bytes = s.as_bytes();
-    let at = bytes.iter().position(|&c| c == b'@');
-    match at {
-        Some(i) if i > 0 && i < bytes.len() - 3 => {
-            s[i+1..].contains('.')
-        }
-        _ => false,
-    }
+    let Some(i) = bytes.iter().position(|&c| c == b'@') else { return false };
+    if i == 0 || i >= bytes.len().saturating_sub(3) { return false; }
+    // Reject a second '@' — a valid address has exactly one.
+    if bytes[i + 1..].contains(&b'@') { return false; }
+    // Require a dot in the domain, and at least one char on each side of it.
+    let domain = &s[i + 1..];
+    let Some(dot) = domain.find('.') else { return false };
+    dot > 0 && dot < domain.len() - 1
 }
 
 /// Build the page. `saved` = show the green "just saved" banner (used on
