@@ -283,11 +283,11 @@ fn section_lists_and_menus() -> Section {
         example("Command palette (⌘K style)",
                 "Fuzzy-matched action launcher — trigger by any button.",
                 command()
-                    .add(command_item("Add student"))
-                    .add(command_item("Create invoice"))
-                    .add(command_item("Mark attendance"))
-                    .add(command_item("Export PDF")),
-                "command()\n    .add(command_item(\"Add student\"))\n    .add(command_item(\"Create invoice\"))\n    …"),
+                    .item(command_item("Add student"))
+                    .item(command_item("Create invoice"))
+                    .item(command_item("Mark attendance"))
+                    .item(command_item("Export PDF")),
+                "command()\n    .item(command_item(\"Add student\"))\n    .item(command_item(\"Create invoice\"))\n    …"),
     ])
 }
 
@@ -304,17 +304,17 @@ fn section_navigation() -> Section {
                     .item(Crumb::current("Grade 5")),
                 "breadcrumb()\n    .item(Crumb::link(\"Home\", \"#/\"))\n    .item(Crumb::link(\"Students\", \"#/students\"))\n    .item(Crumb::current(\"Grade 5\"))"),
         example("Tab bar",
-                "Horizontal tabs with an active state.",
-                tab_bar().active("overview")
-                    .tab(Tab::new("overview", "Overview"))
-                    .tab(Tab::new("roster",   "Roster"))
-                    .tab(Tab::new("grades",   "Grades"))
-                    .tab(Tab::new("fees",     "Fees")),
-                "tab_bar().active(\"overview\")\n    .tab(Tab::new(\"overview\", \"Overview\"))\n    .tab(Tab::new(\"roster\",   \"Roster\"))\n    …"),
+                "Horizontal tabs with an active state (mark each Tab with .active() as needed).",
+                tab_bar()
+                    .tab(Tab::new("Overview", "#/overview").active())
+                    .tab(Tab::new("Roster",   "#/roster"))
+                    .tab(Tab::new("Grades",   "#/grades"))
+                    .tab(Tab::new("Fees",     "#/fees")),
+                "tab_bar()\n    .tab(Tab::new(\"Overview\", \"#/overview\").active())\n    .tab(Tab::new(\"Roster\",   \"#/roster\"))\n    …"),
         example("Pagination",
-                "Standard page-through control for tables / lists.",
-                pagination().current(3).total(12),
-                "pagination().current(3).total(12)"),
+                "Standard page-through control for tables / lists. pagination(current_page, total_pages).",
+                pagination(3, 12),
+                "pagination(3, 12)   // (current_page, total_pages)"),
         example("Stepper (horizontal)",
                 "Multi-step workflow with completed / active / upcoming.",
                 stepper().orientation(StepperOrientation::Horizontal).current(1)
@@ -329,17 +329,17 @@ fn section_navigation() -> Section {
 fn section_overlays() -> Section {
     doc_section("Overlays", "Tooltip, modal, drawer, toast host — trigger via JS/user actions.", vec![
         example("Tooltip",
-                "Hover the badge to see it.",
-                tooltip().placement(Placement::Top).text("Click to view invoice details")
+                "Hover the badge to see it. tooltip(text) takes the tooltip text; wrap the target with .add(...).",
+                tooltip("Click to view invoice details").placement(Placement::Top)
                     .add(badge("INV-1042").tone(Tone::Brand)),
-                "tooltip().placement(Placement::Top).text(\"Click to view invoice details\")\n    .add(badge(\"INV-1042\").tone(Tone::Brand))"),
+                "tooltip(\"Click to view invoice details\").placement(Placement::Top)\n    .add(badge(\"INV-1042\").tone(Tone::Brand))"),
         example("Modal (structure only)",
-                "Rendered here so you can inspect the DOM. Real usage: open via JS.",
+                "Rendered here so you can inspect the DOM. Real usage: open via JS. Footer buttons go in .footer(...).",
                 modal().id("demo-modal").title("Confirm delete")
                     .add(Node::raw("<p>Are you sure you want to delete this invoice?</p>"))
-                    .action(button().label("Cancel").variant(Variant::Secondary))
-                    .action(button().label("Delete").variant(Variant::Danger).icon(Icons::DELETE)),
-                "modal().id(\"demo-modal\").title(\"Confirm delete\")\n    .add(body)\n    .action(button().label(\"Cancel\").variant(Variant::Secondary))\n    .action(button().label(\"Delete\").variant(Variant::Danger).icon(Icons::DELETE))"),
+                    .footer(button().label("Cancel").variant(Variant::Secondary))
+                    .footer(button().label("Delete").variant(Variant::Danger).icon(Icons::DELETE)),
+                "modal().id(\"demo-modal\").title(\"Confirm delete\")\n    .add(body)\n    .footer(button().label(\"Cancel\").variant(Variant::Secondary))\n    .footer(button().label(\"Delete\").variant(Variant::Danger).icon(Icons::DELETE))"),
         example("Drawer (structure only)",
                 "Slide-in panel. Real usage: open via JS on button click.",
                 drawer().id("demo-drawer").title("Add note")
@@ -360,14 +360,17 @@ fn section_overlays() -> Section {
 fn section_data_display() -> Section {
     doc_section("Data display", "Table (server-rendered), data_table (client-interactive), kanban, timeline.", vec![
         example("Simple table",
-                "Static server-rendered — good for reports and printouts.",
-                table()
-                    .col(TableColumn::new("name", "Name"))
-                    .col(TableColumn::new("grade", "Grade").align(TableAlign::Center))
-                    .col(TableColumn::new("roll", "Roll").align(TableAlign::Right))
-                    .row(vec![("name", "Aarav Kumar".into()), ("grade", "5".into()), ("roll", "12".into())])
-                    .row(vec![("name", "Meera Sharma".into()), ("grade", "5".into()), ("roll", "13".into())]),
-                "table()\n    .col(TableColumn::new(\"name\", \"Name\"))\n    .col(TableColumn::new(\"grade\", \"Grade\").align(TableAlign::Center))\n    .col(TableColumn::new(\"roll\",  \"Roll\").align(TableAlign::Right))\n    .row(vec![(\"name\", …), (\"grade\", …), (\"roll\", …)])"),
+                "Static server-rendered — good for reports and printouts. Use .column(key, label) and .column_aligned(...) for centred/right columns. Rows are simple string vectors in column order.",
+                {
+                    use crate::components::table::Align as TAlign;
+                    table()
+                        .column("name",  "Name")
+                        .column_aligned("grade", "Grade", TAlign::Center)
+                        .column_aligned("roll",  "Roll",  TAlign::Right)
+                        .row(vec!["Aarav Kumar",  "5", "12"])
+                        .row(vec!["Meera Sharma", "5", "13"])
+                },
+                "table()\n    .column(\"name\",  \"Name\")\n    .column_aligned(\"grade\", \"Grade\", Align::Center)\n    .column_aligned(\"roll\",  \"Roll\",  Align::Right)\n    .row(vec![\"Aarav Kumar\", \"5\", \"12\"])\n    .row(vec![\"Meera Sharma\", \"5\", \"13\"])"),
         example("Data table (interactive)",
                 "Client-side sorting / searching / pagination / selection.",
                 {
@@ -419,31 +422,29 @@ fn section_forms_and_feedback() -> Section {
                 datepicker().label("Due date").name("due").value("2026-08-15"),
                 "datepicker().label(\"Due date\").name(\"due\").value(\"2026-08-15\")"),
         example("Date range",
-                "Start + end date, paired.",
-                date_range().label("Term").start_name("term_start").end_name("term_end"),
-                "date_range().label(\"Term\").start_name(\"term_start\").end_name(\"term_end\")"),
+                "Start + end date, paired. Use .from(iso) / .to(iso) for the two boundaries.",
+                date_range().label("Term").from("2026-08-01").to("2026-12-15"),
+                "date_range().label(\"Term\").from(\"2026-08-01\").to(\"2026-12-15\")"),
         example("File upload",
                 "Drag-and-drop with a click fallback.",
                 file_upload().name("attachment").accept("image/*,.pdf").hint("PNG, JPG or PDF, up to 5 MB"),
                 "file_upload().name(\"attachment\").accept(\"image/*,.pdf\").hint(\"…\")"),
         example("Inline edit",
-                "Click the value to edit in place — great for grids.",
-                inline_edit().value("Aarav Kumar").kind(InlineKind::Text),
-                "inline_edit().value(\"Aarav Kumar\").kind(InlineKind::Text)"),
+                "Click the value to edit in place — great for grids. inline_edit(value) takes the initial value.",
+                inline_edit("Aarav Kumar").kind(InlineKind::Text),
+                "inline_edit(\"Aarav Kumar\").kind(InlineKind::Text)"),
         example("Empty state",
-                "Show when a list / table has no rows yet.",
-                empty_state()
+                "Show when a list / table has no rows yet. empty_state(title) takes the title; use .description(...) for the second line.",
+                empty_state("No invoices yet")
                     .icon(Icons::CLIPBOARD)
-                    .title("No invoices yet")
-                    .subtitle("Create your first invoice to see it here.")
+                    .description("Create your first invoice to see it here.")
                     .action(button().label("New invoice").variant(Variant::Primary).icon(Icons::PLUS)),
-                "empty_state()\n    .icon(Icons::CLIPBOARD)\n    .title(\"No invoices yet\")\n    .subtitle(\"Create your first invoice…\")\n    .action(button().label(\"New invoice\").variant(Variant::Primary).icon(Icons::PLUS))"),
+                "empty_state(\"No invoices yet\")\n    .icon(Icons::CLIPBOARD)\n    .description(\"Create your first invoice…\")\n    .action(button().label(\"New invoice\").variant(Variant::Primary).icon(Icons::PLUS))"),
         example("Skeleton (loading placeholder)",
-                "Show while data is being fetched — prevents layout jump.",
+                "Show while data is being fetched — prevents layout jump. Shape variants: Line, Rect, Circle. .lines(n) stacks multiple rows.",
                 column().gap(Gap::Sm)
-                    .add(skeleton().shape(SkeletonShape::Text))
-                    .add(skeleton().shape(SkeletonShape::Text))
-                    .add(skeleton().shape(SkeletonShape::Rect).height(60)),
-                "skeleton().shape(SkeletonShape::Text)\nskeleton().shape(SkeletonShape::Rect).height(60)"),
+                    .add(skeleton().shape(SkeletonShape::Line).lines(2))
+                    .add(skeleton().shape(SkeletonShape::Rect).height("60px")),
+                "skeleton().shape(SkeletonShape::Line).lines(2)\nskeleton().shape(SkeletonShape::Rect).height(\"60px\")"),
     ])
 }

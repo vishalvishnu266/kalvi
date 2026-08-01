@@ -146,26 +146,26 @@ pub fn build() -> Page {
                         .add_section(banner_section(Tone::Danger)
                             .title("Please fix 2 errors")
                             .errors_summary(vec![
-                                ("email".into(), "Email is invalid").into(),
-                                ("phone".into(), "Phone is required").into(),
+                                FieldError::from(("email", "Email is invalid")),
+                                FieldError::from(("phone", "Phone is required")),
                             ]))
                         .add_section(banner_section(Tone::Warning)
                             .title("1 warning")
                             .errors_summary(vec![
-                                ("date".into(), "Due date is a public holiday — invoice may be delayed").into(),
+                                FieldError::from(("date", "Due date is a public holiday — invoice may be delayed")),
                             ])),
                     "form_banner().tone(Tone::Danger)\n    .add_section(banner_section(Tone::Danger)\n        .title(\"Please fix 2 errors\")\n        .errors_summary(vec![\n            (\"email\", \"Email is invalid\").into(),\n            (\"phone\", \"Phone is required\").into(),\n        ]))\n    .add_section(banner_section(Tone::Warning)\n        .title(\"1 warning\")\n        .errors_summary(vec![\n            (\"date\", \"Due date is a public holiday\").into(),\n        ]))"),
             example("errors_and_warnings_banner(errors, warnings)  ← one-liner",
                     "The canonical helper: pass two lists, get a fully-formed multi-section banner (or None if both empty). Auto-pluralises titles.",
                     errors_and_warnings_banner(
                         vec![
-                            ("email", "Email is invalid").into(),
-                            ("phone", "Phone is required").into(),
-                        ] as Vec<FieldError>,
+                            ("email", "Email is invalid"),
+                            ("phone", "Phone is required"),
+                        ],
                         vec![
-                            ("date", "Due date is a public holiday").into(),
-                        ] as Vec<FieldError>,
-                    ).unwrap_or_else(|| form_banner()),
+                            ("date", "Due date is a public holiday"),
+                        ],
+                    ).unwrap_or_else(form_banner),
                     "// In your Axum handler:\nlet errors:   Vec<FieldError> = validate(&input);\nlet warnings: Vec<FieldError> = business_warnings(&input);\n\nform().action(\"/students\").method(\"post\")\n    .maybe_banner(errors_and_warnings_banner(errors, warnings))\n    .add(...)\n    .save_cancel(\"Save\")"),
         ],
     ));

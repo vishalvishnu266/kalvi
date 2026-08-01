@@ -280,10 +280,10 @@ impl Component for FormBanner {
                     body.push_str(&format!(r#"<p class="sec-msg">{}</p>"#, escape_html(m)));
                 }
                 if !s.items.is_empty() {
-                    body.push_str(r#"<ul>"#);
+                    body.push_str("<ul>");
                     for (field, msg) in &s.items {
                         body.push_str(&format!(
-                            r#"<li><a data-field="{}" href="#">{}</a></li>"#,
+                            r##"<li><a data-field="{}" href="#">{}</a></li>"##,
                             escape_html(field), escape_html(msg),
                         ));
                     }
@@ -296,7 +296,7 @@ impl Component for FormBanner {
             body.push_str(r#"<ul slot="errors">"#);
             for (field, msg) in &self.errors {
                 body.push_str(&format!(
-                    r#"<li><a data-field="{}" href="#">{}</a></li>"#,
+                    r##"<li><a data-field="{}" href="#">{}</a></li>"##,
                     escape_html(field), escape_html(msg),
                 ));
             }
