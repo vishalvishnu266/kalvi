@@ -60,19 +60,20 @@ pub fn build() -> Page {
                            .maybe_error(Some("Full name is required")),
                     "let msg: Option<&str> = errors.get(\"name\").copied();\ninput().label(\"Full name\").name(\"name\").maybe_error(msg)"),
             example("select().error(msg)",
-                    "Same treatment on select/combobox.",
+                    "Same treatment on select — including the searchable and allow-new variants.",
                     select().label("Grade").name("grade").required()
                             .option(SelectOption::new("5", "Grade 5"))
                             .option(SelectOption::new("6", "Grade 6"))
                             .error("Please choose a grade"),
                     "select().label(\"Grade\").required()\n    .option(...)\n    .error(\"Please choose a grade\")"),
-            example("combobox().error(msg)",
+            example("select().searchable().error(msg)",
                     "Type-ahead pickers get the same red-border + red-hint treatment.",
-                    combobox().label("Student").name("student")
-                              .placeholder("Search students…")
-                              .option(ComboOption::new("aarav", "Aarav Kumar"))
-                              .error("Please select a student"),
-                    "combobox().label(\"Student\").placeholder(\"Search students…\")\n    .option(ComboOption::new(\"aarav\", \"Aarav Kumar\"))\n    .error(\"Please select a student\")"),
+                    select().label("Student").name("student")
+                            .placeholder("Search students…")
+                            .searchable()
+                            .option(SelectOption::new("aarav", "Aarav Kumar"))
+                            .error("Please select a student"),
+                    "select().label(\"Student\").placeholder(\"Search students…\")\n    .searchable()\n    .option(SelectOption::new(\"aarav\", \"Aarav Kumar\"))\n    .error(\"Please select a student\")"),
             example("radio_group().error(msg)",
                     "Applies to the whole group (no single \"invalid\" option makes sense).",
                     radio_group("gender").horizontal()

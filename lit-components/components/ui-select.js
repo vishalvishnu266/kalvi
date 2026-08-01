@@ -28,6 +28,10 @@ class UISelect extends LitBaseElement {
     searchable:  { type: Boolean, reflect: true },
     clearable:   { type: Boolean, reflect: true },
     multiple:    { type: Boolean, reflect: true },
+    // When true, an "Add \"…\"" row appears in the search results if the
+    // user's query doesn't exactly match any existing option. Selecting it
+    // commits the query as a brand-new value. Implies `searchable`.
+    'allow-new': { type: Boolean, reflect: true, attribute: 'allow-new' },
     _filter:     { state: true },
   };
 
@@ -158,6 +162,7 @@ class UISelect extends LitBaseElement {
     this.searchable = false;
     this.clearable = false;
     this.multiple = false;
+    this['allow-new'] = false;
     this._filter = '';
     this._items = [];   // {value, label, disabled}
     this._selected = new Set();
@@ -212,23 +217,43 @@ class UISelect extends LitBaseElement {
     this.#syncValue();
   }
 
+  // ── Shared scroll-lock helpers ────────────────────────────────────────
+  // Uses a data-attr counter on <html> so multiple open drawers cooperate.
+  #lockScroll() {
+    const el = document.documentElement;
+    const n = (parseInt(el.dataset.uiDrawerLocks || '0', 10) || 0) + 1;
+    el.dataset.uiDrawerLocks = String(n);
+    if (n === 1) {
+      el.dataset.uiPrevOverflow = el.style.overflow || '';
+      el.style.overflow = 'hidden';
+    }
+  }
+  #unlockScroll() {
+    const el = document.documentElement;
+    const n = Math.max(0, (parseInt(el.dataset.uiDrawerLocks || '0', 10) || 0) - 1);
+    el.dataset.uiDrawerLocks = String(n);
+    if (n === 0) {
+      el.style.overflow = el.dataset.uiPrevOverflow || '';
+      delete el.dataset.uiPrevOverflow;
+    }
+  }
+
   #openPop() {
+    if (this.open) return;
     this.open = true;
+    this.#lockScroll();
     this.updateComplete.then(() => {
-      this.#positionPop();
-      document.addEventListener('mousedown', this._boundOutside);
-      window.addEventListener('resize', this._boundReposition);
-      window.addEventListener('scroll', this._boundReposition, true);
+      setTimeout(() => document.addEventListener('mousedown', this._boundOutside), 0);
       const s = this.renderRoot.querySelector('.search input');
       if (s) setTimeout(() => s.focus(), 20);
     });
   }
 
   #close() {
+    if (!this.open) return;
     this.open = false;
+    this.#unlockScroll();
     document.removeEventListener('mousedown', this._boundOutside);
-    window.removeEventListener('resize', this._boundReposition);
-    window.removeEventListener('scroll', this._boundReposition, true);
   }
 
   #positionPop() {
@@ -257,9 +282,28 @@ class UISelect extends LitBaseElement {
     return html`${(this._items.find(i => i.value === v)?.label) || v}`;
   }
 
+  #onAddNew() {
+    const v = (this._filter || '').trim();
+    if (!v) return;
+    // Register the ad-hoc value so it survives closing/reopening and shows
+    // up in #renderValue and in future searches.
+    if (!this._items.find(i => i.value === v)) {
+      this._items = [...this._items, { value: v, label: v, disabled: false }];
+    }
+    this.#onOptionClick({ value: v, label: v, disabled: false });
+  }
+
   render() {
     const q = (this._filter || '').trim().toLowerCase();
     const items = this._items.filter(i => !q || i.label.toLowerCase().includes(q));
+    // allow-new implies searchable; only show the "Add …" row when the
+    // user has actually typed something AND no existing option matches
+    // exactly.
+    const allowNew = this['allow-new'];
+    const showAddNew =
+      allowNew && q.length > 0 &&
+      !this._items.some(i => i.label.toLowerCase() === q);
+    const showSearch = this.searchable || allowNew;
     return html`
       ${this.label ? html`<span class="label">${this.label}</span>` : nothing}
       <button class="trigger" type="button" @click=${(e) => this.#onTriggerClick(e)}>
@@ -279,15 +323,18 @@ class UISelect extends LitBaseElement {
             <ui-icon name="x" size="16"></ui-icon>
           </button>
         </div>
-        ${this.searchable
+        ${showSearch
           ? html`
             <div class="search">
               <ui-icon name="search" size="14"></ui-icon>
-              <input placeholder="Search…" .value=${this._filter} @input=${(e) => this.#onSearch(e)}>
+              <input placeholder=${allowNew ? 'Search or type new…' : 'Search…'}
+                     .value=${this._filter}
+                     @input=${(e) => this.#onSearch(e)}
+                     @keydown=${(e) => { if (e.key === 'Enter' && showAddNew) { e.preventDefault(); this.#onAddNew(); } }}>
             </div>`
           : nothing}
         <div class="list">
-          ${items.length === 0
+          ${items.length === 0 && !showAddNew
             ? html`<div class="empty">No matches</div>`
             : items.map(i => html`
                 <div class="opt"
@@ -297,6 +344,12 @@ class UISelect extends LitBaseElement {
                   <span>${i.label}</span>
                   <ui-icon class="check" name="check" size="14"></ui-icon>
                 </div>`)}
+          ${showAddNew
+            ? html`<div class="opt" @click=${() => this.#onAddNew()}>
+                     <span>Add “<strong>${this._filter}</strong>”</span>
+                     <ui-icon class="check" name="plus" size="14" style="opacity:1"></ui-icon>
+                   </div>`
+            : nothing}
         </div>
       </div>
     `;

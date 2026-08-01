@@ -56,7 +56,6 @@ pub mod kanban;
 pub mod file_upload;
 pub mod datepicker;
 pub mod daterange;
-pub mod combobox;
 pub mod inline_edit;
 pub mod toast;
 pub mod command;

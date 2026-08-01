@@ -42,26 +42,46 @@ class UIDatepicker extends LitBaseElement {
     .trigger .val { flex: 1; }
     .placeholder { color: var(--color-text-subtle); }
 
-    /* ----- ANCHORED POPOVER -----
-       Positioned as fixed with coordinates computed in positionPop() so we
-       escape any ancestor overflow:hidden or stacking context (app-shell
-       sidebar, card wrappers, etc). z-index sits above the sidebar and
-       page cards. */
+    /* ----- LEFT-SIDE DRAWER -----
+       Slides in from the viewport's left edge. Same shape as ui-select and
+       ui-daterange for a consistent picker UX across the DSL. Body scroll
+       is locked via JS in openPop/close so nothing can float on top. */
     .pop {
       position: fixed;
-      top: 0; left: 0;
-      min-width: 280px; width: max-content; max-width: 92vw;
+      top: 0; left: 0; bottom: 0;
+      width: min(360px, 92vw);
       background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-lg);
+      border-right: 1px solid var(--color-border);
       box-shadow: var(--shadow-lg);
       z-index: 3001; display: none;
-      padding: 12px 14px;
-      overflow: hidden; max-height: 80vh;
+      flex-direction: column;
+      transform: translateX(-100%);
+      transition: transform var(--dur-med) var(--ease);
+      overflow: hidden; max-height: 100dvh;
     }
-    :host([open]) .pop { display: block; }
+    :host([open]) .pop { display: flex; transform: translateX(0); }
+    .drawer-head {
+      display: flex; align-items: center; gap: 8px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--color-border);
+      flex: 0 0 auto;
+    }
+    .drawer-head .title {
+      flex: 1; font-size: var(--fs-md); font-weight: var(--fw-semibold);
+      color: var(--color-text);
+    }
+    .drawer-close {
+      appearance: none; border: 0; background: transparent; cursor: pointer;
+      color: var(--color-text-muted); width: 28px; height: 28px;
+      border-radius: 6px; display: grid; place-items: center;
+    }
+    .drawer-close:hover {
+      background: color-mix(in srgb, var(--color-text) 8%, transparent);
+      color: var(--color-text);
+    }
+    .drawer-body { padding: 12px 16px; overflow-y: auto; flex: 1; }
     .scrim {
-      position: fixed; inset: 0; background: transparent;
+      position: fixed; inset: 0; background: var(--color-scrim);
       z-index: 3000; display: none;
     }
     :host([open]) .scrim { display: block; }
@@ -137,15 +157,8 @@ class UIDatepicker extends LitBaseElement {
       font-size: var(--fs-xs); font-weight: var(--fw-medium);
     }
     @media (max-width: 640px) {
-      /* On phones we fall back to a bottom sheet, sitting above the
-         bottom-nav — anchoring near the trigger is unpleasant on tiny
-         viewports where the on-screen keyboard can steal half the space. */
-      .pop {
-        left: 8px !important; right: 8px !important; top: auto !important;
-        bottom: calc(var(--bottomnav-h, 62px) + 16px + env(safe-area-inset-bottom, 0)) !important;
-        width: auto; max-width: none;
-        border-radius: var(--radius-xl);
-      }
+      /* Slightly bigger tap targets on phones — drawer itself takes 92vw. */
+      .grid button, .years button { height: 40px; font-size: var(--fs-sm); }
     }
   `;
 
@@ -177,56 +190,47 @@ class UIDatepicker extends LitBaseElement {
     window.removeEventListener('scroll', this._boundReposition, true);
   }
 
+  // ── Shared scroll-lock helpers ────────────────────────────────────────
+  // Uses a data-attr counter on <html> so multiple open drawers cooperate
+  // (closing one doesn't wrongly unlock while another is still open).
+  #lockScroll() {
+    const el = document.documentElement;
+    const n = (parseInt(el.dataset.uiDrawerLocks || '0', 10) || 0) + 1;
+    el.dataset.uiDrawerLocks = String(n);
+    if (n === 1) {
+      el.dataset.uiPrevOverflow = el.style.overflow || '';
+      el.style.overflow = 'hidden';
+    }
+  }
+  #unlockScroll() {
+    const el = document.documentElement;
+    const n = Math.max(0, (parseInt(el.dataset.uiDrawerLocks || '0', 10) || 0) - 1);
+    el.dataset.uiDrawerLocks = String(n);
+    if (n === 0) {
+      el.style.overflow = el.dataset.uiPrevOverflow || '';
+      delete el.dataset.uiPrevOverflow;
+    }
+  }
+
   #openPop() {
+    if (this.open) return;
     this.open = true;
-    this.updateComplete.then(() => {
-      this.#positionPop();
-      document.addEventListener('mousedown', this._boundOutside);
-      window.addEventListener('resize', this._boundReposition);
-      window.addEventListener('scroll', this._boundReposition, true);
-    });
+    this.#lockScroll();
+    // Slight delay so outside-click doesn't immediately match the same tap
+    // that opened us.
+    setTimeout(() => document.addEventListener('mousedown', this._boundOutside), 0);
   }
 
   #close() {
+    if (!this.open) return;
     this.open = false;
+    this.#unlockScroll();
     document.removeEventListener('mousedown', this._boundOutside);
-    window.removeEventListener('resize', this._boundReposition);
-    window.removeEventListener('scroll', this._boundReposition, true);
   }
 
-  #positionPop() {
-    // Skip layout math on narrow viewports — CSS media query handles the
-    // bottom-sheet placement via !important overrides.
-    if (window.matchMedia && window.matchMedia('(max-width: 640px)').matches) return;
-    const pop = this.$('.pop');
-    const trigger = this.$('.trigger');
-    if (!pop || !trigger) return;
-    const tr = trigger.getBoundingClientRect();
-    // Measure the popover so we can flip it above/left when it would
-    // overflow the viewport. Reset transform first so measurement is honest.
-    pop.style.transform = 'none';
-    const pw = pop.offsetWidth  || 320;
-    const ph = pop.offsetHeight || 360;
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-    const margin = 8;
-
-    let left = tr.left;
-    let top  = tr.bottom + 4;
-    // Flip up if it would go off the bottom edge.
-    if (top + ph > vh - margin && tr.top - ph - 4 > margin) {
-      top = tr.top - ph - 4;
-    }
-    // Nudge left if it would overflow the right edge.
-    if (left + pw > vw - margin) {
-      left = Math.max(margin, vw - pw - margin);
-    }
-    // Never let it start off the left edge.
-    if (left < margin) left = margin;
-
-    pop.style.left = `${Math.round(left)}px`;
-    pop.style.top  = `${Math.round(top)}px`;
-  }
+  // Kept as a no-op so any existing scroll/resize listener wiring keeps
+  // working — the drawer is CSS-anchored to the left edge, no math needed.
+  #positionPop() {}
 
   #onNav(delta) {
     if (this._mode === 'year') {
@@ -304,8 +308,14 @@ class UIDatepicker extends LitBaseElement {
         <ui-icon name="chevronDown" size="14"></ui-icon>
       </button>
       <div class="scrim" @click=${() => this.#close()}></div>
-      <div class="pop" role="dialog">
-        <div>
+      <div class="pop" role="dialog" aria-modal="true">
+        <div class="drawer-head">
+          <span class="title">${this.label || 'Select date'}</span>
+          <button class="drawer-close" title="Close" @click=${() => this.#close()}>
+            <ui-icon name="x" size="16"></ui-icon>
+          </button>
+        </div>
+        <div class="drawer-body">
           <div class="head">
             <button class="nav-btn" title=${this._mode === 'year' ? 'Previous 12 years' : 'Previous month'}
                     @click=${() => this.#onNav(-1)}>

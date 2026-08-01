@@ -139,7 +139,7 @@ form().action("/students").method("post")
     .action_btn(button().label("Save").variant(Variant::Primary))
 ```
 
-**Full inventory:** `button`, `input`, `select`, `combobox`, `checkbox`, `radio` + `radio_group`, `switch`, `datepicker`, `date_range`, `file_upload`, `inline_edit`, `form`, `card`, `badge`, `icon`, `avatar`, `avatar_group`, `stat`, `list_item`, `table`, `data_table`, `pagination`, `breadcrumb`, `tab_bar`, `segmented`, `tooltip`, `drawer`, `modal`, `dropdown_menu`, `toast` + `toast_host`, `command` + `command_item`, `progress`, `empty_state`, `skeleton`, `stepper`, `timeline` + `timeline_item`, `kanban` + `kanban_column` + `kanban_card`.
+**Full inventory:** `button`, `input`, `select` (fixed / `.searchable()` / `.allow_new()` / `.multiple()`), `checkbox`, `radio` + `radio_group`, `switch`, `datepicker`, `date_range`, `file_upload`, `inline_edit`, `form`, `card`, `badge`, `icon`, `avatar`, `avatar_group`, `stat`, `list_item`, `table`, `data_table`, `pagination`, `breadcrumb`, `tab_bar`, `segmented`, `tooltip`, `drawer`, `modal`, `dropdown_menu`, `toast` + `toast_host`, `command` + `command_item`, `progress`, `empty_state`, `skeleton`, `stepper`, `timeline` + `timeline_item`, `kanban` + `kanban_column` + `kanban_card`.
 
 ---
 
@@ -406,7 +406,7 @@ For a live catalogue of every variant, see **[`/dsl/errors`](/dsl/errors)**.
 ### 8.1 Field-level errors — `.error(msg)`
 
 Every field-adjacent component exposes `.error(msg)` and `.maybe_error(Option<msg>)`:
-`input`, `select`, `combobox`, `checkbox`, `radio_group`, `switch`, `datepicker`, `date_range`, `file_upload`.
+`input`, `select` (all variants), `checkbox`, `radio_group`, `switch`, `datepicker`, `date_range`, `file_upload`.
 
 ```rust
 input().label("Guardian email").name("g_email")
@@ -684,7 +684,7 @@ switch("Notify").checked()
 radio_group("gender").value("F").option(radio("M", "Male")).option(radio("F", "Female"))
 datepicker().value("2026-08-14")
 date_range().from("2026-08-01").to("2026-08-31")
-combobox().option(ComboOption::new("k", "K")).allow_new()
+select().searchable().allow_new().option(SelectOption::new("k", "K"))   // free-typing tag-input
 file_upload().accept(".csv").multiple().max_size(5_242_880)
 
 // Buttons

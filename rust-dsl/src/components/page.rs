@@ -149,7 +149,28 @@ impl Component for Page {
         setTimeout(tick, 20);
       }})();
       // Safety net: never leave the page hidden.
-      setTimeout(reveal, TIMEOUT_MS);
+      setTimeout(function () {{
+        // Diagnostic — if we hit the safety net it means some custom
+        // element failed to upgrade in time. Log the offenders so the
+        // occasional "page didn't render" bug is debuggable instead of
+        // silent. Only fires if we're forced to reveal via the timeout.
+        if (!document.body.classList.contains('ce-ready')) {{
+          try {{
+            var missing = [];
+            document.querySelectorAll('*').forEach(function (el) {{
+              var t = el.tagName.toLowerCase();
+              if (t.indexOf('-') !== -1 && !customElements.get(t)) {{
+                missing.push(t);
+              }}
+            }});
+            if (missing.length) {{
+              console.warn('[lit-ui] FOUCE safety-net fired — un-upgraded custom elements:',
+                Array.from(new Set(missing)).sort());
+            }}
+          }} catch (_) {{}}
+        }}
+        reveal();
+      }}, TIMEOUT_MS);
     }})();
   </script>
 </body>

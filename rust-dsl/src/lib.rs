@@ -113,7 +113,6 @@ pub mod prelude {
     pub use crate::components::file_upload::{file_upload, FileUpload};
     pub use crate::components::datepicker::{datepicker, Datepicker};
     pub use crate::components::daterange::{date_range, DateRange};
-    pub use crate::components::combobox::{combobox, Combobox, ComboOption};
     pub use crate::components::inline_edit::{inline_edit, InlineEdit, InlineKind};
     pub use crate::components::toast::{toast, toast_host, Toast, ToastHost, ToastTone};
     pub use crate::components::command::{command, command_item, Command, CommandItem};

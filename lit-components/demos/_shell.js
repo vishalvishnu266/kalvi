@@ -22,7 +22,6 @@ const COMPONENTS = [
   ['ui-radio',       'radios.html'],
   ['ui-switch',      'switches.html'],
   ['ui-form',        'forms.html'],
-  ['ui-combobox',    'comboboxes.html'],
   ['ui-pagination',  'pagination.html'],
   ['ui-empty-state', 'empty-state.html'],
   ['ui-skeleton',    'skeleton.html'],

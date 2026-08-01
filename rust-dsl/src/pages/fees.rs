@@ -64,11 +64,12 @@ pub fn build(invoices: &[Invoice]) -> Page {
 
     // ── Create-invoice form (uses standard save_cancel() footer) ──
     let create = form().action("/fees").method("post")
-        .add(combobox().label("Student").name("student").placeholder("Search students…")
-             .option(ComboOption::new("aarav",  "Aarav Kumar"))
-             .option(ComboOption::new("meera",  "Meera Sharma"))
-             .option(ComboOption::new("rohan",  "Rohan Patel"))
-             .option(ComboOption::new("diya",   "Diya Verma")))
+        .add(select().label("Student").name("student").placeholder("Search students…")
+             .searchable()
+             .option(SelectOption::new("aarav",  "Aarav Kumar"))
+             .option(SelectOption::new("meera",  "Meera Sharma"))
+             .option(SelectOption::new("rohan",  "Rohan Patel"))
+             .option(SelectOption::new("diya",   "Diya Verma")))
         .add(input().label("Amount (₹)").name("amount").kind(InputType::Number).required())
         .add(datepicker().label("Due date").name("due"))
         .add(select().label("Category").name("category").required()

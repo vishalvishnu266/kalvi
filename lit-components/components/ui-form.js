@@ -25,7 +25,7 @@ import { LitBaseElement, html, css, nothing } from './base.js';
  */
 const FIELD_TAGS = [
   'ui-input', 'ui-select', 'ui-checkbox', 'ui-switch',
-  'ui-radio-group', 'ui-datepicker', 'ui-daterange', 'ui-combobox',
+  'ui-radio-group', 'ui-datepicker', 'ui-daterange',
 ];
 
 class UIForm extends LitBaseElement {

@@ -89,7 +89,6 @@ Produces (formatted for readability):
 | `file_upload()`   | `<ui-file-upload>` |
 | `datepicker()`    | `<ui-datepicker>` |
 | `date_range()`    | `<ui-daterange>` |
-| `combobox()` + `ComboOption::new(...)` | `<ui-combobox>` |
 | `inline_edit(value)` | `<ui-inline-edit>` |
 | `toast(title)` + `toast_host()` | `<ui-toast>` + `<ui-toast-host>` |
 | `command()` + `command_item(label)` | `<ui-command>` + `<ui-command-item>` |

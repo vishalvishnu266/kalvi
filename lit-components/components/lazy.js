@@ -27,7 +27,6 @@ const LAZY_MAP = {
   'ui-progress':      () => import('./ui-progress.js'),
   'ui-stepper':       () => import('./ui-stepper.js'),
   'ui-inline-edit':   () => import('./ui-inline-edit.js'),
-  'ui-combobox':      () => import('./ui-combobox.js'),
   'ui-command':       () => import('./ui-command.js'),
   'ui-drawer':        () => import('./ui-drawer.js'),
   'ui-dropdown-menu': () => import('./ui-dropdown-menu.js'),

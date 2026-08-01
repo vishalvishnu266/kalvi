@@ -226,24 +226,40 @@ class UIDateRange extends LitBaseElement {
     window.removeEventListener('scroll', this._boundReposition, true);
   }
 
+  // ── Shared scroll-lock helpers ────────────────────────────────────────
+  #lockScroll() {
+    const el = document.documentElement;
+    const n = (parseInt(el.dataset.uiDrawerLocks || '0', 10) || 0) + 1;
+    el.dataset.uiDrawerLocks = String(n);
+    if (n === 1) {
+      el.dataset.uiPrevOverflow = el.style.overflow || '';
+      el.style.overflow = 'hidden';
+    }
+  }
+  #unlockScroll() {
+    const el = document.documentElement;
+    const n = Math.max(0, (parseInt(el.dataset.uiDrawerLocks || '0', 10) || 0) - 1);
+    el.dataset.uiDrawerLocks = String(n);
+    if (n === 0) {
+      el.style.overflow = el.dataset.uiPrevOverflow || '';
+      delete el.dataset.uiPrevOverflow;
+    }
+  }
+
   #openPop() {
+    if (this.open) return;
     this.open = true;
-    this.updateComplete.then(() => {
-      this.#positionPop();
-      document.addEventListener('mousedown', this._boundOutside);
-      window.addEventListener('resize', this._boundReposition);
-      window.addEventListener('scroll', this._boundReposition, true);
-    });
+    this.#lockScroll();
+    setTimeout(() => document.addEventListener('mousedown', this._boundOutside), 0);
   }
   #close() {
+    if (!this.open) return;
     this.open = false;
+    this.#unlockScroll();
     document.removeEventListener('mousedown', this._boundOutside);
-    window.removeEventListener('resize', this._boundReposition);
-    window.removeEventListener('scroll', this._boundReposition, true);
   }
-  #positionPop() {
-    /* Drawer is fixed to the left edge — no positioning logic needed. */
-  }
+  // No-op — drawer is CSS-anchored to the left edge.
+  #positionPop() {}
 
   #apply() {
     this.emit('ui-change', { from: this.from, to: this.to });

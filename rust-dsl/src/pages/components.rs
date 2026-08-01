@@ -127,20 +127,38 @@ fn section_inputs() -> Section {
 // Selection controls
 // ---------------------------------------------------------------------------
 fn section_selection() -> Section {
-    doc_section("Selection", "Select, combobox, radio group, checkbox, switch, segmented.", vec![
+    doc_section("Selection", "Select (fixed list, searchable, or tag-input), radio group, checkbox, switch, segmented.", vec![
         example("Select",
-                "Native-feeling <select> with an options list.",
+                "Pick a value from a fixed list.",
                 select().label("Grade").name("grade").placeholder("Choose…")
                     .option(SelectOption::new("5", "Grade 5"))
                     .option(SelectOption::new("6", "Grade 6"))
                     .option(SelectOption::new("7", "Grade 7")),
                 "select().label(\"Grade\").placeholder(\"Choose…\")\n    .option(SelectOption::new(\"5\", \"Grade 5\"))\n    …"),
-        example("Combobox",
-                "Type-to-search picker for large option lists.",
-                combobox().label("Student").name("student").placeholder("Search students…")
-                    .option(ComboOption::new("aarav", "Aarav Kumar"))
-                    .option(ComboOption::new("meera", "Meera Sharma")),
-                "combobox().label(\"Student\").placeholder(\"Search students…\")\n    .option(ComboOption::new(\"aarav\", \"Aarav Kumar\"))\n    …"),
+        example("Select · searchable",
+                "Long option list with a search box in the drawer.",
+                select().label("Student").name("student").placeholder("Search students…")
+                    .searchable()
+                    .option(SelectOption::new("aarav", "Aarav Kumar"))
+                    .option(SelectOption::new("meera", "Meera Sharma"))
+                    .option(SelectOption::new("rohan", "Rohan Patel")),
+                "select().label(\"Student\").placeholder(\"Search students…\")\n    .searchable()\n    .option(SelectOption::new(\"aarav\", \"Aarav Kumar\"))\n    …"),
+        example("Select · allow_new",
+                "Type-ahead that also lets users add values not in the list (tag-input, \"other\" free-text).",
+                select().label("Subject").name("subject").placeholder("Search or add…")
+                    .allow_new()
+                    .option(SelectOption::new("math", "Mathematics"))
+                    .option(SelectOption::new("sci",  "Science"))
+                    .option(SelectOption::new("eng",  "English")),
+                "select().label(\"Subject\").placeholder(\"Search or add…\")\n    .allow_new()\n    .option(SelectOption::new(\"math\", \"Mathematics\"))\n    …"),
+        example("Select · multiple",
+                "Multi-pick from a list. Shows chips in the trigger.",
+                select().label("Interests").name("interests").placeholder("Pick a few…")
+                    .multiple().searchable().clearable()
+                    .option(SelectOption::new("music", "Music"))
+                    .option(SelectOption::new("sport", "Sports"))
+                    .option(SelectOption::new("art",   "Art")),
+                "select().label(\"Interests\").placeholder(\"Pick a few…\")\n    .multiple().searchable().clearable()\n    .option(SelectOption::new(\"music\", \"Music\"))\n    …"),
         example("Radio group (horizontal)",
                 "Single-choice, layout as a row.",
                 radio_group("gender").value("F").horizontal()

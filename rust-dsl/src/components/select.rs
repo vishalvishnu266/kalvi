@@ -23,6 +23,11 @@ pub struct Select {
     searchable: bool,
     clearable: bool,
     multiple: bool,
+    /// When true, the drawer shows an "Add …" row for search queries that
+    /// don't match an existing option. Implies `searchable` on the web
+    /// component side. Use this for tag-input / "pick or type new" flows —
+    /// replaces the retired standalone `combobox()` builder.
+    allow_new: bool,
     required: bool,
     invalid: bool,
     options: Vec<SelectOption>,
@@ -30,7 +35,8 @@ pub struct Select {
 pub fn select() -> Select {
     Select {
         label: None, name: None, value: None, placeholder: None, hint: None,
-        searchable: false, clearable: false, multiple: false, required: false, invalid: false,
+        searchable: false, clearable: false, multiple: false,
+        allow_new: false, required: false, invalid: false,
         options: Vec::new(),
     }
 }
@@ -43,6 +49,9 @@ impl Select {
     pub fn searchable(mut self) -> Self { self.searchable = true; self }
     pub fn clearable(mut self)  -> Self { self.clearable  = true; self }
     pub fn multiple(mut self)   -> Self { self.multiple   = true; self }
+    /// Allow users to add a value that isn't in the options list. Adds a
+    /// search box automatically. Replaces the retired `combobox()`.
+    pub fn allow_new(mut self)  -> Self { self.allow_new  = true; self }
     pub fn required(mut self)   -> Self { self.required   = true; self }
     pub fn invalid(mut self)    -> Self { self.invalid    = true; self }
     pub fn option(mut self, o: SelectOption) -> Self { self.options.push(o); self }
@@ -70,6 +79,7 @@ impl Component for Select {
         if self.searchable { attrs.push(Attr::flag("searchable")); }
         if self.clearable  { attrs.push(Attr::flag("clearable")); }
         if self.multiple   { attrs.push(Attr::flag("multiple")); }
+        if self.allow_new  { attrs.push(Attr::flag("allow-new")); }
         if self.required   { attrs.push(Attr::flag("required")); }
         if self.invalid    { attrs.push(Attr::flag("invalid")); }
 
