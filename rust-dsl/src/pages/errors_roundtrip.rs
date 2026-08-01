@@ -14,6 +14,19 @@
 //!
 //! This is the **reference implementation** of the pattern documented in
 //! `GUIDE.md` §8.6.
+//!
+//! ## Design note — validation lives in the handler, not the page
+//!
+//! The DSL crate `lit-ui` is intentionally dependency-free, so `validator`
+//! isn't imported here. The Rust struct + `#[derive(Validate)]` + the
+//! `banner_from_errors`/`validate_and_render` adapters all live in the
+//! main `school_erp` crate (see `src/validation.rs` and
+//! `src/web/dsl.rs::errors_roundtrip_post`). The page builder just accepts
+//! an `Option<String>` per field — same shape as any other DSL page.
+//!
+//! Legacy `Input` + `validate` are kept here for now as the fallback for
+//! the GET path; new endpoints should skip them and only pass the
+//! per-field errors down.
 
 use crate::prelude::*;
 

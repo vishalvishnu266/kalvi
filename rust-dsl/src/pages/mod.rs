@@ -18,6 +18,7 @@ pub mod components;
 pub mod errors;
 pub mod errors_combos;
 pub mod errors_roundtrip;
+pub mod errors_validator;
 
 // Shared infrastructure for the /dsl/layouts, /dsl/components and any
 // future doc pages. NOT part of the public DSL — it's docs-only tooling.

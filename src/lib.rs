@@ -11,6 +11,7 @@ pub mod session;
 pub mod shutdown;
 pub mod system;
 pub mod tenancy;
+pub mod validation;
 pub mod web;
 
 pub use config::Config;

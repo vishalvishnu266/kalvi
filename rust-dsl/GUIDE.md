@@ -530,7 +530,79 @@ The `ack` event fires when the user clicks the button — hook it if you need to
 
 ### 8.6 The canonical server-side pattern (Axum + Hotwire)
 
-Server is the source of truth. On validation failure, re-render the SAME form with errors annotated; return HTTP 422 so Turbo swaps the body:
+Server is the source of truth. On validation failure, re-render the SAME form with errors annotated; return HTTP 422 so Turbo swaps the body.
+
+**Recommended: use the `validator` crate + shared adapter in `src/validation.rs`.** Every rule lives on the struct once — no `if` branches in the handler.
+
+```rust
+use validator::Validate;
+use crate::validation::{validate_and_render, banner_from_errors, FieldErrorLookup};
+
+#[derive(Deserialize, Validate)]
+#[validate(schema(function = "check_emails_differ"))]  // cross-field rule
+pub struct NewStudent {
+    #[validate(length(min = 2, message = "Full name must be at least 2 characters"))]
+    pub name: String,
+    #[validate(email(message = "Student email must be valid"))]
+    pub email: String,
+    #[validate(email(message = "Guardian email must be valid"))]
+    pub g_email: String,
+    #[validate(range(min = 3, max = 120, message = "Age must be between 3 and 120"))]
+    pub age: u8,
+    #[validate(custom(function = "must_be_true", message = "You must consent"))]
+    pub consent: bool,
+}
+
+pub async fn create_student(Form(input): Form<NewStudent>) -> Response {
+    if let Some(resp) = validate_and_render(&input, |i, e| {
+        students::add_form(i, e)   // page builder — receives &ValidationErrors
+    }) { return resp; }
+
+    save(&input).await;
+    Redirect::to("/students?ok=1").into_response()
+}
+```
+
+Inside `students::add_form(input, errors)`:
+
+```rust
+form().action("/students").method("post")
+    .maybe_banner(banner_from_errors(errors))                       // multi-section summary
+    .add(input().label("Full name").name("name")
+         .value(&input.name)
+         .maybe_error(errors.field_error("name")))                  // per-field red hint
+    // ... other fields
+    .save_cancel("Save")
+```
+
+**Async / DB-backed rules** (e.g. "email must be unique") aren't expressible as `#[validate]` attributes — they run in a **second phase** after the attribute rules pass:
+
+```rust
+pub async fn create_student(State(db): State<Db>, Form(input): Form<NewStudent>) -> Response {
+    // Phase 1 — pure/sync attribute rules.
+    let mut extra = ValidationErrors::new();
+    // Phase 2 — async rules AFTER we know the payload isn't obviously broken.
+    if db.email_taken(&input.email).await {
+        extra.add("email", ValidationError::new("email_taken")
+            .with_message("This email is already registered".into()));
+    }
+    if let Some(resp) = validate_and_render_with(&input, extra, |i, e| {
+        students::add_form(i, e)
+    }) { return resp; }
+
+    save(&input, db).await;
+    Redirect::to("/students?ok=1").into_response()
+}
+```
+
+Same `ValidationErrors` type flows through both phases. The page builder never knows or cares which phase an error came from.
+
+**Live demo:** `/dsl/errors/validator` — pattern above running end-to-end.
+**Contrast with hand-rolled:** `/dsl/errors/roundtrip` — same UX, ~30 lines of hand-written `if` branches.
+
+---
+
+**Legacy pattern (still supported, use for one-off endpoints only):**
 
 ```rust
 pub async fn create_student(Form(input): Form<NewStudent>) -> Response {

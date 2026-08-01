@@ -60,7 +60,9 @@ pub fn build_router(state: AppState, readiness: Readiness) -> Router {
         .route("/dsl/errors",           get(wd::errors_page))
         .route("/dsl/errors/combos",    get(wd::errors_combos_page))
         .route("/dsl/errors/roundtrip",
-               get(wd::errors_roundtrip_get).post(wd::errors_roundtrip_post));
+               get(wd::errors_roundtrip_get).post(wd::errors_roundtrip_post))
+        .route("/dsl/errors/validator",
+               get(wd::errors_validator_get).post(wd::errors_validator_post));
 
     let web_global = crate::http::web::global_routes();
     let portal_global = crate::http::portal::global_routes();

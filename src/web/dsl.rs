@@ -23,10 +23,11 @@ use axum::response::{Html, IntoResponse, Redirect, Response};
 use axum::Form;
 use lit_ui::core::Component;
 use lit_ui::pages::{
-    attendance, components, dashboard, errors, errors_combos, errors_roundtrip, fees, icons,
-    layouts, students,
+    attendance, components, dashboard, errors, errors_combos, errors_roundtrip, errors_validator,
+    fees, icons, layouts, students,
 };
 use serde::Deserialize;
+use validator::{Validate, ValidationError, ValidationErrors};
 
 /// Simple index page linking to each DSL demo — pure HTML string, no DSL.
 pub async fn index() -> Html<&'static str> {
@@ -72,7 +73,8 @@ pub async fn index() -> Html<&'static str> {
         <li><a href="/dsl/components"><div><strong>Components</strong><br><small>Every UI component with variants + source (buttons, inputs, tables, modals…)</small></div></a></li>
         <li><a href="/dsl/errors"><div><strong>Error UX</strong><br><small>Field / form / page error surfaces — the handbook for validation UI</small></div></a></li>
         <li><a href="/dsl/errors/combos"><div><strong>Error combinations</strong><br><small>Every meaningful combination of banner + field + alert + ack panel with source</small></div></a></li>
-        <li><a href="/dsl/errors/roundtrip"><div><strong>Error round-trip (live)</strong><br><small>Real POST → 422 → Turbo swap → errors inline. End-to-end reference implementation.</small></div></a></li>
+        <li><a href="/dsl/errors/roundtrip"><div><strong>Error round-trip (live)</strong><br><small>Real POST → 422 → Turbo swap → errors inline. Hand-rolled validation.</small></div></a></li>
+        <li><a href="/dsl/errors/validator"><div><strong>Validator crate (recommended)</strong><br><small>Same UX, declarative rules via #[derive(Validate)]. Copy this for new endpoints.</small></div></a></li>
       </ul>
     </main>
   </body>
@@ -170,4 +172,137 @@ pub async fn errors_roundtrip_post(Form(body): Form<RoundtripPost>) -> Response 
     // 422 + re-rendered HTML. Turbo swaps <body>; user sees errors inline.
     let page = errors_roundtrip::build(&input, &v, false);
     (StatusCode::UNPROCESSABLE_ENTITY, Html(page.render())).into_response()
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Validator-crate demo — SAME UX as errors_roundtrip, but the handler uses
+// declarative attribute rules on the request struct instead of hand-coded
+// `if` branches. Serves as the reference implementation to copy for new
+// endpoints. See src/validation.rs for the shared helpers.
+// ────────────────────────────────────────────────────────────────────────────
+
+/// Request struct — every rule declared inline. Compare with the manual
+/// `errors_roundtrip::validate` function — this is what disappears.
+#[derive(Deserialize, Validate)]
+#[validate(schema(function = "check_emails_differ"))]
+pub struct NewStudent {
+    #[validate(length(min = 2, message = "Full name must be at least 2 characters"))]
+    pub name: String,
+
+    #[validate(email(message = "Student email must be a valid email"))]
+    pub email: String,
+
+    #[validate(email(message = "Guardian email must be a valid email"))]
+    pub g_email: String,
+
+    #[validate(range(min = 3, max = 120, message = "Age must be between 3 and 120"))]
+    pub age: u8,
+
+    // Optional — only validated when Some.
+    #[validate(url(message = "Website must be a valid URL"))]
+    pub website: Option<String>,
+
+    #[validate(custom(function = "must_be_true", message = "You must consent to continue"))]
+    pub consent: bool,
+}
+
+// Struct-level (schema) validator — sees the whole struct so it can compare
+// fields. Errors it emits are surfaced by the banner adapter as the
+// banner's `.message()` (they aren't tied to a single field).
+fn check_emails_differ(s: &NewStudent) -> Result<(), ValidationError> {
+    if !s.email.is_empty() && s.email.eq_ignore_ascii_case(&s.g_email) {
+        return Err(ValidationError::new("emails_must_differ")
+            .with_message("Guardian email must be different from the student's email".into()));
+    }
+    Ok(())
+}
+
+// Reusable custom validator — "boolean must be true" (e.g. consent, terms).
+fn must_be_true(b: &bool) -> Result<(), ValidationError> {
+    if *b { Ok(()) } else { Err(ValidationError::new("must_be_true")) }
+}
+
+/// Raw form body — separate from `NewStudent` because HTML forms send
+/// checkboxes as `Some("on")` / `None` (never `false`), and we may need to
+/// echo back partial input on 422.
+#[derive(Deserialize, Default)]
+pub struct NewStudentForm {
+    pub name:    Option<String>,
+    pub email:   Option<String>,
+    pub g_email: Option<String>,
+    pub age:     Option<String>,      // raw so an invalid "abc" doesn't 400
+    pub website: Option<String>,
+    pub consent: Option<String>,
+}
+
+pub async fn errors_validator_get(Query(q): Query<RoundtripQuery>) -> Html<String> {
+    let page = errors_validator::build(
+        &errors_validator::Values::default(),
+        &errors_validator::Errors::default(),
+        None,
+        q.ok.unwrap_or(0) == 1,
+    );
+    Html(page.render())
+}
+
+pub async fn errors_validator_post(Form(body): Form<NewStudentForm>) -> Response {
+    // Parse raw form → strongly-typed struct. If required strings/ints are
+    // missing we still build the struct with placeholders so validator can
+    // emit its own error messages (better UX than a generic 400).
+    let input = NewStudent {
+        name:    body.name.clone().unwrap_or_default(),
+        email:   body.email.clone().unwrap_or_default(),
+        g_email: body.g_email.clone().unwrap_or_default(),
+        age:     body.age.as_deref().and_then(|s| s.parse().ok()).unwrap_or(0),
+        website: body.website.clone().filter(|s| !s.trim().is_empty()),
+        consent: body.consent.is_some(),
+    };
+
+    // The whole validation + re-render dance in ONE line via the shared helper.
+    if let Some(resp) = crate::validation::validate_and_render(&input, |i, e| {
+        render_validator_page(i, &body, e)
+    }) {
+        return resp;
+    }
+
+    // Everything valid — a real handler would persist here.
+    Redirect::to("/dsl/errors/validator?ok=1").into_response()
+}
+
+// Adapter — turns the strongly-typed struct + raw body + errors into a Page.
+fn render_validator_page(
+    input: &NewStudent,
+    raw: &NewStudentForm,
+    errors: &ValidationErrors,
+) -> lit_ui::components::page::Page {
+    use crate::validation::{banner_from_errors, FieldErrorLookup};
+
+    // Echo back what the user typed (even for fields that failed to parse).
+    let values = errors_validator::Values {
+        name:    raw.name.as_deref(),
+        email:   raw.email.as_deref(),
+        g_email: raw.g_email.as_deref(),
+        age:     raw.age.as_deref(),
+        website: raw.website.as_deref(),
+        consent: input.consent,
+    };
+
+    // Per-field errors — one shared lookup call per field, no manual glue.
+    let name_err    = errors.field_error("name");
+    let email_err   = errors.field_error("email");
+    let g_email_err = errors.field_error("g_email");
+    let age_err     = errors.field_error("age");
+    let website_err = errors.field_error("website");
+    let consent_err = errors.field_error("consent");
+
+    let field_errors = errors_validator::Errors {
+        name:    name_err.as_deref(),
+        email:   email_err.as_deref(),
+        g_email: g_email_err.as_deref(),
+        age:     age_err.as_deref(),
+        website: website_err.as_deref(),
+        consent: consent_err.as_deref(),
+    };
+
+    errors_validator::build(&values, &field_errors, banner_from_errors(errors), false)
 }

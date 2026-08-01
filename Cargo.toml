@@ -28,6 +28,10 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"]
 uuid = { version = "1", features = ["v4"] }
 dotenvy = "0.15"
 
+# Declarative struct-level validation via attribute macros. See src/validation.rs
+# for the DSL adapter that turns ValidationErrors into a FormBanner.
+validator = { version = "0.18", features = ["derive"] }
+
 # Web (server-rendered) UI
 askama = "0.12"
 mime_guess = "2"
