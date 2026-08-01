@@ -1,7 +1,7 @@
 import { LitBaseElement, html, css, nothing } from './base.js';
 
 /**
- * Single-trigger date-range picker with popover calendar + preset shortcuts.
+ * Single-trigger date-range picker with popover calendar + preset shortcuts + custom inputs.
  *
  * <ui-daterange label="Date range" from="2026-07-01" to="2026-07-28"></ui-daterange>
  *
@@ -17,6 +17,9 @@ class UIDateRange extends LitBaseElement {
     _viewMonth:    { state: true },
     _pending:      { state: true },  // Date | null
     _activePreset: { state: true },
+    _customFrom:   { state: true },
+    _customTo:     { state: true },
+    _customError:  { state: true },
   };
 
   static styles = css`
@@ -37,10 +40,7 @@ class UIDateRange extends LitBaseElement {
     .trigger ui-icon { color: var(--color-text-muted); }
     .trigger .caret { margin-left: auto; color: var(--color-text-subtle); }
 
-    /* ----- RESPONSIVE TOP-LAYER DIALOG -----
-       Guaranteed no-overlap via native <dialog.showModal()>.
-       Mobile: Bottom sheet sliding up.
-       Desktop: Centered modal on screen. */
+    /* ----- RESPONSIVE TOP-LAYER DIALOG ----- */
     .pop {
       position: fixed;
       inset: auto 0 0 0;
@@ -68,7 +68,6 @@ class UIDateRange extends LitBaseElement {
       backdrop-filter: blur(2px);
     }
 
-    /* Desktop Viewport Adaptation (Centered Modal sliding up slightly) */
     @media (min-width: 720px) {
       .pop {
         inset: 50% auto auto 50%;
@@ -87,10 +86,9 @@ class UIDateRange extends LitBaseElement {
       }
     }
 
-    /* Two-column body: presets on the left, calendars area on the right. */
     .drawer-body {
       display: grid;
-      grid-template-columns: 150px minmax(0, 1fr);
+      grid-template-columns: 160px minmax(0, 1fr);
       flex: 1;
       min-height: 0;
       overflow: hidden;
@@ -150,6 +148,21 @@ class UIDateRange extends LitBaseElement {
       }
       .presets button { flex: 0 0 auto; border-radius: var(--radius-pill, 9999px); border: 1px solid var(--color-border); background: var(--color-surface); font-size: var(--fs-xs); padding: 5px 10px; }
     }
+
+    /* Custom Input Controls */
+    .custom-inputs {
+      display: flex; gap: 8px; align-items: center; padding: 8px 14px;
+      border-bottom: 1px solid var(--color-border); background: var(--color-surface-alt);
+    }
+    .custom-group { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+    .custom-group label { font-size: 10px; color: var(--color-text-muted); font-weight: var(--fw-medium); }
+    .custom-group input {
+      height: 30px; padding: 0 8px; font-size: var(--fs-xs); font-family: inherit;
+      border: 1px solid var(--color-border-strong); border-radius: var(--radius-md);
+      background: var(--color-surface); color: var(--color-text);
+    }
+    .custom-group input:focus { outline: none; border-color: var(--color-primary); }
+    .custom-error { font-size: 11px; color: var(--color-danger, #e53935); margin-left: 4px; }
 
     /* Navigation & Month Grids */
     .cals-head {
@@ -233,11 +246,14 @@ class UIDateRange extends LitBaseElement {
     this._viewMonth = today.getMonth();
     this._pending = null;
     this._activePreset = '';
+    this._customFrom = '';
+    this._customTo = '';
+    this._customError = '';
   }
 
   connectedCallback() {
     super.connectedCallback();
-    const f = this.#parse(this.from);
+    const f = this.#parseStrict(this.from);
     if (f) { this._viewYear = f.getFullYear(); this._viewMonth = f.getMonth(); }
   }
 
@@ -254,6 +270,9 @@ class UIDateRange extends LitBaseElement {
         if (this.open && !dialog.open) {
           dialog.showModal();
           this.#lockScroll();
+          this._customFrom = this.from;
+          this._customTo = this.to;
+          this._customError = '';
         } else if (!this.open && dialog.open) {
           dialog.close();
           this.#unlockScroll();
@@ -308,6 +327,10 @@ class UIDateRange extends LitBaseElement {
   }
 
   #apply() {
+    if (this._activePreset === 'custom') {
+      const err = this.#validateCustomRange();
+      if (err) return;
+    }
     this.emit('ui-change', { from: this.from, to: this.to });
     this.#close();
   }
@@ -318,8 +341,16 @@ class UIDateRange extends LitBaseElement {
 
   #applyPreset(key) {
     this._activePreset = key;
+    this._customError = '';
     const today = new Date();
-    const set = (a, b) => { this.from = this.#fmtISO(a); this.to = this.#fmtISO(b); this._pending = null; };
+    const set = (a, b) => {
+      this.from = this.#fmtISO(a);
+      this.to = this.#fmtISO(b);
+      this._pending = null;
+      this._customFrom = this.from;
+      this._customTo = this.to;
+    };
+
     switch (key) {
       case 'today':      set(this.#startOfDay(today), this.#startOfDay(today)); break;
       case 'yesterday':  { const y = this.#addDays(today, -1); set(y, y); break; }
@@ -328,9 +359,14 @@ class UIDateRange extends LitBaseElement {
       case 'thisMonth':  set(this.#startOfMonth(today), this.#endOfMonth(today)); break;
       case 'lastMonth':  { const d = new Date(today.getFullYear(), today.getMonth()-1, 1); set(this.#startOfMonth(d), this.#endOfMonth(d)); break; }
       case 'thisYear':   set(new Date(today.getFullYear(),0,1), new Date(today.getFullYear(),11,31)); break;
-      case 'custom':     /* keep current */ break;
+      case 'custom':
+        this._customFrom = this.from;
+        this._customTo = this.to;
+        this.#validateCustomRange();
+        break;
     }
-    const ref = this.#parse(this.from) || today;
+
+    const ref = this.#parseStrict(this.from) || today;
     this._viewYear = ref.getFullYear();
     this._viewMonth = ref.getMonth();
   }
@@ -350,7 +386,45 @@ class UIDateRange extends LitBaseElement {
       else       { this.from = this.#fmtISO(a); this.to = this.#fmtISO(b); }
       this._pending = null;
     }
+    this._customFrom = this.from;
+    this._customTo = this.to;
+    this._customError = '';
     this._activePreset = '';
+  }
+
+  #onCustomInput(type, val) {
+    if (type === 'from') this._customFrom = val;
+    if (type === 'to')   this._customTo = val;
+
+    this._activePreset = 'custom';
+    const err = this.#validateCustomRange();
+    if (!err) {
+      this.from = this._customFrom;
+      this.to = this._customTo;
+      const ref = this.#parseStrict(this.from);
+      if (ref) {
+        this._viewYear = ref.getFullYear();
+        this._viewMonth = ref.getMonth();
+      }
+    }
+  }
+
+  #validateCustomRange() {
+    const d1 = this.#parseStrict(this._customFrom);
+    const d2 = this.#parseStrict(this._customTo);
+
+    if (!d1 || !d2) {
+      this._customError = 'Enter valid dates (YYYY-MM-DD)';
+      return this._customError;
+    }
+
+    if (d1 > d2) {
+      this._customError = '"From" date cannot be after "To" date';
+      return this._customError;
+    }
+
+    this._customError = '';
+    return '';
   }
 
   #renderMonth(refDate) {
@@ -372,26 +446,26 @@ class UIDateRange extends LitBaseElement {
     }
 
     const today = this.#startOfDay(new Date());
-    const from = this.#parse(this.from);
-    const to = this.#parse(this.to);
+    const from = this.#parseStrict(this.from);
+    const to = this.#parseStrict(this.to);
 
     return html`
       <div class="cal">
         <div class="dow"><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div><div>S</div></div>
         <div class="grid">
           ${cells.map(c => {
-            const cls = [];
-            if (c.muted) cls.push('muted');
-            if (!c.muted) {
-              if (this.#sameDay(c.date, today)) cls.push('today');
-              if (from && to && c.date >= this.#startOfDay(from) && c.date <= this.#startOfDay(to)) cls.push('in-range');
-              if (from && this.#sameDay(c.date, from)) cls.push('start');
-              if (to   && this.#sameDay(c.date, to))   cls.push('end');
-            }
-            const disabled = c.muted;
-            return html`<button class=${cls.join(' ')} ?disabled=${disabled}
+      const cls = [];
+      if (c.muted) cls.push('muted');
+      if (!c.muted) {
+        if (this.#sameDay(c.date, today)) cls.push('today');
+        if (from && to && c.date >= this.#startOfDay(from) && c.date <= this.#startOfDay(to)) cls.push('in-range');
+        if (from && this.#sameDay(c.date, from)) cls.push('start');
+        if (to   && this.#sameDay(c.date, to))   cls.push('end');
+      }
+      const disabled = c.muted;
+      return html`<button class=${cls.join(' ')} ?disabled=${disabled}
                                 @click=${() => !disabled && this.#pickCell(c.date)}>${c.d}</button>`;
-          })}
+    })}
         </div>
       </div>
     `;
@@ -400,8 +474,8 @@ class UIDateRange extends LitBaseElement {
   render() {
     const leftDate  = new Date(this._viewYear, this._viewMonth, 1);
     const rightDate = new Date(this._viewYear, this._viewMonth + 1, 1);
-    const from = this.#parse(this.from);
-    const to   = this.#parse(this.to);
+    const from = this.#parseStrict(this.from);
+    const to   = this.#parseStrict(this.to);
     const info = (from && to)
         ? `${this.#fmtISO(from)}  →  ${this.#fmtISO(to)}  ·  ${this.#diffDays(from, to) + 1} day(s)`
         : 'Pick a start date';
@@ -416,9 +490,9 @@ class UIDateRange extends LitBaseElement {
     return html`
       ${this.label ? html`<span class="label">${this.label}</span>` : nothing}
       <button class="trigger" type="button" @click=${(e) => {
-        e.stopPropagation();
-        this.open ? this.#close() : this.#openPop();
-      }}>
+      e.stopPropagation();
+      this.open ? this.#close() : this.#openPop();
+    }}>
         <ui-icon name="calendar" size="16"></ui-icon>
         <span>${this.#fmtRange()}</span>
         <ui-icon class="caret" name="chevronDown" size="14"></ui-icon>
@@ -438,6 +512,27 @@ class UIDateRange extends LitBaseElement {
                       @click=${() => this.#applyPreset(k)}>${l}</button>`)}
           </div>
           <div class="cals-wrap">
+            ${this._activePreset === 'custom'
+        ? html`
+                <div class="custom-inputs">
+                  <div class="custom-group">
+                    <label>From</label>
+                    <input type="text" 
+                           placeholder="YYYY-MM-DD" 
+                           .value=${this._customFrom}
+                           @input=${(e) => this.#onCustomInput('from', e.target.value)} />
+                  </div>
+                  <div class="custom-group">
+                    <label>To</label>
+                    <input type="text" 
+                           placeholder="YYYY-MM-DD" 
+                           .value=${this._customTo}
+                           @input=${(e) => this.#onCustomInput('to', e.target.value)} />
+                  </div>
+                </div>
+                ${this._customError ? html`<div class="custom-error">${this._customError}</div>` : nothing}
+              `
+        : nothing}
             <div class="cals-head">
               <button class="nav-btn" title="Previous month" @click=${() => this.#onNav(-1)}>
                 <ui-icon name="chevronLeft" size="14"></ui-icon>
@@ -458,7 +553,7 @@ class UIDateRange extends LitBaseElement {
               <span class="info">${info}</span>
               <div class="actions">
                 <ui-button size="sm" variant="secondary" @click=${() => this.#cancel()}>Cancel</ui-button>
-                <ui-button size="sm" @click=${() => this.#apply()}>Apply</ui-button>
+                <ui-button size="sm" ?disabled=${!!this._customError} @click=${() => this.#apply()}>Apply</ui-button>
               </div>
             </div>
           </div>
@@ -467,11 +562,28 @@ class UIDateRange extends LitBaseElement {
     `;
   }
 
-  // utils
-  #parse(s) { if (!s) return null; const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); }
+  // Strict Date Parser: Ensures YYYY-MM-DD format and valid calendar dates (e.g. rejects 2025-02-29)
+  #parseStrict(s) {
+    if (!s || typeof s !== 'string') return null;
+    const match = s.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) return null;
+
+    const y = Number(match[1]);
+    const m = Number(match[2]);
+    const d = Number(match[3]);
+
+    if (m < 1 || m > 12 || d < 1 || d > 31) return null;
+
+    const date = new Date(y, m - 1, d);
+    if (date.getFullYear() !== y || date.getMonth() !== m - 1 || date.getDate() !== d) {
+      return null;
+    }
+    return date;
+  }
+
   #fmtISO(d) { if (!d) return ''; const p = n => String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; }
   #fmtRange() {
-    const f = this.#parse(this.from), t = this.#parse(this.to);
+    const f = this.#parseStrict(this.from), t = this.#parseStrict(this.to);
     if (!f || !t) return 'Select date range';
     const opts = { month: 'short', day: 'numeric', year: 'numeric' };
     const a = f.toLocaleDateString(undefined, opts);

@@ -1,11 +1,13 @@
 import { LitBaseElement, html, css, nothing } from './base.js';
 
 /**
- * Single-date picker with a responsive popover (Bottom-sheet on mobile, Centered Modal on desktop).
+ * Single-date picker with manual input entry, error validation styling,
+ * and a responsive popover (Bottom-sheet on mobile, Centered Modal on desktop).
  *
+ * Usage:
  * <ui-datepicker label="Date of birth" value="2015-08-12"></ui-datepicker>
  *
- * Emits `ui-change` with { value } in ISO (YYYY-MM-DD).
+ * Emits `ui-change` with { value } in ISO format (YYYY-MM-DD).
  */
 class UIDatepicker extends LitBaseElement {
   static properties = {
@@ -17,6 +19,7 @@ class UIDatepicker extends LitBaseElement {
     _viewMonth:  { state: true },
     _mode:       { state: true },   // "day" (default) | "year"
     _yearPage:   { state: true },   // top-left year of the 4x3 year grid
+    _invalid:    { state: true },   // Tracks custom error validation state
   };
 
   static styles = css`
@@ -25,26 +28,46 @@ class UIDatepicker extends LitBaseElement {
       display: block; font-size: var(--fs-xs); color: var(--color-text-muted);
       margin-bottom: 6px; font-weight: var(--fw-medium);
     }
-    .trigger {
-      display: inline-flex; align-items: center; gap: 8px;
+    .trigger-input-group {
+      display: inline-flex; align-items: center;
       background: var(--color-surface);
       border: 1px solid var(--color-border-strong);
       border-radius: var(--radius-md);
-      height: 40px; padding: 0 12px;
-      font: inherit; font-size: var(--fs-sm); color: var(--color-text);
-      cursor: pointer; min-width: 180px;
+      height: 40px; padding: 0 4px 0 12px;
+      min-width: 180px; box-sizing: border-box;
       transition: border-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
     }
-    .trigger:hover { border-color: var(--color-text-subtle); }
-    .trigger:focus { outline: none; box-shadow: 0 0 0 4px var(--color-primary-ring); border-color: var(--color-primary); }
-    .trigger ui-icon { color: var(--color-text-muted); }
-    .trigger .val { flex: 1; }
-    .placeholder { color: var(--color-text-subtle); }
+    .trigger-input-group:hover { border-color: var(--color-text-subtle); }
+    .trigger-input-group:focus-within {
+      outline: none; box-shadow: 0 0 0 4px var(--color-primary-ring); border-color: var(--color-primary);
+    }
 
-    /* ----- RESPONSIVE TOP-LAYER DIALOG -----
-       Guaranteed no-overlap via native <dialog.showModal()>.
-       Mobile: Bottom sheet sliding up.
-       Desktop: Centered modal on screen. */
+    /* RED ERROR INDICATION STYLES */
+    .trigger-input-group[data-invalid] {
+      border-color: var(--color-error, #dc2626) !important;
+    }
+    .trigger-input-group[data-invalid]:focus-within {
+      box-shadow: 0 0 0 4px var(--color-error-ring, rgba(220, 38, 38, 0.2)) !important;
+    }
+    .trigger-input-group[data-invalid] .date-input {
+      color: var(--color-error, #dc2626);
+    }
+
+    .date-input {
+      flex: 1; border: none; background: transparent;
+      font: inherit; font-size: var(--fs-sm); color: var(--color-text);
+      outline: none; width: 100%; min-width: 0;
+    }
+    .date-input::placeholder { color: var(--color-text-subtle); }
+    .picker-btn {
+      appearance: none; border: 0; background: transparent; cursor: pointer;
+      padding: 6px; color: var(--color-text-muted);
+      border-radius: var(--radius-sm); display: grid; place-items: center;
+      flex: 0 0 auto;
+    }
+    .picker-btn:hover { color: var(--color-text); }
+
+    /* ----- RESPONSIVE TOP-LAYER DIALOG ----- */
     .pop {
       position: fixed;
       inset: auto 0 0 0;
@@ -72,7 +95,6 @@ class UIDatepicker extends LitBaseElement {
       backdrop-filter: blur(2px);
     }
 
-    /* Desktop Viewport Adaptation (Centered Modal sliding up slightly) */
     @media (min-width: 640px) {
       .pop {
         inset: 50% auto auto 50%;
@@ -181,19 +203,23 @@ class UIDatepicker extends LitBaseElement {
     super();
     this.label = '';
     this.value = '';
-    this.placeholder = 'Select a date';
+    this.placeholder = 'YYYY-MM-DD';
     this.open = false;
     const today = new Date();
     this._viewYear = today.getFullYear();
     this._viewMonth = today.getMonth();
     this._mode = 'day';
     this._yearPage = this._viewYear - (this._viewYear % 12);
+    this._invalid = false;
   }
 
   connectedCallback() {
     super.connectedCallback();
     const v = this.#parse(this.value);
-    if (v) { this._viewYear = v.getFullYear(); this._viewMonth = v.getMonth(); }
+    if (v) {
+      this._viewYear = v.getFullYear();
+      this._viewMonth = v.getMonth();
+    }
   }
 
   disconnectedCallback() {
@@ -213,6 +239,14 @@ class UIDatepicker extends LitBaseElement {
           dialog.close();
           this.#unlockScroll();
         }
+      }
+    }
+    if (changedProperties.has('value')) {
+      const v = this.#parse(this.value);
+      if (v) {
+        this._viewYear = v.getFullYear();
+        this._viewMonth = v.getMonth();
+        this._invalid = false;
       }
     }
   }
@@ -255,8 +289,10 @@ class UIDatepicker extends LitBaseElement {
 
   #onDialogClick(e) {
     const rect = e.currentTarget.getBoundingClientRect();
-    const isInDialog = (rect.top <= e.clientY && e.clientY <= rect.top + rect.height &&
-        rect.left <= e.clientX && e.clientX <= rect.left + rect.width);
+    const isInDialog = (
+        rect.top <= e.clientY && e.clientY <= rect.top + rect.height &&
+        rect.left <= e.clientX && e.clientX <= rect.left + rect.width
+    );
     if (!isInDialog) {
       this.#close();
     }
@@ -284,20 +320,65 @@ class UIDatepicker extends LitBaseElement {
 
   #pick(iso) {
     this.value = iso;
+    this._invalid = false;
     this.emit('ui-change', { value: iso });
     this.#close();
   }
 
   #today() {
     this.value = this.#fmtISO(this.#startOfDay(new Date()));
+    this._invalid = false;
     this.emit('ui-change', { value: this.value });
     this.#close();
   }
 
   #clear() {
     this.value = '';
+    this._invalid = false;
     this.emit('ui-change', { value: '' });
     this.#close();
+  }
+
+  #onManualInput(e) {
+    const inputVal = e.target.value.trim();
+    if (!inputVal) {
+      this._invalid = false;
+      if (this.value !== '') {
+        this.value = '';
+        this.emit('ui-change', { value: '' });
+      }
+      return;
+    }
+
+    const isValidFormat = /^\d{4}-\d{2}-\d{2}$/.test(inputVal);
+    const parsed = isValidFormat ? this.#parse(inputVal) : null;
+
+    if (parsed) {
+      this._invalid = false;
+      this.value = inputVal;
+      this._viewYear = parsed.getFullYear();
+      this._viewMonth = parsed.getMonth();
+      this.emit('ui-change', { value: this.value });
+    } else {
+      // Flag red error state while typing malformed inputs
+      this._invalid = true;
+    }
+  }
+
+  #onInputBlur(e) {
+    const inputVal = e.target.value.trim();
+    if (!inputVal) {
+      this._invalid = false;
+      return;
+    }
+
+    const parsed = this.#parse(inputVal);
+    if (!parsed) {
+      // Mark invalid on blur if bad date remains
+      this._invalid = true;
+    } else {
+      this._invalid = false;
+    }
   }
 
   #buildCells() {
@@ -327,18 +408,20 @@ class UIDatepicker extends LitBaseElement {
 
     return html`
       ${this.label ? html`<span class="label">${this.label}</span>` : nothing}
-      <button class="trigger" type="button" @click=${(e) => {
-        e.stopPropagation();
-        this.open ? this.#close() : this.#openPop();
-      }}>
-        <ui-icon name="calendar" size="16"></ui-icon>
-        <span class="val">
-          ${val
-              ? val.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
-              : html`<span class="placeholder">${this.placeholder}</span>`}
-        </span>
-        <ui-icon name="chevronDown" size="14"></ui-icon>
-      </button>
+
+      <div class="trigger-input-group" ?data-invalid=${this._invalid}>
+        <input
+            class="date-input"
+            type="text"
+            .value=${this.value}
+            placeholder=${this.placeholder}
+            @input=${this.#onManualInput}
+            @blur=${this.#onInputBlur}
+        />
+        <button class="picker-btn" type="button" title="Open calendar" @click=${() => this.#openPop()}>
+          <ui-icon name="calendar" size="16"></ui-icon>
+        </button>
+      </div>
 
       <dialog class="pop" @click=${this.#onDialogClick} @cancel=${(e) => { e.preventDefault(); this.#close(); }}>
         <div class="drawer-head">
@@ -398,9 +481,16 @@ class UIDatepicker extends LitBaseElement {
     `;
   }
 
-  #parse(s) { if (!s) return null; const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); }
+  #parse(s) {
+    if (!s) return null;
+    const [y, m, d] = s.split('-').map(Number);
+    if (!y || !m || !d) return null;
+    const dt = new Date(y, m - 1, d);
+    return (dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d) ? dt : null;
+  }
   #fmtISO(d) { const p = n => String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; }
   #sameDay(a,b) { return a && b && a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate(); }
   #startOfDay(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
 }
+
 customElements.define('ui-datepicker', UIDatepicker);

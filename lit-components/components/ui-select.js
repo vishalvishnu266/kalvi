@@ -21,6 +21,7 @@ class UISelect extends LitBaseElement {
     multiple:    { type: Boolean, reflect: true },
     'allow-new': { type: Boolean, reflect: true, attribute: 'allow-new' },
     _filter:     { state: true },
+    _focusedIndex: { state: true },
   };
 
   static styles = css`
@@ -138,13 +139,13 @@ class UISelect extends LitBaseElement {
       flex: 1; border: 0; outline: 0; background: transparent; font: inherit;
       font-size: var(--fs-sm); color: var(--color-text);
     }
-    .list { overflow-y: auto; flex: 1; padding: 6px; min-height: 0; }
+    .list { overflow-y: auto; flex: 1; padding: 6px; min-height: 0; outline: none; }
     .opt {
       display: flex; align-items: center; gap: 8px;
       padding: 10px 12px; border-radius: 6px; cursor: pointer;
       font-size: var(--fs-sm); color: var(--color-text);
     }
-    .opt:hover { background: var(--color-primary-soft); }
+    .opt:hover, .opt.focused { background: var(--color-primary-soft); }
     .opt[aria-selected="true"] { color: var(--color-primary); font-weight: var(--fw-medium); }
     .opt .check { margin-left: auto; color: var(--color-primary); opacity: 0; }
     .opt[aria-selected="true"] .check { opacity: 1; }
@@ -178,6 +179,7 @@ class UISelect extends LitBaseElement {
     this._filter = '';
     this._items = [];
     this._selected = new Set();
+    this._focusedIndex = -1;
   }
 
   connectedCallback() {
@@ -204,12 +206,28 @@ class UISelect extends LitBaseElement {
         if (this.open && !dialog.open) {
           dialog.showModal();
           this.#lockScroll();
+          this._focusedIndex = 0;
           const input = this.renderRoot.querySelector('.search input');
-          if (input) setTimeout(() => input.focus(), 50);
+          if (input) {
+            setTimeout(() => input.focus(), 50);
+          } else {
+            const list = this.renderRoot.querySelector('.list');
+            if (list) setTimeout(() => list.focus(), 50);
+          }
         } else if (!this.open && dialog.open) {
           dialog.close();
           this.#unlockScroll();
+          this._focusedIndex = -1;
+          const trigger = this.renderRoot.querySelector('.trigger');
+          if (trigger) trigger.focus();
         }
+      }
+    }
+
+    if (changedProperties.has('_focusedIndex') && this._focusedIndex >= 0) {
+      const focusedEl = this.renderRoot.querySelector('.opt.focused');
+      if (focusedEl) {
+        focusedEl.scrollIntoView({ block: 'nearest' });
       }
     }
   }
@@ -248,6 +266,13 @@ class UISelect extends LitBaseElement {
     this.open ? this.#close() : this.#openPop();
   }
 
+  #onTriggerKeydown(e) {
+    if (['Enter', ' ', 'ArrowDown', 'ArrowUp'].includes(e.key)) {
+      e.preventDefault();
+      if (!this.open) this.#openPop();
+    }
+  }
+
   #onClear(e) {
     e.stopPropagation();
     this._selected.clear();
@@ -256,6 +281,70 @@ class UISelect extends LitBaseElement {
 
   #onSearch(e) {
     this._filter = e.target.value;
+    this._focusedIndex = 0;
+  }
+
+  #getVisibleOptions() {
+    const q = (this._filter || '').trim().toLowerCase();
+    const filtered = this._items.filter(i => !q || i.label.toLowerCase().includes(q));
+
+    let items = [];
+    if (this.multiple) {
+      const selected = filtered.filter(i => this._selected.has(i.value));
+      const unselected = filtered.filter(i => !this._selected.has(i.value));
+      items = [...selected, ...unselected];
+    } else {
+      items = filtered;
+    }
+
+    const allowNew = this['allow-new'];
+    const showAddNew = allowNew && q.length > 0 && !this._items.some(i => i.label.toLowerCase() === q);
+
+    if (showAddNew) {
+      items.push({ value: q, label: q, isAddNew: true });
+    }
+
+    return items;
+  }
+
+  #onKeyNavigation(e) {
+    const visibleOptions = this.#getVisibleOptions();
+    if (!visibleOptions.length) return;
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        this._focusedIndex = (this._focusedIndex + 1) % visibleOptions.length;
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        this._focusedIndex = (this._focusedIndex - 1 + visibleOptions.length) % visibleOptions.length;
+        break;
+      case 'Home':
+        e.preventDefault();
+        this._focusedIndex = 0;
+        break;
+      case 'End':
+        e.preventDefault();
+        this._focusedIndex = visibleOptions.length - 1;
+        break;
+      case 'Enter':
+      case ' ':
+        e.preventDefault();
+        if (this._focusedIndex >= 0 && this._focusedIndex < visibleOptions.length) {
+          const target = visibleOptions[this._focusedIndex];
+          if (target.isAddNew) {
+            this.#onAddNew();
+          } else {
+            this.#onOptionClick(target);
+          }
+        }
+        break;
+      case 'Escape':
+        e.preventDefault();
+        this.#close();
+        break;
+    }
   }
 
   #onOptionClick(item) {
@@ -316,11 +405,15 @@ class UISelect extends LitBaseElement {
     this.#onOptionClick({ value: v, label: v, disabled: false });
   }
 
-  #renderOption(i) {
+  #renderOption(i, index) {
+    const isFocused = this._focusedIndex === index;
     return html`
-      <div class="opt"
+      <div id="opt-${index}"
+           class="opt ${isFocused ? 'focused' : ''}"
+           role="option"
            aria-selected=${this._selected.has(i.value)}
            aria-disabled=${i.disabled}
+           @mouseenter=${() => { this._focusedIndex = index; }}
            @click=${() => this.#onOptionClick(i)}>
         <span>${i.label}</span>
         <ui-icon class="check" name="check" size="14"></ui-icon>
@@ -338,7 +431,6 @@ class UISelect extends LitBaseElement {
         !this._items.some(i => i.label.toLowerCase() === q);
     const showSearch = this.searchable || allowNew;
 
-    // Partition items into selected vs unselected when in multi-select mode
     let selectedItems = [];
     let unselectedItems = filteredItems;
 
@@ -347,22 +439,33 @@ class UISelect extends LitBaseElement {
       unselectedItems = filteredItems.filter(i => !this._selected.has(i.value));
     }
 
+    let currentIndex = 0;
+
     return html`
       ${this.label ? html`<span class="label">${this.label}</span>` : nothing}
-      <button class="trigger" type="button" @click=${(e) => this.#onTriggerClick(e)}>
+      <button class="trigger" 
+              type="button" 
+              aria-haspopup="listbox"
+              aria-expanded=${this.open}
+              @click=${(e) => this.#onTriggerClick(e)}
+              @keydown=${(e) => this.#onTriggerKeydown(e)}>
         <span class="val">${this.#renderValue()}</span>
         ${this.clearable
-        ? html`<button class="clear" title="Clear" @click=${(e) => this.#onClear(e)}>
+        ? html`<button class="clear" title="Clear" tabindex="-1" @click=${(e) => this.#onClear(e)}>
               <ui-icon name="x" size="14"></ui-icon>
             </button>`
         : nothing}
         <ui-icon class="caret" name="chevronDown" size="14"></ui-icon>
       </button>
 
-      <dialog class="pop" role="listbox" @click=${this.#onDialogClick} @cancel=${(e) => { e.preventDefault(); this.#close(); }}>
+      <dialog class="pop" 
+              role="listbox" 
+              aria-activedescendant=${this._focusedIndex >= 0 ? `opt-${this._focusedIndex}` : ''}
+              @click=${this.#onDialogClick} 
+              @cancel=${(e) => { e.preventDefault(); this.#close(); }}>
         <div class="drawer-head">
           <span class="title">${this.label || 'Select'}</span>
-          <button class="drawer-close" title="Close" @click=${() => this.#close()}>
+          <button class="drawer-close" title="Close" tabindex="-1" @click=${() => this.#close()}>
             <ui-icon name="x" size="16"></ui-icon>
           </button>
         </div>
@@ -373,19 +476,23 @@ class UISelect extends LitBaseElement {
               <input placeholder=${allowNew ? 'Search or type new…' : 'Search…'}
                      .value=${this._filter}
                      @input=${(e) => this.#onSearch(e)}
-                     @keydown=${(e) => { if (e.key === 'Enter' && showAddNew) { e.preventDefault(); this.#onAddNew(); } }}>
+                     @keydown=${(e) => this.#onKeyNavigation(e)}>
             </div>`
         : nothing}
-        <div class="list">
+        <div class="list" tabindex="0" @keydown=${(e) => this.#onKeyNavigation(e)}>
           ${filteredItems.length === 0 && !showAddNew
         ? html`<div class="empty">No matches</div>`
         : html`
-                ${selectedItems.map(i => this.#renderOption(i))}
+                ${selectedItems.map(i => this.#renderOption(i, currentIndex++))}
                 ${selectedItems.length > 0 && unselectedItems.length > 0 ? html`<div class="opt-divider"></div>` : nothing}
-                ${unselectedItems.map(i => this.#renderOption(i))}
+                ${unselectedItems.map(i => this.#renderOption(i, currentIndex++))}
               `}
           ${showAddNew
-        ? html`<div class="opt" @click=${() => this.#onAddNew()}>
+        ? html`<div id="opt-${currentIndex}"
+                    class="opt ${this._focusedIndex === currentIndex ? 'focused' : ''}"
+                    role="option"
+                    @mouseenter=${() => { this._focusedIndex = currentIndex; }}
+                    @click=${() => this.#onAddNew()}>
                      <span>Add “<strong>${this._filter}</strong>”</span>
                      <ui-icon class="check" name="plus" size="14" style="opacity:1"></ui-icon>
                    </div>`
