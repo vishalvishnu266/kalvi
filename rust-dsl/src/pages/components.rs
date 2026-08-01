@@ -379,7 +379,7 @@ fn section_data_display() -> Section {
                         .col("grade", "Grade", ColOpts::text().sortable().center())
                         .col("roll",  "Roll",  ColOpts::text().sortable().right());
                     for (n, g, r) in [("Aarav Kumar", "5", "12"), ("Meera Sharma", "5", "13"), ("Rohan Patel", "5", "14"), ("Diya Verma", "6", "21")] {
-                        t = t.row(vec![("name", n.into()), ("grade", g.into()), ("roll", r.into())]);
+                        t = t.row(vec![("name", n.to_string()), ("grade", g.to_string()), ("roll", r.to_string())]);
                     }
                     t
                 },

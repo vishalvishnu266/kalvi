@@ -134,7 +134,7 @@ use validator::Validate;\
 \n    #[validate(email(message = \"Guardian email must be a valid email\"))]\
 \n    pub g_email: String,\
 \n\
-\n    #[validate(range(min = 3, max = 120, message = \"Age must be 3\u2013120\"))]\
+\n    #[validate(range(min = 3, max = 120, message = \"Age must be 3\u{2013}120\"))]\
 \n    pub age: u8,\
 \n\
 \n    #[validate(url(message = \"Website must be a valid URL\"))]\
@@ -160,7 +160,7 @@ pub async fn post(Form(input): Form&lt;NewStudent&gt;) -&gt; Response {\
 \n<p style=\"margin:12px 0 0;color:var(--color-text-muted);font-size:var(--fs-sm)\">\
 Compared to the hand-rolled <code>/dsl/errors/roundtrip</code>: the handler \
 went from ~30 lines to 6, and every rule now lives on the struct in one \
-place \u2014 one obvious source of truth, i18n-ready via validator's message \
+place \u{2014} one obvious source of truth, i18n-ready via validator's message \
 system, unit-testable independent of the handler.</p>",
     )));
 
