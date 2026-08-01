@@ -1,17 +1,43 @@
 //! ERP "Dashboard" landing page — KPI stats, admissions kanban, activity
 //! timeline, and a quick actions bar.
+//!
+//! Built on the standard page presets from `layout.rs`:
+//! * `page_of` + `page_shell` — outer container and vertical rhythm.
+//! * `toolbar`  — top row (breadcrumb + actions), auto-stacks on mobile.
+//! * `two_col`  — responsive two-column body (main + side).
+//! * `text_body(title, sub)` — the "strong + muted line" mini-layout.
+//! * `Icons::*` — typed icon constants, no magic strings.
 
 use crate::prelude::*;
 
-pub fn build() -> Page {
-    // KPI stats
-    let kpis = grid().cols_min(MinCol::W220)
-        .add(stat("Total students",     "1,248").icon("users").trend(Trend::Up).delta("+2.1%"))
-        .add(stat("Present today",      "1,102").icon("check").trend(Trend::Up).delta("+3.2%"))
-        .add(stat("Fee collection",     "82%").icon("card").trend(Trend::Up).delta("+5.6%"))
-        .add(stat("Pending admissions", "17").icon("clipboard").trend(Trend::Down).delta("-3"));
+/// Small private helper for the cross-page nav links every DSL demo shares.
+/// Uses `.lu-*` layout classes only — zero inline CSS.
+fn demo_nav() -> Node {
+    Node::raw(r##"
+        <nav class="lu-demo-nav">
+          <strong>DSL demos:</strong>
+          <a href="/dsl/dashboard">Dashboard</a>
+          <a href="/dsl/students">Students</a>
+          <a href="/dsl/fees">Fees</a>
+          <a href="/dsl/attendance">Attendance</a>
+          <a href="/dsl/icons">Icons</a>
+          <a href="/dsl/layouts">Layouts</a>
+          <a href="/dsl/components">Components</a>
+          <a href="/dsl/errors">Errors</a>
+          <a href="/dsl" class="lu-demo-nav-end">Index</a>
+        </nav>
+    "##)
+}
 
-    // Admissions kanban (mock)
+pub fn build() -> Page {
+    // ── KPI stats ──
+    let kpis = grid().cols_min(MinCol::W220)
+        .add(stat("Total students",     "1,248").icon(Icons::USERS).trend(Trend::Up).delta("+2.1%"))
+        .add(stat("Present today",      "1,102").icon(Icons::CHECK).trend(Trend::Up).delta("+3.2%"))
+        .add(stat("Fee collection",     "82%"  ).icon(Icons::CARD ).trend(Trend::Up).delta("+5.6%"))
+        .add(stat("Pending admissions", "17"   ).icon(Icons::CLIPBOARD).trend(Trend::Down).delta("-3"));
+
+    // ── Admissions kanban (mock) ──
     let kanban_board = kanban()
         .column(kanban_column("Applied")
             .add(kanban_card().id("k1").text("Aarav Kumar · Grade 5"))
@@ -24,55 +50,40 @@ pub fn build() -> Page {
         .column(kanban_column("Enrolled")
             .add(kanban_card().id("k6").text("Kavya Nair · Joined Jul 15")));
 
-    // Activity timeline
+    // ── Activity timeline — text_body() replaces four inline-styled Node::raw ──
     let activity = timeline()
-        .item(timeline_item().icon("check").tone(TimelineTone::Success).time("10:24 AM")
-              .add(Node::raw("<strong>Fees paid</strong><div style=\"color:var(--color-text-muted);font-size:var(--fs-xs);\">Invoice #INV-1042 · ₹4,500</div>")))
-        .item(timeline_item().icon("edit").tone(TimelineTone::Info).time("Yesterday")
-              .add(Node::raw("<strong>Profile updated</strong><div style=\"color:var(--color-text-muted);font-size:var(--fs-xs);\">Guardian phone changed</div>")))
-        .item(timeline_item().icon("bell").tone(TimelineTone::Warning).time("Aug 10")
-              .add(Node::raw("<strong>Late arrival flagged</strong><div style=\"color:var(--color-text-muted);font-size:var(--fs-xs);\">Third late day this month</div>")))
-        .item(timeline_item().icon("plus").tone(TimelineTone::Muted).time("Jul 15")
-              .add(Node::raw("<strong>Admitted</strong><div style=\"color:var(--color-text-muted);font-size:var(--fs-xs);\">Grade 5-B</div>")));
+        .item(timeline_item().icon(Icons::CHECK).tone(TimelineTone::Success).time("10:24 AM")
+              .add(text_body("Fees paid", "Invoice #INV-1042 · ₹4,500")))
+        .item(timeline_item().icon(Icons::EDIT).tone(TimelineTone::Info).time("Yesterday")
+              .add(text_body("Profile updated", "Guardian phone changed")))
+        .item(timeline_item().icon(Icons::BELL).tone(TimelineTone::Warning).time("Aug 10")
+              .add(text_body("Late arrival flagged", "Third late day this month")))
+        .item(timeline_item().icon(Icons::PLUS).tone(TimelineTone::Muted).time("Jul 15")
+              .add(text_body("Admitted", "Grade 5-B")));
 
-    // Progress cards
+    // ── Progress cards ──
     let progress_cards = grid().cols_min(MinCol::W240)
-        .add(card().padded().add(progress(72).label("Syllabus (Grade 5)").tone(ProgTone::Success).show_value()))
-        .add(card().padded().add(progress(45).label("Warning zone").tone(ProgTone::Warning).show_value()))
-        .add(card().padded().add(progress(90).label("Attendance").tone(ProgTone::Info).show_value()));
+        .add(card().add(progress(72).label("Syllabus (Grade 5)").tone(ProgTone::Success).show_value()))
+        .add(card().add(progress(45).label("Warning zone").tone(ProgTone::Warning).show_value()))
+        .add(card().add(progress(90).label("Attendance").tone(ProgTone::Info).show_value()));
 
-    // Cross-page nav — plain <a> links. In the browser Turbo Drive
-    // handles them; in Hotwire Native the shell treats each as a
-    // native screen. Nothing special required.
-    let dsl_nav = Node::raw(r##"
-        <nav style="display:flex;gap:16px;align-items:center;padding:12px 16px;
-                    background:var(--color-surface);border:1px solid var(--color-border);
-                    border-radius:12px;flex-wrap:wrap;">
-          <strong style="margin-right:8px;">DSL demos:</strong>
-          <a href="/dsl/dashboard"  style="color:var(--color-primary);text-decoration:none;">Dashboard</a>
-          <a href="/dsl/students"   style="color:var(--color-primary);text-decoration:none;">Students</a>
-          <a href="/dsl/fees"       style="color:var(--color-primary);text-decoration:none;">Fees</a>
-          <a href="/dsl/attendance" style="color:var(--color-primary);text-decoration:none;">Attendance</a>
-          <a href="/dsl"            style="color:var(--color-text-muted);text-decoration:none;margin-left:auto;">Index</a>
-        </nav>
-    "##);
+    // ── Compose the page ──
+    page_of("Dashboard · ERP demo",
+        page_shell()
+            .add(demo_nav())
 
-    page().title("Dashboard · ERP demo").add(
-        container().max_width("1280px").add(column().gap(Gap::Lg)
-            // Cross-page Turbo navigation
-            .add(dsl_nav)
             // Header
-            .add(row().align(Align::Center).gap(Gap::Md)
+            .add(toolbar()
                 .add(breadcrumb().item(Crumb::current("Dashboard")))
                 .add(spacer())
                 .add(dropdown_menu().align(MenuAlign::End)
-                    .trigger(button().label("Actions").variant(Variant::Secondary).icon("more"))
+                    .trigger(button().label("Actions").variant(Variant::Secondary).icon(Icons::MORE))
                     .item(MenuItem::action("New announcement"))
                     .item(MenuItem::link("Add student", "/dsl/students"))
                     .item(MenuItem::link("New invoice", "/dsl/fees"))
                     .divider()
                     .item(MenuItem::action("Export dashboard PDF")))
-                .add(button().label("New announcement").variant(Variant::Primary).icon("bell")))
+                .add(button().label("New announcement").variant(Variant::Primary).icon(Icons::BELL)))
 
             // KPIs
             .add(kpis)
@@ -81,19 +92,16 @@ pub fn build() -> Page {
             .add(section().title("This term").subtitle("Aug 2026")
                 .add(progress_cards))
 
-            // Kanban + timeline
-            .add(row().gap(Gap::Lg).align(Align::Start)
-                .add(column().flex(3).min_width("400px")
-                    .add(section().title("Admissions pipeline")
-                        .subtitle("Drag cards to move between stages")
-                        .action(button().label("See all").variant(Variant::Ghost).size(Size::Sm).icon("chevronRight"))
-                        .add(card().padded().add(kanban_board))))
-                .add(column().flex(2).min_width("300px")
-                    .add(section().title("Recent activity")
-                        .add(card().padded().add(activity)))))
+            // Kanban + timeline — standard responsive two-column pattern
+            .add(two_col_with(3, 2,
+                section().title("Admissions pipeline")
+                    .subtitle("Drag cards to move between stages")
+                    .action(button().label("See all").variant(Variant::Ghost).size(Size::Sm).icon(Icons::CHEVRON_RIGHT))
+                    .add(card().add(kanban_board)),
+                section().title("Recent activity")
+                    .add(card().add(activity))))
 
             // Toast host so client-side JS can fire notifications
             .add(toast_host())
-        )
     )
 }

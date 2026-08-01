@@ -1,4 +1,8 @@
 //! ERP "Fees" page — invoice list with status, KPI stats, invoice-create form.
+//!
+//! Uses the standard page presets (`page_of`, `page_shell`, `toolbar`,
+//! `two_col_with`) and typed `Icons::*` for visual consistency with all
+//! other ERP pages.
 
 use crate::prelude::*;
 
@@ -30,13 +34,12 @@ pub fn build(invoices: &[Invoice]) -> Page {
     let count_over  = invoices.iter().filter(|i| i.status == "overdue").count();
 
     let kpis = grid().cols_min(MinCol::W220)
-        .add(stat("Collected",   fmt_inr(sum_paid))
-             .icon("check").tone_success())    // helper below
-        .add(stat("Pending",     fmt_inr(sum_pending)).icon("bell"))
-        .add(stat("Overdue",     fmt_inr(sum_overdue)).icon("x").trend(Trend::Down).delta("-2.4%"))
-        .add(stat("Overdue count", count_over.to_string()).icon("clipboard"));
+        .add(stat("Collected", fmt_inr(sum_paid)).icon(Icons::CHECK).trend(Trend::Up).delta("+5.6%"))
+        .add(stat("Pending",   fmt_inr(sum_pending)).icon(Icons::BELL))
+        .add(stat("Overdue",   fmt_inr(sum_overdue)).icon(Icons::X).trend(Trend::Down).delta("-2.4%"))
+        .add(stat("Overdue count", count_over.to_string()).icon(Icons::CLIPBOARD));
 
-    // Fees table
+    // ── Fees table ──
     let mut table = data_table("fees-table")
         .searchable().per_page(6)
         .col("number",  "Invoice",  ColOpts::text().sortable())
@@ -59,7 +62,7 @@ pub fn build(invoices: &[Invoice]) -> Page {
         ]);
     }
 
-    // Create-invoice form (as a side card)
+    // ── Create-invoice form (uses standard save_cancel() footer) ──
     let create = form().action("/fees").method("post")
         .add(combobox().label("Student").name("student").placeholder("Search students…")
              .option(ComboOption::new("aarav",  "Aarav Kumar"))
@@ -74,30 +77,25 @@ pub fn build(invoices: &[Invoice]) -> Page {
              .option(SelectOption::new("meals",   "Meals"))
              .option(SelectOption::new("misc",    "Miscellaneous")))
         .add(input().label("Notes").name("notes").kind(InputType::Textarea).hint("Optional"))
-        .action_btn(button().label("Reset").variant(Variant::Secondary))
-        .action_btn(button().label("Create invoice").variant(Variant::Primary).icon("plus"));
+        .save_cancel("Create invoice");
 
-    page().title("Fees · ERP demo").add(
-        container().max_width("1200px").add(column().gap(Gap::Lg)
-            .add(row().align(Align::Center).gap(Gap::Md)
+    // ── Compose the page ──
+    page_of("Fees · ERP demo",
+        page_shell()
+            .add(toolbar()
                 .add(breadcrumb()
                     .item(Crumb::link("Home", "#/"))
                     .item(Crumb::current("Fees")))
                 .add(spacer())
-                .add(button().label("Export").variant(Variant::Secondary).icon("upload"))
-                .add(button().label("New invoice").variant(Variant::Primary).icon("plus")))
-            .add(section().title("This month")
-                .subtitle("August 2026")
-                .add(kpis))
-            .add(row().gap(Gap::Lg).align(Align::Start)
-                .add(column().flex(3).min_width("320px")
-                    .add(section().title("Invoices").subtitle("All statuses")
-                        .action(button().label("Filters").variant(Variant::Ghost).size(Size::Sm).icon("filter"))
-                        .add(card().padded().add(table))))
-                .add(column().flex(1).min_width("280px")
-                    .add(section().title("Quick create")
-                        .add(card().padded().add(create)))))
-        )
+                .add(button().label("Export").variant(Variant::Secondary).icon(Icons::UPLOAD))
+                .add(button().label("New invoice").variant(Variant::Primary).icon(Icons::PLUS)))
+            .add(section().title("This month").subtitle("August 2026").add(kpis))
+            .add(two_col_with(3, 1,
+                section().title("Invoices").subtitle("All statuses")
+                    .action(button().label("Filters").variant(Variant::Ghost).size(Size::Sm).icon(Icons::FILTER))
+                    .add(card().add(table)),
+                section().title("Quick create")
+                    .add(card().add(create))))
     )
 }
 
@@ -109,18 +107,9 @@ fn fmt_inr(n: u32) -> String {
     let s = n.to_string();
     let bytes: Vec<char> = s.chars().collect();
     let mut out = String::new();
-    let mut count = 0;
     for (i, c) in bytes.iter().rev().enumerate() {
         if i == 3 || (i > 3 && (i - 3) % 2 == 0) { out.push(','); }
         out.push(*c);
-        count += 1;
-        let _ = count;
     }
     format!("₹{}", out.chars().rev().collect::<String>())
-}
-
-/* --- tiny extension on Stat: .tone_success() etc. is optional convenience --- */
-trait StatToneExt { fn tone_success(self) -> Self; }
-impl StatToneExt for crate::components::stat::Stat {
-    fn tone_success(self) -> Self { self.trend(Trend::Up).delta("+5.6%") }
 }

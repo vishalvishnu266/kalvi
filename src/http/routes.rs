@@ -4,7 +4,7 @@ use crate::AppState;
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
-    routing::get,
+    routing::{get, post},
     Json, Router,
 };
 
@@ -53,7 +53,14 @@ pub fn build_router(state: AppState, readiness: Readiness) -> Router {
         .route("/dsl/students",   get(wd::students_page))
         .route("/dsl/fees",       get(wd::fees_page))
         .route("/dsl/attendance", get(wd::attendance_page))
-        .route("/dsl/dashboard",  get(wd::dashboard_page));
+        .route("/dsl/dashboard",  get(wd::dashboard_page))
+        .route("/dsl/icons",      get(wd::icons_page))
+        .route("/dsl/layouts",    get(wd::layouts_page))
+        .route("/dsl/components", get(wd::components_page))
+        .route("/dsl/errors",           get(wd::errors_page))
+        .route("/dsl/errors/combos",    get(wd::errors_combos_page))
+        .route("/dsl/errors/roundtrip",
+               get(wd::errors_roundtrip_get).post(wd::errors_roundtrip_post));
 
     let web_global = crate::http::web::global_routes();
     let portal_global = crate::http::portal::global_routes();

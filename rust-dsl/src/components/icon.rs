@@ -46,55 +46,83 @@ impl IntoIconName for &'static str    { fn into_icon_name(self) -> String { self
 impl IntoIconName for String          { fn into_icon_name(self) -> String { self               } }
 impl IntoIconName for &String         { fn into_icon_name(self) -> String { self.clone()       } }
 
-/// Central catalogue of standard icons used across the DSL.
+/// Central catalogue of icons **that actually exist** in the underlying
+/// `<ui-icon>` component (see `lit-components/components/ui-icon.js`,
+/// the `PATHS` map).
 ///
-/// Add new icons here (one line each) instead of scattering string
-/// literals through the codebase.
+/// Every constant here is verified to render an SVG — any name not in
+/// the JS map silently falls back to a "help" question mark. So we only
+/// expose the ones we've hand-checked.
+///
+/// The string values use **camelCase** because that's how the JS map is
+/// keyed (`chevronRight`, not `chevron-right`).
+///
+/// ## To add a new icon
+/// 1. Add its SVG path to `PATHS` in `ui-icon.js`.
+/// 2. Add a matching `pub const NAME: IconName = IconName("jsKey");` here.
+/// 3. Keep the two in sync — the JS side is the source of truth.
 #[allow(non_snake_case)]
 pub mod Icons {
     use super::IconName;
 
     // ── Actions ──
-    pub const CHECK:      IconName = IconName("check");
-    pub const X:          IconName = IconName("x");
-    pub const PLUS:       IconName = IconName("plus");
-    pub const MINUS:      IconName = IconName("minus");
-    pub const EDIT:       IconName = IconName("pencil");
-    pub const DELETE:     IconName = IconName("trash");
-    pub const SAVE:       IconName = IconName("save");
-    pub const DOWNLOAD:   IconName = IconName("download");
-    pub const UPLOAD:     IconName = IconName("upload");
-    pub const SEARCH:     IconName = IconName("search");
-    pub const FILTER:     IconName = IconName("filter");
-    pub const REFRESH:    IconName = IconName("arrow-clockwise");
-    pub const SETTINGS:   IconName = IconName("gear");
-    pub const MORE:       IconName = IconName("three-dots");
+    pub const CHECK:    IconName = IconName("check");
+    pub const X:        IconName = IconName("x");
+    pub const PLUS:     IconName = IconName("plus");
+    pub const MINUS:    IconName = IconName("minus");
+    pub const EDIT:     IconName = IconName("edit");
+    pub const UPLOAD:   IconName = IconName("upload");
+    pub const DOWNLOAD: IconName = IconName("download");
+    pub const SAVE:     IconName = IconName("save");
+    pub const DELETE:   IconName = IconName("trash");
+    pub const SEARCH:   IconName = IconName("search");
+    pub const FILTER:   IconName = IconName("filter");
+    pub const SETTINGS: IconName = IconName("settings");
+    pub const REFRESH:  IconName = IconName("refresh");
+    pub const MORE:     IconName = IconName("more");
+    pub const MENU:     IconName = IconName("menu");
 
     // ── Feedback ──
-    pub const INFO:       IconName = IconName("info-circle");
-    pub const WARNING:    IconName = IconName("exclamation-triangle");
-    pub const SUCCESS:    IconName = IconName("check-circle");
-    pub const ERROR:      IconName = IconName("x-circle");
+    pub const INFO:     IconName = IconName("info");
+    pub const WARNING:  IconName = IconName("warning");
+    pub const BELL:     IconName = IconName("bell");     // notifications / late
 
     // ── Navigation ──
-    pub const ARROW_LEFT:  IconName = IconName("arrow-left");
-    pub const ARROW_RIGHT: IconName = IconName("arrow-right");
-    pub const ARROW_UP:    IconName = IconName("arrow-up");
-    pub const ARROW_DOWN:  IconName = IconName("arrow-down");
-    pub const CHEVRON_DOWN: IconName = IconName("chevron-down");
-    pub const HOME:       IconName = IconName("house");
-    pub const MENU:       IconName = IconName("list");
+    pub const HOME:          IconName = IconName("home");
+    pub const CHEVRON_DOWN:  IconName = IconName("chevronDown");
+    pub const CHEVRON_UP:    IconName = IconName("chevronUp");
+    pub const CHEVRON_LEFT:  IconName = IconName("chevronLeft");
+    pub const CHEVRON_RIGHT: IconName = IconName("chevronRight");
+    pub const ARROW_LEFT:    IconName = IconName("arrowLeft");
+    pub const ARROW_RIGHT:   IconName = IconName("arrowRight");
+    pub const ARROW_UP:      IconName = IconName("arrowUp");
+    pub const ARROW_DOWN:    IconName = IconName("arrowDown");
+
+    // ── Theme ──
+    pub const SUN:      IconName = IconName("sun");
+    pub const MOON:     IconName = IconName("moon");
 
     // ── Domain ──
-    pub const USER:       IconName = IconName("person");
-    pub const USERS:      IconName = IconName("people");
-    pub const CALENDAR:   IconName = IconName("calendar");
-    pub const CLOCK:      IconName = IconName("clock");
-    pub const MAIL:       IconName = IconName("envelope");
-    pub const FILE:       IconName = IconName("file-earmark");
-    pub const DOCS:       IconName = IconName("book");
-    pub const DASHBOARD:  IconName = IconName("grid-1x2-fill");
-    pub const STAR:       IconName = IconName("star");
+    pub const USERS:     IconName = IconName("users");
+    pub const STUDENT:   IconName = IconName("student");
+    pub const CALENDAR:  IconName = IconName("calendar");
+    pub const MESSAGE:   IconName = IconName("message");
+    pub const BOOKMARK:  IconName = IconName("bookmark");
+    pub const LIBRARY:   IconName = IconName("library");
+    pub const CLIPBOARD: IconName = IconName("clipboard");
+    pub const CARD:      IconName = IconName("card");     // payments / fees
+    pub const WALLET:    IconName = IconName("wallet");
+    pub const CHART:     IconName = IconName("chart");
+    pub const GRID:      IconName = IconName("grid");     // dashboard
+    pub const ACTIVITY:  IconName = IconName("activity"); // timeline default
+    pub const MAIL:      IconName = IconName("mail");
+    pub const CLOCK:     IconName = IconName("clock");
+    pub const FILE:      IconName = IconName("file");
+    pub const STAR:      IconName = IconName("star");
+
+    // Legacy alias so old code compiles — `DASHBOARD` maps to the closest
+    // available icon (the grid).
+    pub const DASHBOARD: IconName = GRID;
 }
 
 // ── Component ──

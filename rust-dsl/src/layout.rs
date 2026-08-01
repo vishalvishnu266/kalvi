@@ -457,6 +457,144 @@ pub fn row_actions() -> Row {
 }
 
 // ---------------------------------------------------------------------------
+// Standardised page presets — convention over configuration
+// ---------------------------------------------------------------------------
+//
+// These helpers encode the app's *standard* layout so every screen looks
+// identical without repeating the same 5-line boilerplate on every page.
+//
+// If you find yourself wanting a preset with different values, prefer
+// extending the preset over building bespoke rows/columns — otherwise
+// consistency drifts and each page ends up subtly different.
+
+/// Standard top toolbar — the row at the top of every page holding a
+/// breadcrumb / title on the left and action buttons on the right.
+///
+/// Applies:
+/// * `Align::Center`  — mixed heights (breadcrumb text vs buttons) share a
+///                      single centre line,
+/// * `Gap::Md`        — same spacing token as `row_actions()` for visual harmony,
+/// * `.mobile_stack()`— on ≤ 640 px the toolbar collapses to a column so
+///                      buttons don't overflow off screen.
+///
+/// Typical usage:
+/// ```ignore
+/// toolbar()
+///     .add(breadcrumb().item(Crumb::current("Fees")))
+///     .add(spacer())                                       // pushes actions right
+///     .add(button().label("Export").variant(Variant::Secondary).icon(Icons::UPLOAD))
+///     .add(button().label("New").variant(Variant::Primary).icon(Icons::PLUS));
+/// ```
+pub fn toolbar() -> Row {
+    row().align(Align::Center).gap(Gap::Md).mobile_stack()
+}
+
+/// Standard responsive two-column body — the reference pattern for
+/// "main content + side panel" layouts (list + create-form, table +
+/// filters, dashboard chart + sidebar).
+///
+/// Behaviour:
+/// * `Gap::Lg` between columns,
+/// * `Align::Start` so tall columns don't stretch short ones,
+/// * `mobile_stack()` so on ≤ 640 px the side panel drops UNDER the main
+///   column and both go full width — no horizontal scroll on phones.
+///
+/// The `main_flex` and `side_flex` arguments are `flex-grow` weights;
+/// typical values are `(3, 1)` or `(2, 1)`.
+///
+/// ```ignore
+/// two_col(3, 1)
+///     .add(column().flex(3).min_w(MinW::W320)
+///         .add(section().title("Invoices").add(table_card)))
+///     .add(column().flex(1).min_w(MinW::W280)
+///         .add(section().title("Quick create").add(form_card)));
+/// ```
+///
+/// (The `flex` arguments here are *documentation* of intent; the columns
+/// inside still need `.flex(n)` themselves — this preset just gives you a
+/// consistent outer Row. See [`two_col_with`] for a version that builds
+/// the two `column()` slots for you too.)
+pub fn two_col(_main_flex: u8, _side_flex: u8) -> Row {
+    row().gap(Gap::Lg).align(Align::Start).mobile_stack()
+}
+
+/// Convenience version of [`two_col`] that also builds and returns the
+/// two column slots pre-configured — handy when your main + side content
+/// is a single component each.
+///
+/// Returns a `Row` you can `.render()` — no further composition needed.
+///
+/// ```ignore
+/// two_col_with(3, 1, main_section, side_section)
+/// ```
+pub fn two_col_with(
+    main_flex: u8, side_flex: u8,
+    main: impl Component + 'static,
+    side: impl Component + 'static,
+) -> Row {
+    two_col(main_flex, side_flex)
+        .add(column().flex(main_flex).min_w(MinW::W320).add(main))
+        .add(column().flex(side_flex).min_w(MinW::W280).add(side))
+}
+
+/// Standard page shell — the outermost wrapper every ERP page uses.
+///
+/// Builds `container(Lg) > column(Gap::Lg) > [your content]` in one call.
+/// You add children directly to the returned `Column`; the container is
+/// applied around it at render time.
+///
+/// Use it like this:
+/// ```ignore
+/// page_shell()
+///     .add(toolbar()…)
+///     .add(kpis)
+///     .add(two_col(3, 1)…)
+/// ```
+///
+/// Then wrap it into a full `Page` with [`page_of`] below (or manually).
+pub fn page_shell() -> Column {
+    column().gap(Gap::Lg)
+}
+
+/// Wrap a `page_shell()` (or any component) inside the standard container
+/// and turn it into a full [`crate::components::page::Page`] with the given
+/// title. This is the ONE call every page's `build()` should return.
+///
+/// ```ignore
+/// pub fn build() -> Page {
+///     page_of("Fees · ERP demo",
+///         page_shell()
+///             .add(toolbar()…)
+///             .add(kpis)
+///             .add(two_col_with(3, 1, main, side))
+///     )
+/// }
+/// ```
+pub fn page_of(title: impl Into<String>, body: impl Component + 'static) -> crate::components::page::Page {
+    crate::components::page::page()
+        .title(title)
+        .add(container().size(ContainerSize::Lg).add(body))
+}
+
+/// Standard "title + secondary line" text block — the pattern used in
+/// timeline items, list items, activity feeds, etc. Emits:
+///
+/// ```html
+/// <strong>title</strong>
+/// <div class="lu-text-muted">subtitle</div>
+/// ```
+///
+/// `.lu-text-muted` is defined in `layout.css` and uses the design-system
+/// tokens — no inline styles anywhere in Rust code.
+pub fn text_body(title: impl Into<String>, subtitle: impl Into<String>) -> crate::core::Node {
+    crate::core::Node::raw(format!(
+        r#"<strong>{}</strong><div class="lu-text-muted">{}</div>"#,
+        crate::core::escape_html(&title.into()),
+        crate::core::escape_html(&subtitle.into()),
+    ))
+}
+
+// ---------------------------------------------------------------------------
 // Section
 // ---------------------------------------------------------------------------
 

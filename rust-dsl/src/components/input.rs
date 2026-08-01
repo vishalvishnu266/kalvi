@@ -60,6 +60,35 @@ impl Input {
     pub fn kind(mut self, k: InputType)                -> Self { self.kind        = k;              self }
     pub fn required(mut self)                          -> Self { self.required = true; self }
     pub fn invalid(mut self)                           -> Self { self.invalid  = true; self }
+
+    /// Attach a **field-level error message**. Convention:
+    ///   * Sets `invalid` → red border + red text below.
+    ///   * Replaces any `hint` so the user sees the actionable error.
+    ///   * The underlying `<ui-input>` renders it as the `hint` slot in
+    ///     red because `[invalid] .hint { color: var(--color-danger); }`.
+    ///
+    /// Server-render pattern:
+    /// ```ignore
+    /// let email = input().label("Email").name("email").kind(InputType::Email).required();
+    /// let email = match errors.get("email") {
+    ///     Some(msg) => email.error(msg),
+    ///     None      => email,
+    /// };
+    /// ```
+    ///
+    /// Or even cleaner via [`Input::maybe_error`] below.
+    pub fn error(mut self, msg: impl Into<String>) -> Self {
+        self.invalid = true;
+        self.hint = Some(msg.into());
+        self
+    }
+
+    /// Convenience — accepts an `Option<&str>` so server code doesn't need
+    /// a `match` around every field. `None` = clean state; `Some(msg)` =
+    /// same as `.error(msg)`.
+    pub fn maybe_error(self, msg: Option<impl Into<String>>) -> Self {
+        match msg { Some(m) => self.error(m), None => self }
+    }
 }
 
 impl Component for Input {

@@ -4,12 +4,13 @@ use crate::core::{escape_html, wrap, Attr, Component};
 
 pub struct Checkbox {
     label: String, name: Option<String>, value: Option<String>,
-    checked: bool, indeterminate: bool, disabled: bool, required: bool,
+    error: Option<String>,
+    checked: bool, indeterminate: bool, disabled: bool, required: bool, invalid: bool,
 }
 pub fn checkbox(label: impl Into<String>) -> Checkbox {
     Checkbox {
-        label: label.into(), name: None, value: None,
-        checked: false, indeterminate: false, disabled: false, required: false,
+        label: label.into(), name: None, value: None, error: None,
+        checked: false, indeterminate: false, disabled: false, required: false, invalid: false,
     }
 }
 impl Checkbox {
@@ -19,16 +20,28 @@ impl Checkbox {
     pub fn indeterminate(mut self) -> Self { self.indeterminate = true; self }
     pub fn disabled(mut self)      -> Self { self.disabled = true; self }
     pub fn required(mut self)      -> Self { self.required = true; self }
+    pub fn invalid(mut self)       -> Self { self.invalid  = true; self }
+
+    /// Field-level error — sets `invalid` and passes the message via the
+    /// `error` attribute, which `<ui-checkbox>` renders as red text below.
+    pub fn error(mut self, msg: impl Into<String>) -> Self {
+        self.invalid = true; self.error = Some(msg.into()); self
+    }
+    pub fn maybe_error(self, msg: Option<impl Into<String>>) -> Self {
+        match msg { Some(m) => self.error(m), None => self }
+    }
 }
 impl Component for Checkbox {
     fn render(&self) -> String {
         let mut attrs = Vec::new();
         if let Some(ref n) = self.name  { attrs.push(Attr::kv("name",  n.as_str())); }
         if let Some(ref v) = self.value { attrs.push(Attr::kv("value", v.as_str())); }
+        if let Some(ref e) = self.error { attrs.push(Attr::kv("error", e.as_str())); }
         if self.checked       { attrs.push(Attr::flag("checked")); }
         if self.indeterminate { attrs.push(Attr::flag("indeterminate")); }
         if self.disabled      { attrs.push(Attr::flag("disabled")); }
         if self.required      { attrs.push(Attr::flag("required")); }
+        if self.invalid       { attrs.push(Attr::flag("invalid")); }
         wrap("ui-checkbox", &attrs, &escape_html(&self.label))
     }
 }

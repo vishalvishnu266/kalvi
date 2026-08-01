@@ -17,9 +17,16 @@
 //! router also needs to serve that folder — see [`crate::web::assets`]'s
 //! `serve_lit_components` handler.
 
-use axum::response::Html;
+use axum::extract::Query;
+use axum::http::StatusCode;
+use axum::response::{Html, IntoResponse, Redirect, Response};
+use axum::Form;
 use lit_ui::core::Component;
-use lit_ui::pages::{attendance, dashboard, fees, students};
+use lit_ui::pages::{
+    attendance, components, dashboard, errors, errors_combos, errors_roundtrip, fees, icons,
+    layouts, students,
+};
+use serde::Deserialize;
 
 /// Simple index page linking to each DSL demo — pure HTML string, no DSL.
 pub async fn index() -> Html<&'static str> {
@@ -60,6 +67,12 @@ pub async fn index() -> Html<&'static str> {
         <li><a href="/dsl/students"><div><strong>Students</strong><br><small>Sortable/filterable table + add-student form</small></div></a></li>
         <li><a href="/dsl/fees"><div><strong>Fees</strong><br><small>Invoice list with statuses + create form</small></div></a></li>
         <li><a href="/dsl/attendance"><div><strong>Attendance</strong><br><small>Daily register with P/L/A segmented control per student</small></div></a></li>
+        <li><a href="/dsl/icons"><div><strong>Icons</strong><br><small>Visual catalogue of every Icons::* constant</small></div></a></li>
+        <li><a href="/dsl/layouts"><div><strong>Layout guide</strong><br><small>Every layout primitive & preset with live demos + source</small></div></a></li>
+        <li><a href="/dsl/components"><div><strong>Components</strong><br><small>Every UI component with variants + source (buttons, inputs, tables, modals…)</small></div></a></li>
+        <li><a href="/dsl/errors"><div><strong>Error UX</strong><br><small>Field / form / page error surfaces — the handbook for validation UI</small></div></a></li>
+        <li><a href="/dsl/errors/combos"><div><strong>Error combinations</strong><br><small>Every meaningful combination of banner + field + alert + ack panel with source</small></div></a></li>
+        <li><a href="/dsl/errors/roundtrip"><div><strong>Error round-trip (live)</strong><br><small>Real POST → 422 → Turbo swap → errors inline. End-to-end reference implementation.</small></div></a></li>
       </ul>
     </main>
   </body>
@@ -85,4 +98,76 @@ pub async fn attendance_page() -> Html<String> {
 
 pub async fn dashboard_page() -> Html<String> {
     Html(dashboard::build().render())
+}
+
+pub async fn icons_page() -> Html<String> {
+    Html(icons::build().render())
+}
+
+pub async fn layouts_page() -> Html<String> {
+    Html(layouts::build().render())
+}
+
+pub async fn components_page() -> Html<String> {
+    Html(components::build().render())
+}
+
+pub async fn errors_page() -> Html<String> {
+    Html(errors::build().render())
+}
+
+pub async fn errors_combos_page() -> Html<String> {
+    Html(errors_combos::build().render())
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Server round-trip demo — GET renders the empty form, POST validates it
+// and returns HTTP 422 with a re-rendered version showing errors inline.
+// This is the reference implementation of the pattern documented in
+// GUIDE.md §8.6.
+// ────────────────────────────────────────────────────────────────────────────
+
+#[derive(Deserialize)]
+pub struct RoundtripQuery {
+    /// Present after a successful POST → we show the green "saved" banner.
+    ok: Option<u8>,
+}
+
+#[derive(Deserialize)]
+pub struct RoundtripPost {
+    pub name:    Option<String>,
+    pub email:   Option<String>,
+    pub g_email: Option<String>,
+    pub due:     Option<String>,
+    /// HTML checkboxes send "on" when checked and NOTHING when unchecked,
+    /// so we use `Option<String>` and treat any Some as true.
+    pub consent: Option<String>,
+}
+
+pub async fn errors_roundtrip_get(Query(q): Query<RoundtripQuery>) -> Html<String> {
+    let page = errors_roundtrip::build(
+        &errors_roundtrip::Input::default(),
+        &errors_roundtrip::Validation::default(),
+        q.ok.unwrap_or(0) == 1,
+    );
+    Html(page.render())
+}
+
+pub async fn errors_roundtrip_post(Form(body): Form<RoundtripPost>) -> Response {
+    let input = errors_roundtrip::Input {
+        name:    body.name.filter(|s| !s.trim().is_empty()),
+        email:   body.email.filter(|s| !s.trim().is_empty()),
+        g_email: body.g_email.filter(|s| !s.trim().is_empty()),
+        due:     body.due.filter(|s| !s.trim().is_empty()),
+        consent: body.consent.is_some(),
+    };
+    let v = errors_roundtrip::validate(&input);
+    if v.is_ok() {
+        // A real handler would persist here. Then redirect so Turbo issues
+        // a fresh GET (avoids the "back re-submits POST" problem).
+        return Redirect::to("/dsl/errors/roundtrip?ok=1").into_response();
+    }
+    // 422 + re-rendered HTML. Turbo swaps <body>; user sees errors inline.
+    let page = errors_roundtrip::build(&input, &v, false);
+    (StatusCode::UNPROCESSABLE_ENTITY, Html(page.render())).into_response()
 }

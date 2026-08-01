@@ -9,7 +9,8 @@ Everything you need to build a real ERP page in five minutes.
 - [5. Making it responsive](#5-making-it-responsive)
 - [6. Modifying / extending the layout system](#6-modifying--extending-the-layout-system)
 - [7. Rendering the page — file or Axum handler](#7-rendering-the-page--file-or-axum-handler)
-- [8. Cheat sheet](#8-cheat-sheet)
+- [8. Error UX — where each error type lives](#8-error-ux--where-each-error-type-lives)
+- [9. Cheat sheet](#9-cheat-sheet)
 
 ---
 
@@ -388,7 +389,188 @@ That's it — visit `/dsl/students` and you get a live page rendered from Rust w
 
 ---
 
-## 8. Cheat sheet
+## 8. Error UX — where each error type lives
+
+**Rule of thumb: match the surface to the scope of the error.** Never combine field errors + form errors + system errors into one big "errors panel" — it hurts accessibility, mobile UX, and cognitive load.
+
+| Scope | Surface | Component |
+|---|---|---|
+| **Field-level** — one specific field | Red text under the field | `input().error(msg)` and friends |
+| **Form-level** — cross-field business rule or server rejection | Banner at the top of the form | `form_banner()` inside `.banner(...)` |
+| **Page-level, transient** — save success, retry, session expiring | Toast that vanishes after ~4 s | `toast_host()` + JS-fired `toast()` |
+| **Page-level, persistent** — read-only mode, system notice | Coloured box at the top of the page, dismissible | `alert()` |
+| **Blocking acknowledgment** — must be seen and confirmed | Slide-in panel from left/right with required ACK button | `ack_panel()` |
+
+For a live catalogue of every variant, see **[`/dsl/errors`](/dsl/errors)**.
+
+### 8.1 Field-level errors — `.error(msg)`
+
+Every field-adjacent component exposes `.error(msg)` and `.maybe_error(Option<msg>)`:
+`input`, `select`, `combobox`, `checkbox`, `radio_group`, `switch`, `datepicker`, `date_range`, `file_upload`.
+
+```rust
+input().label("Guardian email").name("g_email")
+    .kind(InputType::Email).required()
+    .error("Please enter a valid email address")   // sets `invalid` + shows red hint
+```
+
+`.maybe_error(...)` is what server code should use — no `match` on every field:
+
+```rust
+// errors: &HashMap<&str, String>
+input().label("Full name").name("name")
+    .value(&input.name)
+    .maybe_error(errors.get("name").cloned())      // None = clean, Some = error
+```
+
+### 8.2 Form-level errors — `form_banner()`
+
+For **cross-field** rules and server rejections. Attach with `Form::banner(...)`:
+
+```rust
+form().action("/students").method("post")
+    .banner(form_banner().tone(Tone::Danger)
+        .message("Guardian email must differ from the student's email."))
+    .add(input().label("Student email").name("s_email"))
+    .add(input().label("Guardian email").name("g_email"))
+    .save_cancel("Save")
+```
+
+For long forms, add an **errors summary** so screen-reader users can navigate to each broken field:
+
+```rust
+form_banner().tone(Tone::Danger)
+    .title("Please fix 2 errors")
+    .errors_summary(vec![
+        ("name".into(),  "Full name is required".into()),
+        ("email".into(), "Guardian email is invalid".into()),
+    ])
+```
+Each summary item is a link that scrolls to and focuses the field with the given `name` — this is a **critical accessibility feature**, not decoration.
+
+#### Multi-section — errors AND warnings in one banner
+
+When a submit produces both hard errors and soft warnings, use one banner with sections instead of two banners:
+
+```rust
+form_banner().tone(Tone::Danger)
+    .add_section(banner_section(Tone::Danger)
+        .title("Please fix 2 errors")
+        .errors_summary(vec![
+            ("email", "Email is invalid").into(),
+            ("phone", "Phone is required").into(),
+        ]))
+    .add_section(banner_section(Tone::Warning)
+        .title("1 warning")
+        .errors_summary(vec![
+            ("date", "Due date is a public holiday").into(),
+        ]))
+```
+
+Or the one-line helper for the common two-list case:
+
+```rust
+form().action("/students").method("post")
+    .maybe_banner(errors_and_warnings_banner(errors, warnings))  // returns Option
+    .add(...)
+    .save_cancel("Save")
+```
+
+Sections use per-section tone tokens (`--color-danger-soft`, `--color-warning-soft`, etc.) so danger + warning read as clearly-distinct blocks. The outer banner takes the highest severity for `aria-live`.
+
+**Why NOT combine this with `ack_panel`:** the banner is inline and stays visible while the user fixes the fields; an ack_panel closes on click and takes its content with it, leaving the user without the summary. Keep them separate — banner for validation, ack_panel for blocking notices unrelated to the current submit.
+
+### 8.3 Page-level, persistent — `alert()`
+
+For system-wide notices that must stay until dismissed / resolved:
+
+```rust
+alert().tone(Tone::Warning).icon(Icons::WARNING).dismissible()
+    .title("Read-only mode")
+    .message("Your role doesn't allow editing fees. Contact admin@school for access.")
+```
+
+Tones: `Info`, `Success`, `Warning`, `Danger`. Same tone tokens as badges/toasts — no per-component palette drift.
+
+### 8.4 Page-level, transient — `toast()`
+
+Fire from JS after a successful action or a background error. One `toast_host()` per page:
+
+```rust
+page_shell()
+    .add(...page content...)
+    .add(toast_host())          // add once at the bottom
+```
+```js
+document.querySelector('ui-toast-host').show({ tone: 'success', message: 'Invoice saved' });
+```
+
+### 8.5 Blocking acknowledgment — `ack_panel()`
+
+For notices that **cannot** be missed — compliance changes, destructive side-effects, account lockouts, session-expiry warnings. Slides in from the left or right, dims the rest of the page with a scrim, and requires the user to click an **ACK** button to dismiss (no ESC, no click-outside).
+
+```rust
+ack_panel()
+    .id("ack-fees-locked")
+    .tone(Tone::Warning)
+    .placement(AckPlacement::Right)        // or AckPlacement::Left
+    .icon(Icons::WARNING)
+    .title("Fees module is locked")
+    .message("Editing is disabled until the term audit completes on Aug 15.")
+    .ack_label("I understand")
+    // .open()   // include for on-page-load blocking notices
+```
+
+Trigger from JS:
+```js
+document.getElementById('ack-fees-locked').openPanel();
+```
+
+The `ack` event fires when the user clicks the button — hook it if you need to record the acknowledgment server-side.
+
+### 8.6 The canonical server-side pattern (Axum + Hotwire)
+
+Server is the source of truth. On validation failure, re-render the SAME form with errors annotated; return HTTP 422 so Turbo swaps the body:
+
+```rust
+pub async fn create_student(Form(input): Form<NewStudent>) -> Response {
+    let errors = validate(&input);
+    if errors.is_empty() {
+        save(input).await;
+        return Redirect::to("/students").into_response();
+    }
+    let page = students::add_form_page(&input, &errors);
+    (StatusCode::UNPROCESSABLE_ENTITY, Html(page.render())).into_response()
+}
+```
+
+Inside `add_form_page(input, errors)`:
+
+```rust
+form().action("/students").method("post")
+    .maybe_banner(errors_summary_banner(errors))                    // if any errors
+    .add(input().label("Full name").name("name")
+         .value(&input.name)
+         .maybe_error(errors.get("name").cloned()))
+    .add(input().label("Guardian email").name("g_email")
+         .value(&input.g_email)
+         .maybe_error(errors.get("g_email").cloned()))
+    .save_cancel("Save")
+```
+
+This works **without any client-side JS** — Turbo handles the swap. Hotwire Native gets the same behaviour inside its WebView for free.
+
+### 8.7 The five commandments
+
+1. **One error, one surface.** Don't repeat the same error in a banner AND under the field UNLESS it's part of an accessibility summary.
+2. **Field errors are the primary voice.** Users look where they typed.
+3. **Banners for business rules only.** If you're tempted to put a "email is required" error in the banner, put it under the email field instead.
+4. **Never invent a new palette.** Reuse `Tone::{Info,Success,Warning,Danger}` from the badge module — the whole design system already uses these tokens.
+5. **Server is the source of truth.** Client-side validation is progressive enhancement, not a substitute.
+
+---
+
+## 9. Cheat sheet
 
 ```rust
 use lit_ui::prelude::*;

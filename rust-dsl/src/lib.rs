@@ -58,6 +58,8 @@ pub mod prelude {
     // Layout primitives — all class-based, standardised, responsive.
     pub use crate::layout::{
         container, row, row_actions, column, grid, spacer, section, divider,
+        // Opinionated presets — use these for consistency across pages:
+        page_shell, page_of, toolbar, two_col, two_col_with, text_body,
         Container, Row, Column, Grid, Spacer, Section, Divider, DividerAxis,
         Gap, Align, Justify,
         // Typed knobs that map to layout.css class names:
@@ -115,4 +117,13 @@ pub mod prelude {
     pub use crate::components::inline_edit::{inline_edit, InlineEdit, InlineKind};
     pub use crate::components::toast::{toast, toast_host, Toast, ToastHost, ToastTone};
     pub use crate::components::command::{command, command_item, Command, CommandItem};
+
+    // Error-UX surfaces — see docs on each component for when to use which.
+    pub use crate::components::form_banner::{
+        form_banner, banner_section,
+        errors_summary_banner, errors_and_warnings_banner,
+        FormBanner, BannerSection, FieldError,
+    };
+    pub use crate::components::alert::{alert, Alert};
+    pub use crate::components::ack_panel::{ack_panel, AckPanel, AckPlacement};
 }

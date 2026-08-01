@@ -97,6 +97,30 @@
 /* ---------- Spacer ---------- */
 .lu-spacer { flex: 1 1 auto; }
 
+/* ---------- Utility text tokens ---------- */
+/* Used by the Rust `text_body()` helper for the standard title/subtitle
+   pattern in timeline items, list items, activity feeds, etc. */
+.lu-text-muted {
+  color: var(--color-text-muted);
+  font-size: var(--fs-xs);
+}
+
+/* ---------- Demo cross-page nav (Dashboard/Students/Fees/Attendance) ---------- */
+/* Emitted by the private `demo_nav()` helper in dashboard.rs. Kept here so
+   it's a real design-system class, not inline styles. */
+.lu-demo-nav {
+  display: flex; gap: var(--space-4);
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  flex-wrap: wrap;
+}
+.lu-demo-nav strong        { margin-right: var(--space-2); }
+.lu-demo-nav a             { color: var(--color-primary); text-decoration: none; }
+.lu-demo-nav .lu-demo-nav-end { color: var(--color-text-muted); margin-left: auto; }
+
 /* ---------- Divider ---------- */
 /* Horizontal: sits between block-flow siblings (default <hr>).            */
 /* Vertical:   sits between flex-row siblings — sizes itself to align with */

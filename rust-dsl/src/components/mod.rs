@@ -60,3 +60,8 @@ pub mod combobox;
 pub mod inline_edit;
 pub mod toast;
 pub mod command;
+
+// Error-UX surfaces (see also: input().error(), toast()).
+pub mod form_banner;
+pub mod alert;
+pub mod ack_panel;
