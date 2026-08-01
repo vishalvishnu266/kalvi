@@ -13,15 +13,14 @@ class UIDateRange extends LitBaseElement {
     from:  { type: String, reflect: true },
     to:    { type: String, reflect: true },
     open:  { type: Boolean, reflect: true },
-    _viewYear:  { state: true },
-    _viewMonth: { state: true },
-    _pending:   { state: true },  // Date | null
+    _viewYear:     { state: true },
+    _viewMonth:    { state: true },
+    _pending:      { state: true },  // Date | null
     _activePreset: { state: true },
   };
 
   static styles = css`
-    :host { display: inline-block; position: relative; box-sizing: border-box; z-index: auto; }
-    :host([open]) { z-index: 3000; }
+    :host { display: inline-block; position: relative; box-sizing: border-box; }
     .label { display: block; font-size: var(--fs-xs); color: var(--color-text-muted); margin-bottom: 6px; font-weight: var(--fw-medium); }
     .trigger {
       display: inline-flex; align-items: center; gap: 8px;
@@ -38,23 +37,56 @@ class UIDateRange extends LitBaseElement {
     .trigger ui-icon { color: var(--color-text-muted); }
     .trigger .caret { margin-left: auto; color: var(--color-text-subtle); }
 
-    /* ----- LEFT-SIDE DRAWER -----
-       Wider so both calendars sit side-by-side without scroll on a typical
-       laptop (1366 × 768 and up). */
+    /* ----- RESPONSIVE TOP-LAYER DIALOG -----
+       Guaranteed no-overlap via native <dialog.showModal()>.
+       Mobile: Bottom sheet sliding up.
+       Desktop: Centered modal on screen. */
     .pop {
       position: fixed;
-      top: 0; left: 0; bottom: 0;
-      width: min(760px, 96vw);
+      inset: auto 0 0 0;
+      width: 100vw;
+      max-width: 100vw;
+      max-height: 90dvh;
+      margin: 0;
+      padding: 0;
+      border: none;
+      border-top-left-radius: var(--radius-lg, 16px);
+      border-top-right-radius: var(--radius-lg, 16px);
+      box-shadow: var(--shadow-lg, 0 -4px 24px rgba(0,0,0,0.15));
       background: var(--color-surface);
-      border-right: 1px solid var(--color-border);
-      box-shadow: var(--shadow-lg);
-      z-index: 3001; display: none;
       flex-direction: column;
-      transform: translateX(-100%);
-      transition: transform var(--dur-med) var(--ease);
-      overflow: hidden; max-height: 100dvh;
+      overflow: hidden;
+      transform: translateY(100%);
+      transition: transform var(--dur-med, 250ms) var(--ease, ease-out);
     }
-    :host([open]) .pop { display: flex; transform: translateX(0); }
+    .pop[open] {
+      display: flex;
+      transform: translateY(0);
+    }
+    .pop::backdrop {
+      background: var(--color-scrim, rgba(0, 0, 0, 0.4));
+      backdrop-filter: blur(2px);
+    }
+
+    /* Desktop Viewport Adaptation (Centered Modal sliding up slightly) */
+    @media (min-width: 720px) {
+      .pop {
+        inset: 50% auto auto 50%;
+        transform: translate(-50%, -40%);
+        width: 760px;
+        max-width: 92vw;
+        border-radius: var(--radius-lg, 12px);
+        border: 1px solid var(--color-border);
+        box-shadow: var(--shadow-xl, 0 12px 32px rgba(0,0,0,0.2));
+        transition: transform var(--dur-med, 200ms) var(--ease, ease-out), opacity var(--dur-med, 200ms) ease-out;
+        opacity: 0;
+      }
+      .pop[open] {
+        transform: translate(-50%, -50%);
+        opacity: 1;
+      }
+    }
+
     /* Two-column body: presets on the left, calendars area on the right. */
     .drawer-body {
       display: grid;
@@ -63,10 +95,8 @@ class UIDateRange extends LitBaseElement {
       min-height: 0;
       overflow: hidden;
     }
-    /* Below ~720px there isn't enough room for both months + presets;
-       collapse presets to a chip strip on top. */
     @media (max-width: 720px) {
-      .drawer-body { grid-template-columns: 1fr; }
+      .drawer-body { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
     }
     .drawer-head {
       display: flex; align-items: center; gap: 8px;
@@ -89,13 +119,11 @@ class UIDateRange extends LitBaseElement {
     }
     .cals-wrap {
       min-width: 0; display: flex; flex-direction: column;
-      overflow: hidden;         /* container clips */
+      overflow: hidden;
       background: var(--color-surface);
     }
-    .scrim { position: fixed; inset: 0; background: var(--color-scrim); z-index: 3000; display: none; }
-    :host([open]) .scrim { display: block; }
 
-    /* Presets are a LEFT column of the drawer body (Google-Calendar style). */
+    /* Presets column */
     .presets {
       display: flex; flex-direction: column; gap: 2px;
       padding: 10px 8px;
@@ -120,10 +148,10 @@ class UIDateRange extends LitBaseElement {
         border-right: 0; border-bottom: 1px solid var(--color-border);
         padding: 10px 12px;
       }
-      .presets button { flex: 0 0 auto; border-radius: var(--radius-pill); border: 1px solid var(--color-border); background: var(--color-surface); font-size: var(--fs-xs); padding: 5px 10px; }
+      .presets button { flex: 0 0 auto; border-radius: var(--radius-pill, 9999px); border: 1px solid var(--color-border); background: var(--color-surface); font-size: var(--fs-xs); padding: 5px 10px; }
     }
 
-    /* ONE nav row above BOTH calendars, then calendars side-by-side. */
+    /* Navigation & Month Grids */
     .cals-head {
       display: flex; align-items: center; gap: 4px;
       padding: 8px 14px 0;
@@ -143,7 +171,6 @@ class UIDateRange extends LitBaseElement {
       flex: 1;
       min-height: 0;
     }
-    /* Stack calendars only when it's really tight. */
     @media (max-width: 540px) {
       .cals-head .titles { grid-template-columns: 1fr; }
       .cals              { grid-template-columns: 1fr; }
@@ -162,7 +189,7 @@ class UIDateRange extends LitBaseElement {
     .grid button {
       appearance: none; border: 0; background: transparent;
       font: inherit; font-size: var(--fs-xs); color: var(--color-text);
-      height: 30px; width: 100%; cursor: pointer; border-radius: 6px;
+      height: 32px; width: 100%; cursor: pointer; border-radius: 6px;
       display: grid; place-items: center;
       font-variant-numeric: tabular-nums;
     }
@@ -185,7 +212,7 @@ class UIDateRange extends LitBaseElement {
       justify-content: space-between; gap: 10px;
       padding: 10px 14px; border-top: 1px solid var(--color-border);
       background: var(--color-surface); min-width: 0;
-      flex: 0 0 auto;   /* footer stays visible; only .cals scrolls */
+      flex: 0 0 auto;
     }
     .foot .info {
       font-size: var(--fs-xs); color: var(--color-text-muted);
@@ -193,9 +220,6 @@ class UIDateRange extends LitBaseElement {
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .foot .actions { display: flex; gap: 8px; flex-shrink: 0; }
-
-    /* Nothing else — the mobile bottom-sheet layout was replaced by the
-       drawer above, so no extra media rules needed here. */
   `;
 
   constructor() {
@@ -209,8 +233,6 @@ class UIDateRange extends LitBaseElement {
     this._viewMonth = today.getMonth();
     this._pending = null;
     this._activePreset = '';
-    this._boundOutside = (e) => { if (!this.contains(e.target)) this.#close(); };
-    this._boundReposition = () => this.#positionPop();
   }
 
   connectedCallback() {
@@ -221,51 +243,78 @@ class UIDateRange extends LitBaseElement {
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    document.removeEventListener('mousedown', this._boundOutside);
-    window.removeEventListener('resize', this._boundReposition);
-    window.removeEventListener('scroll', this._boundReposition, true);
+    this.#unlockScroll();
   }
 
-  // ── Shared scroll-lock helpers ────────────────────────────────────────
+  updated(changedProperties) {
+    super.updated(changedProperties);
+    if (changedProperties.has('open')) {
+      const dialog = this.renderRoot.querySelector('dialog.pop');
+      if (dialog) {
+        if (this.open && !dialog.open) {
+          dialog.showModal();
+          this.#lockScroll();
+        } else if (!this.open && dialog.open) {
+          dialog.close();
+          this.#unlockScroll();
+        }
+      }
+    }
+  }
+
   #lockScroll() {
     const el = document.documentElement;
+    const body = document.body;
     const n = (parseInt(el.dataset.uiDrawerLocks || '0', 10) || 0) + 1;
     el.dataset.uiDrawerLocks = String(n);
     if (n === 1) {
       el.dataset.uiPrevOverflow = el.style.overflow || '';
+      body.dataset.uiPrevOverflow = body.style.overflow || '';
       el.style.overflow = 'hidden';
+      body.style.overflow = 'hidden';
+      body.style.touchAction = 'none';
     }
   }
+
   #unlockScroll() {
     const el = document.documentElement;
+    const body = document.body;
     const n = Math.max(0, (parseInt(el.dataset.uiDrawerLocks || '0', 10) || 0) - 1);
     el.dataset.uiDrawerLocks = String(n);
     if (n === 0) {
       el.style.overflow = el.dataset.uiPrevOverflow || '';
+      body.style.overflow = body.dataset.uiPrevOverflow || '';
+      body.style.touchAction = '';
       delete el.dataset.uiPrevOverflow;
+      delete body.dataset.uiPrevOverflow;
     }
   }
 
   #openPop() {
-    if (this.open) return;
     this.open = true;
-    this.#lockScroll();
-    setTimeout(() => document.addEventListener('mousedown', this._boundOutside), 0);
   }
+
   #close() {
-    if (!this.open) return;
     this.open = false;
-    this.#unlockScroll();
-    document.removeEventListener('mousedown', this._boundOutside);
   }
-  // No-op — drawer is CSS-anchored to the left edge.
-  #positionPop() {}
+
+  #onDialogClick(e) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const isInDialog = (rect.top <= e.clientY && e.clientY <= rect.top + rect.height &&
+        rect.left <= e.clientX && e.clientX <= rect.left + rect.width);
+    if (!isInDialog) {
+      this.#close();
+    }
+  }
 
   #apply() {
     this.emit('ui-change', { from: this.from, to: this.to });
     this.#close();
   }
-  #cancel() { this.#close(); }
+
+  #cancel() {
+    this.#close();
+  }
 
   #applyPreset(key) {
     this._activePreset = key;
@@ -304,10 +353,9 @@ class UIDateRange extends LitBaseElement {
     this._activePreset = '';
   }
 
-  #renderMonth(refDate, isLeft) {
+  #renderMonth(refDate) {
     const year  = refDate.getFullYear();
     const month = refDate.getMonth();
-    const monthName = refDate.toLocaleString(undefined, { month: 'long', year: 'numeric' });
     const first = new Date(year, month, 1);
     const startDow = (first.getDay() + 6) % 7;
     const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -342,7 +390,7 @@ class UIDateRange extends LitBaseElement {
             }
             const disabled = c.muted;
             return html`<button class=${cls.join(' ')} ?disabled=${disabled}
-              @click=${() => !disabled && this.#pickCell(c.date)}>${c.d}</button>`;
+                                @click=${() => !disabled && this.#pickCell(c.date)}>${c.d}</button>`;
           })}
         </div>
       </div>
@@ -355,8 +403,8 @@ class UIDateRange extends LitBaseElement {
     const from = this.#parse(this.from);
     const to   = this.#parse(this.to);
     const info = (from && to)
-      ? `${this.#fmtISO(from)}  →  ${this.#fmtISO(to)}  ·  ${this.#diffDays(from, to) + 1} day(s)`
-      : 'Pick a start date';
+        ? `${this.#fmtISO(from)}  →  ${this.#fmtISO(to)}  ·  ${this.#diffDays(from, to) + 1} day(s)`
+        : 'Pick a start date';
 
     const presets = [
       ['today','Today'], ['yesterday','Yesterday'],
@@ -375,8 +423,8 @@ class UIDateRange extends LitBaseElement {
         <span>${this.#fmtRange()}</span>
         <ui-icon class="caret" name="chevronDown" size="14"></ui-icon>
       </button>
-      <div class="scrim" @click=${() => this.#close()}></div>
-      <div class="pop" role="dialog">
+
+      <dialog class="pop" @click=${this.#onDialogClick} @cancel=${(e) => { e.preventDefault(); this.#close(); }}>
         <div class="drawer-head">
           <span class="title">${this.label || 'Select range'}</span>
           <button class="drawer-close" title="Close" @click=${() => this.#close()}>
@@ -403,8 +451,8 @@ class UIDateRange extends LitBaseElement {
               </button>
             </div>
             <div class="cals">
-              ${this.#renderMonth(leftDate, true)}
-              ${this.#renderMonth(rightDate, false)}
+              ${this.#renderMonth(leftDate)}
+              ${this.#renderMonth(rightDate)}
             </div>
             <div class="foot">
               <span class="info">${info}</span>
@@ -415,7 +463,7 @@ class UIDateRange extends LitBaseElement {
             </div>
           </div>
         </div>
-      </div>
+      </dialog>
     `;
   }
 
@@ -437,4 +485,5 @@ class UIDateRange extends LitBaseElement {
   #addDays(d, n)   { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n); }
   #diffDays(a, b)  { return Math.round((this.#startOfDay(b) - this.#startOfDay(a)) / (1000 * 60 * 60 * 24)); }
 }
+
 customElements.define('ui-daterange', UIDateRange);

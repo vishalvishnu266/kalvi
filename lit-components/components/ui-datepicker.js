@@ -1,7 +1,7 @@
 import { LitBaseElement, html, css, nothing } from './base.js';
 
 /**
- * Single-date picker with a calendar popover.
+ * Single-date picker with a responsive popover (Bottom-sheet on mobile, Centered Modal on desktop).
  *
  * <ui-datepicker label="Date of birth" value="2015-08-12"></ui-datepicker>
  *
@@ -20,8 +20,7 @@ class UIDatepicker extends LitBaseElement {
   };
 
   static styles = css`
-    :host { display: inline-block; position: relative; box-sizing: border-box; z-index: auto; }
-    :host([open]) { z-index: 3000; }
+    :host { display: inline-block; position: relative; box-sizing: border-box; }
     .label {
       display: block; font-size: var(--fs-xs); color: var(--color-text-muted);
       margin-bottom: 6px; font-weight: var(--fw-medium);
@@ -42,24 +41,56 @@ class UIDatepicker extends LitBaseElement {
     .trigger .val { flex: 1; }
     .placeholder { color: var(--color-text-subtle); }
 
-    /* ----- LEFT-SIDE DRAWER -----
-       Slides in from the viewport's left edge. Same shape as ui-select and
-       ui-daterange for a consistent picker UX across the DSL. Body scroll
-       is locked via JS in openPop/close so nothing can float on top. */
+    /* ----- RESPONSIVE TOP-LAYER DIALOG -----
+       Guaranteed no-overlap via native <dialog.showModal()>.
+       Mobile: Bottom sheet sliding up.
+       Desktop: Centered modal on screen. */
     .pop {
       position: fixed;
-      top: 0; left: 0; bottom: 0;
-      width: min(360px, 92vw);
+      inset: auto 0 0 0;
+      width: 100vw;
+      max-width: 100vw;
+      max-height: 85dvh;
+      margin: 0;
+      padding: 0;
+      border: none;
+      border-top-left-radius: var(--radius-lg, 16px);
+      border-top-right-radius: var(--radius-lg, 16px);
+      box-shadow: var(--shadow-lg, 0 -4px 24px rgba(0,0,0,0.15));
       background: var(--color-surface);
-      border-right: 1px solid var(--color-border);
-      box-shadow: var(--shadow-lg);
-      z-index: 3001; display: none;
       flex-direction: column;
-      transform: translateX(-100%);
-      transition: transform var(--dur-med) var(--ease);
-      overflow: hidden; max-height: 100dvh;
+      overflow: hidden;
+      transform: translateY(100%);
+      transition: transform var(--dur-med, 250ms) var(--ease, ease-out);
     }
-    :host([open]) .pop { display: flex; transform: translateX(0); }
+    .pop[open] {
+      display: flex;
+      transform: translateY(0);
+    }
+    .pop::backdrop {
+      background: var(--color-scrim, rgba(0, 0, 0, 0.4));
+      backdrop-filter: blur(2px);
+    }
+
+    /* Desktop Viewport Adaptation (Centered Modal sliding up slightly) */
+    @media (min-width: 640px) {
+      .pop {
+        inset: 50% auto auto 50%;
+        transform: translate(-50%, -40%);
+        width: 360px;
+        max-width: 90vw;
+        border-radius: var(--radius-lg, 12px);
+        border: 1px solid var(--color-border);
+        box-shadow: var(--shadow-xl, 0 12px 32px rgba(0,0,0,0.2));
+        transition: transform var(--dur-med, 200ms) var(--ease, ease-out), opacity var(--dur-med, 200ms) ease-out;
+        opacity: 0;
+      }
+      .pop[open] {
+        transform: translate(-50%, -50%);
+        opacity: 1;
+      }
+    }
+
     .drawer-head {
       display: flex; align-items: center; gap: 8px;
       padding: 14px 16px;
@@ -80,14 +111,8 @@ class UIDatepicker extends LitBaseElement {
       color: var(--color-text);
     }
     .drawer-body { padding: 12px 16px; overflow-y: auto; flex: 1; }
-    .scrim {
-      position: fixed; inset: 0; background: var(--color-scrim);
-      z-index: 3000; display: none;
-    }
-    :host([open]) .scrim { display: block; }
 
     .head { display: flex; align-items: center; gap: 4px; margin-bottom: 8px; }
-    /* The month title is a button — click to open the year picker. */
     .head .month {
       appearance: none; border: 0; background: transparent; cursor: pointer;
       font: inherit; font-weight: var(--fw-semibold); font-size: var(--fs-sm);
@@ -105,7 +130,6 @@ class UIDatepicker extends LitBaseElement {
     }
     .nav-btn:hover { background: color-mix(in srgb, var(--color-text) 8%, transparent); color: var(--color-text); }
 
-    /* Year-picker view (shown when clicking the month title). */
     .years {
       display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;
       padding: 4px 0;
@@ -121,11 +145,6 @@ class UIDatepicker extends LitBaseElement {
       background: var(--color-primary); color: var(--color-primary-contrast);
       font-weight: var(--fw-semibold);
     }
-    .year-range {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 8px;
-    }
-    .year-range .label { font-weight: var(--fw-semibold); font-size: var(--fs-sm); }
 
     .dow, .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
     .dow div {
@@ -135,7 +154,7 @@ class UIDatepicker extends LitBaseElement {
     .grid button {
       appearance: none; border: 0; background: transparent;
       font: inherit; font-size: var(--fs-xs); color: var(--color-text);
-      height: 32px; cursor: pointer; border-radius: 6px;
+      height: 36px; cursor: pointer; border-radius: 6px;
       display: grid; place-items: center;
       font-variant-numeric: tabular-nums;
     }
@@ -156,10 +175,6 @@ class UIDatepicker extends LitBaseElement {
       color: var(--color-primary); font: inherit;
       font-size: var(--fs-xs); font-weight: var(--fw-medium);
     }
-    @media (max-width: 640px) {
-      /* Slightly bigger tap targets on phones — drawer itself takes 92vw. */
-      .grid button, .years button { height: 40px; font-size: var(--fs-sm); }
-    }
   `;
 
   constructor() {
@@ -173,8 +188,6 @@ class UIDatepicker extends LitBaseElement {
     this._viewMonth = today.getMonth();
     this._mode = 'day';
     this._yearPage = this._viewYear - (this._viewYear % 12);
-    this._boundOutside = (e) => { if (!this.contains(e.target)) this.#close(); };
-    this._boundReposition = () => this.#positionPop();
   }
 
   connectedCallback() {
@@ -185,56 +198,72 @@ class UIDatepicker extends LitBaseElement {
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    document.removeEventListener('mousedown', this._boundOutside);
-    window.removeEventListener('resize', this._boundReposition);
-    window.removeEventListener('scroll', this._boundReposition, true);
+    this.#unlockScroll();
   }
 
-  // ── Shared scroll-lock helpers ────────────────────────────────────────
-  // Uses a data-attr counter on <html> so multiple open drawers cooperate
-  // (closing one doesn't wrongly unlock while another is still open).
+  updated(changedProperties) {
+    super.updated(changedProperties);
+    if (changedProperties.has('open')) {
+      const dialog = this.renderRoot.querySelector('dialog.pop');
+      if (dialog) {
+        if (this.open && !dialog.open) {
+          dialog.showModal();
+          this.#lockScroll();
+        } else if (!this.open && dialog.open) {
+          dialog.close();
+          this.#unlockScroll();
+        }
+      }
+    }
+  }
+
   #lockScroll() {
     const el = document.documentElement;
+    const body = document.body;
     const n = (parseInt(el.dataset.uiDrawerLocks || '0', 10) || 0) + 1;
     el.dataset.uiDrawerLocks = String(n);
     if (n === 1) {
       el.dataset.uiPrevOverflow = el.style.overflow || '';
+      body.dataset.uiPrevOverflow = body.style.overflow || '';
       el.style.overflow = 'hidden';
+      body.style.overflow = 'hidden';
+      body.style.touchAction = 'none';
     }
   }
+
   #unlockScroll() {
     const el = document.documentElement;
+    const body = document.body;
     const n = Math.max(0, (parseInt(el.dataset.uiDrawerLocks || '0', 10) || 0) - 1);
     el.dataset.uiDrawerLocks = String(n);
     if (n === 0) {
       el.style.overflow = el.dataset.uiPrevOverflow || '';
+      body.style.overflow = body.dataset.uiPrevOverflow || '';
+      body.style.touchAction = '';
       delete el.dataset.uiPrevOverflow;
+      delete body.dataset.uiPrevOverflow;
     }
   }
 
   #openPop() {
-    if (this.open) return;
     this.open = true;
-    this.#lockScroll();
-    // Slight delay so outside-click doesn't immediately match the same tap
-    // that opened us.
-    setTimeout(() => document.addEventListener('mousedown', this._boundOutside), 0);
   }
 
   #close() {
-    if (!this.open) return;
     this.open = false;
-    this.#unlockScroll();
-    document.removeEventListener('mousedown', this._boundOutside);
   }
 
-  // Kept as a no-op so any existing scroll/resize listener wiring keeps
-  // working — the drawer is CSS-anchored to the left edge, no math needed.
-  #positionPop() {}
+  #onDialogClick(e) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const isInDialog = (rect.top <= e.clientY && e.clientY <= rect.top + rect.height &&
+        rect.left <= e.clientX && e.clientX <= rect.left + rect.width);
+    if (!isInDialog) {
+      this.#close();
+    }
+  }
 
   #onNav(delta) {
     if (this._mode === 'year') {
-      // Page through the year grid, 12 years at a time
       this._yearPage += delta * 12;
       return;
     }
@@ -262,16 +291,19 @@ class UIDatepicker extends LitBaseElement {
   #today() {
     this.value = this.#fmtISO(this.#startOfDay(new Date()));
     this.emit('ui-change', { value: this.value });
+    this.#close();
   }
+
   #clear() {
     this.value = '';
     this.emit('ui-change', { value: '' });
+    this.#close();
   }
 
   #buildCells() {
     const y = this._viewYear, m = this._viewMonth;
     const first = new Date(y, m, 1);
-    const startDow = (first.getDay() + 6) % 7;   // Monday start
+    const startDow = (first.getDay() + 6) % 7;
     const daysInMonth = new Date(y, m + 1, 0).getDate();
     const prev = new Date(y, m, 0).getDate();
     const cells = [];
@@ -290,7 +322,7 @@ class UIDatepicker extends LitBaseElement {
     const val = this.#parse(this.value);
     const today = this.#startOfDay(new Date());
     const monthName = new Date(this._viewYear, this._viewMonth, 1)
-      .toLocaleString(undefined, { month: 'long', year: 'numeric' });
+        .toLocaleString(undefined, { month: 'long', year: 'numeric' });
     const cells = this.#buildCells();
 
     return html`
@@ -302,13 +334,13 @@ class UIDatepicker extends LitBaseElement {
         <ui-icon name="calendar" size="16"></ui-icon>
         <span class="val">
           ${val
-            ? val.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
-            : html`<span class="placeholder">${this.placeholder}</span>`}
+              ? val.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+              : html`<span class="placeholder">${this.placeholder}</span>`}
         </span>
         <ui-icon name="chevronDown" size="14"></ui-icon>
       </button>
-      <div class="scrim" @click=${() => this.#close()}></div>
-      <div class="pop" role="dialog" aria-modal="true">
+
+      <dialog class="pop" @click=${this.#onDialogClick} @cancel=${(e) => { e.preventDefault(); this.#close(); }}>
         <div class="drawer-head">
           <span class="title">${this.label || 'Select date'}</span>
           <button class="drawer-close" title="Close" @click=${() => this.#close()}>
@@ -322,14 +354,14 @@ class UIDatepicker extends LitBaseElement {
               <ui-icon name="chevronLeft" size="14"></ui-icon>
             </button>
             ${this._mode === 'year'
-              ? html`<span class="month" style="cursor:default">
+                ? html`<span class="month" style="cursor:default">
                        ${this._yearPage} – ${this._yearPage + 11}
                      </span>`
-              : html`<button class="month" title="Pick a year"
-                             @click=${() => this.#openYearPicker()}>
-                       ${monthName}
-                       <ui-icon name="chevronDown" size="12"></ui-icon>
-                     </button>`}
+                : html`<button class="month" title="Pick a year"
+                               @click=${() => this.#openYearPicker()}>
+                  ${monthName}
+                  <ui-icon name="chevronDown" size="12"></ui-icon>
+                </button>`}
             <button class="nav-btn" title=${this._mode === 'year' ? 'Next 12 years' : 'Next month'}
                     @click=${() => this.#onNav(1)}>
               <ui-icon name="chevronRight" size="14"></ui-icon>
@@ -337,36 +369,35 @@ class UIDatepicker extends LitBaseElement {
           </div>
 
           ${this._mode === 'year'
-            ? html`
-              <div class="years">
-                ${Array.from({length: 12}, (_, i) => this._yearPage + i).map(y => html`
-                  <button class=${y === this._viewYear ? 'sel' : ''}
-                          @click=${() => this.#pickYear(y)}>${y}</button>
-                `)}
-              </div>`
-            : html`
-              <div class="dow"><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div><div>S</div></div>
-              <div class="grid">
-                ${cells.map(c => {
-                  const cls = [];
-                  if (c.muted) cls.push('muted');
-                  if (this.#sameDay(c.date, today)) cls.push('today');
-                  if (val && this.#sameDay(c.date, val)) cls.push('sel');
-                  const iso = this.#fmtISO(c.date);
-                  return html`<button class=${cls.join(' ')} @click=${() => this.#pick(iso)}>${c.d}</button>`;
-                })}
-              </div>`}
+              ? html`
+                <div class="years">
+                  ${Array.from({length: 12}, (_, i) => this._yearPage + i).map(y => html`
+                    <button class=${y === this._viewYear ? 'sel' : ''}
+                            @click=${() => this.#pickYear(y)}>${y}</button>
+                  `)}
+                </div>`
+              : html`
+                <div class="dow"><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div><div>S</div></div>
+                <div class="grid">
+                  ${cells.map(c => {
+                    const cls = [];
+                    if (c.muted) cls.push('muted');
+                    if (this.#sameDay(c.date, today)) cls.push('today');
+                    if (val && this.#sameDay(c.date, val)) cls.push('sel');
+                    const iso = this.#fmtISO(c.date);
+                    return html`<button class=${cls.join(' ')} @click=${() => this.#pick(iso)}>${c.d}</button>`;
+                  })}
+                </div>`}
 
           <div class="foot">
             <button @click=${() => this.#today()}>Today</button>
             <button @click=${() => this.#clear()}>Clear</button>
           </div>
         </div>
-      </div>
+      </dialog>
     `;
   }
 
-  // utils
   #parse(s) { if (!s) return null; const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); }
   #fmtISO(d) { const p = n => String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; }
   #sameDay(a,b) { return a && b && a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate(); }
