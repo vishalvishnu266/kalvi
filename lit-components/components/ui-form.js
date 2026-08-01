@@ -134,7 +134,46 @@ class UIForm extends LitBaseElement {
       first?.focus?.();
       return false;
     }
+    // Fire the observable event first so consumer code can react / log.
+    // (LitBaseElement.emit dispatches a non-cancelable CustomEvent; the
+    // real submission below is still performed unconditionally when an
+    // `action` is set — that's the documented DSL contract.)
     this.emit('ui-submit', { values, valid: true, action: this.action, method: this.method });
+
+    // Perform an actual HTTP submission if an `action` was provided. We do
+    // this by synthesising a hidden native <form> so the browser (and Turbo
+    // Drive, if present) handles the request the same way a plain HTML
+    // form would — including body-swap on 4xx/2xx responses.
+    if (this.action) {
+      const nativeForm = document.createElement('form');
+      nativeForm.action = this.action;
+      nativeForm.method = (this.method || 'post').toLowerCase();
+      // Turbo Drive picks this up automatically; harmless otherwise.
+      nativeForm.setAttribute('data-turbo', 'true');
+      nativeForm.style.display = 'none';
+
+      const appendField = (name, val) => {
+        const el = document.createElement('input');
+        el.type = 'hidden'; el.name = name; el.value = val;
+        nativeForm.appendChild(el);
+      };
+      for (const [name, val] of Object.entries(values)) {
+        if (val === null || val === undefined) continue;
+        if (typeof val === 'boolean') {
+          // HTML convention: unchecked checkboxes send nothing.
+          if (val) appendField(name, 'on');
+        } else if (typeof val === 'object') {
+          // e.g. ui-daterange → { from, to } → name_from / name_to
+          for (const [k, v] of Object.entries(val)) {
+            if (v !== null && v !== undefined && v !== '') appendField(`${name}_${k}`, v);
+          }
+        } else {
+          appendField(name, String(val));
+        }
+      }
+      document.body.appendChild(nativeForm);
+      nativeForm.submit();
+    }
     return true;
   }
 

@@ -42,6 +42,22 @@ impl Size {
     }
 }
 
+/// Native `type` attribute on the underlying `<button>`. Defaults to
+/// [`ButtonType::Button`] to match the HTML default that ships in every
+/// modern browser (avoids accidental form-submits from stray buttons).
+/// Use [`ButtonType::Submit`] to have `<ui-form>` treat a click as a submit.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ButtonType { Button, Submit, Reset }
+impl ButtonType {
+    fn as_str(self) -> &'static str {
+        match self {
+            ButtonType::Button => "button",
+            ButtonType::Submit => "submit",
+            ButtonType::Reset  => "reset",
+        }
+    }
+}
+
 /// `<ui-button>` builder.
 ///
 /// Prefer the free function [`button()`] over `Button::default()` — it reads
@@ -53,6 +69,7 @@ pub struct Button {
     icon: Option<String>,
     full: bool,
     disabled: bool,
+    kind: ButtonType,
     children: Vec<Child>,
 }
 
@@ -65,6 +82,7 @@ pub fn button() -> Button {
         icon: None,
         full: false,
         disabled: false,
+        kind: ButtonType::Button,
         children: Vec::new(),
     }
 }
@@ -91,6 +109,15 @@ impl Button {
     pub fn full(mut self)     -> Self { self.full = true; self }
     pub fn disabled(mut self) -> Self { self.disabled = true; self }
 
+    /// Set the underlying `<button type="…">`. Use [`ButtonType::Submit`] on
+    /// the primary button inside a `<ui-form>` so a click is treated as a
+    /// form submit rather than a plain click event.
+    pub fn kind(mut self, t: ButtonType) -> Self { self.kind = t; self }
+    /// Shorthand for `kind(ButtonType::Submit)` — reads well in chains.
+    pub fn submit(self) -> Self { self.kind(ButtonType::Submit) }
+    /// Shorthand for `kind(ButtonType::Reset)`.
+    pub fn reset(self)  -> Self { self.kind(ButtonType::Reset) }
+
     /// Add a single child (icon, badge, span, another component…).
     pub fn add(mut self, child: impl Component + 'static) -> Self {
         self.children.push(Box::new(child)); self
@@ -112,6 +139,7 @@ impl Component for Button {
         let mut attrs = vec![
             Attr::kv("variant", self.variant.as_str()),
             Attr::kv("size",    self.size.as_str()),
+            Attr::kv("type",    self.kind.as_str()),
         ];
         if let Some(ref i) = self.icon { attrs.push(Attr::kv("icon", i.as_str())); }
         if self.full     { attrs.push(Attr::flag("full")); }

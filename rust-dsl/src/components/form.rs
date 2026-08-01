@@ -52,7 +52,8 @@ impl Form {
     /// convention.
     pub fn save_cancel(self, save_label: impl Into<String>) -> Self {
         self.action_btn(button().label("Cancel").variant(Variant::Secondary))
-            .action_btn(button().label(save_label).variant(Variant::Primary).icon(Icons::CHECK))
+            .action_btn(button().label(save_label).variant(Variant::Primary)
+                        .icon(Icons::CHECK).submit())
     }
 
     /// Attach a `form_banner()` at the top of the form. This is the

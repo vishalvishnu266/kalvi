@@ -21,6 +21,9 @@ class UIButton extends LitBaseElement {
     icon:    { type: String, reflect: true },
     full:    { type: Boolean, reflect: true },
     disabled:{ type: Boolean, reflect: true },
+    // "button" (default) | "submit" | "reset" — reflected so <ui-form>'s
+    // click delegation (which looks for [type="submit"]) can find us.
+    type:    { type: String, reflect: true },
   };
 
   static styles = css`
@@ -83,6 +86,7 @@ class UIButton extends LitBaseElement {
     this.icon = '';
     this.full = false;
     this.disabled = false;
+    this.type = 'button';
   }
 
   #onClick(e) {
@@ -101,7 +105,8 @@ class UIButton extends LitBaseElement {
 
   render() {
     return html`
-      <button part="btn" ?disabled=${this.disabled} @click=${this.#onClick}>
+      <button part="btn" type=${this.type || 'button'}
+              ?disabled=${this.disabled} @click=${this.#onClick}>
         ${this.#renderIcon()}<slot></slot>
       </button>
     `;
