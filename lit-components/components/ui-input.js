@@ -48,8 +48,8 @@ class UIInput extends LitBaseElement {
       font-weight: var(--fw-medium);
       letter-spacing: .01em;
     }
-    .wrap { position: relative; display: flex; align-items: center; width: 100%; }
-    .icon-leading, .icon-trailing { position: absolute; top: 50%; transform: translateY(-50%); pointer-events: none; }
+    .wrap { position: relative; display: block; width: 100%; }
+    .icon-leading, .icon-trailing { position: absolute; top: 50%; transform: translateY(-50%); pointer-events: none; width: 18px; height: 18px; }
     .icon-leading { left: var(--space-4); }
     .icon-trailing { right: var(--space-4); }
     input, textarea {
@@ -68,6 +68,8 @@ class UIInput extends LitBaseElement {
       outline: none;
       transition: border-color var(--dur-fast) var(--ease),
                   box-shadow var(--dur-fast) var(--ease);
+      position: relative;
+      z-index: 2;
     }
     :host([icon-leading]) input, :host([icon-leading]) textarea { padding-left: 36px; }
     :host([icon-trailing]) input, :host([icon-trailing]) textarea { padding-right: 36px; }
