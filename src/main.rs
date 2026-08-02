@@ -3,7 +3,8 @@ use tower::Layer;
 use school_erp::health_probes::Readiness;
 use school_erp::session::{connect_sessions, migrate_sessions};
 use school_erp::shutdown::{close_pools, wait_for_signal};
-use school_erp::{build_router, connect_system, migrate_system, AppState, Config};
+use school_erp::{connect_system, migrate_system, AppState, Config};
+use school_erp::http::build_router;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -59,10 +60,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing::info!("HTTP server stopped, closing pools");
     tracing::debug!("main: closing database pools");
 
-    for (tid, pool) in state_for_shutdown.active_tenant_pools().await {
-        tracing::debug!("closing pool for tenant={}", tid);
-        pool.close().await;
-    }
+    // for (tid, pool) in state_for_shutdown.active_tenant_pools().await {
+    //     tracing::debug!("closing pool for tenant={}", tid);
+    //     pool.close().await;
+    // }
 
     close_pools(&system_pool_for_shutdown, config.shutdown_timeout).await;
     session_pool_for_shutdown.close().await;

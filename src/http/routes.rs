@@ -9,9 +9,8 @@ use axum::{
 };
 
 use crate::http::api_routes;
-pub use crate::middleware::tenant::TenantScope;
 use crate::middleware::tracing as wtr;
-use crate::web::{assets as wa, dsl as wd, landing as wl};
+use crate::web::{assets as wa, dsl as wd};
 
 pub type ServiceHttpError = ServiceError;
 
@@ -41,7 +40,6 @@ pub fn build_router(state: AppState, readiness: Readiness) -> Router {
     let tenant_api = api_routes::tenant_api();
 
     let global = Router::new()
-        .route("/", get(wl::index))
         .route("/assets/{*path}", get(wa::serve))
         // lit-components/ folder served straight from disk (dev-friendly).
         .route(

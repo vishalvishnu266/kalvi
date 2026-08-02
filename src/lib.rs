@@ -16,7 +16,8 @@ pub mod web;
 
 pub use config::Config;
 pub use error::RepoError;
-pub use http::{build_router, AppState};
+pub use http::{
+    AppState};
 pub use services::{Actor, RequestCtx, ServiceError, ServiceResult};
 pub use system::{connect_system, migrate_system};
 pub use tenancy::{validate_tenant_id, TenantId};

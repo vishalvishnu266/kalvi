@@ -34,7 +34,7 @@ pub struct AppState {
     pub system: SqlitePool,
     pub sessions: SqlitePool,
     pub config: Config,
-    pub tenants: Arc<RwLock<HashMap<TenantId, SqlitePool>>>,
+    pub tenants: Arc<RwLock<HashMap<String, SqlitePool>>>,
 }
 
 impl AppState {
@@ -46,62 +46,6 @@ impl AppState {
             tenants: Arc::new(RwLock::new(HashMap::new())),
         }
     }
-
-    /// Resolve (or lazily open + migrate) the tenant pool. Cheap on the
-    /// fast path — just a read-lock lookup + clone of the underlying
-    /// `SqlitePool` (which itself is `Arc`-based).
-    pub async fn pool_for(&self, tenant: &str) -> Result<SqlitePool, TenantError> {
-        if let Some(p) = self.tenants.read().await.get(tenant).cloned() {
-            return Ok(p);
-        }
-
-        let path = self.config.tenant_db_path(tenant);
-        if !path.exists() {
-            return Err(TenantError::NotFound(tenant.to_string()));
-        }
-
-        let mut guard = self.tenants.write().await;
-        if let Some(p) = guard.get(tenant).cloned() {
-            return Ok(p);
-        }
-
-        let url = self.config.tenant_db_url(tenant);
-        let pool = db::connect(&url).await?;
-        db::migrate(&pool).await.map_err(TenantError::from)?;
-        guard.insert(tenant.to_string(), pool.clone());
-        Ok(pool)
-    }
-
-    /// Snapshot of currently cached tenant pools (used at shutdown).
-    pub async fn active_tenant_pools(&self) -> Vec<(TenantId, SqlitePool)> {
-        self.tenants
-            .read()
-            .await
-            .iter()
-            .map(|(id, p)| (id.clone(), p.clone()))
-            .collect()
-    }
-
-    /// Create the tenant database, run migrations, and cache the pool.
-    pub async fn provision(&self, tenant: TenantId) -> crate::error::RepoResult<()> {
-        if self.tenants.read().await.contains_key(&tenant) {
-            return Ok(());
-        }
-        let url = self.config.tenant_db_url(&tenant);
-        let pool = db::connect(&url).await?;
-        db::migrate(&pool).await?;
-        let mut guard = self.tenants.write().await;
-        guard.entry(tenant).or_insert(pool);
-        Ok(())
-    }
-
-    /// Drop the cached pool for a tenant (called when a tenant is
-    /// disabled or deleted). The physical database file is left intact.
-    pub async fn evict(&self, tenant: &str) {
-        if let Some(p) = self.tenants.write().await.remove(tenant) {
-            p.close().await;
-        }
-    }
 }
 
-pub use routes::{build_router, ServiceHttpError, TenantScope};
+pub use routes::{build_router, ServiceHttpError};
