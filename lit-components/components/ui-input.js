@@ -23,16 +23,18 @@ import { LitBaseElement, html, css, nothing } from './base.js';
  */
 class UIInput extends LitBaseElement {
   static properties = {
-    label:        { type: String, reflect: true },
-    type:         { type: String, reflect: true },
-    name:         { type: String, reflect: true },
-    value:        { type: String },
-    placeholder:  { type: String, reflect: true },
-    hint:         { type: String, reflect: true },
-    iconLeading:  { type: String, reflect: true, attribute: 'icon-leading' },
-    iconTrailing: { type: String, reflect: true, attribute: 'icon-trailing' },
-    required:     { type: Boolean, reflect: true },
-    invalid:      { type: Boolean, reflect: true },
+    label:            { type: String, reflect: true },
+    type:             { type: String, reflect: true },
+    name:             { type: String, reflect: true },
+    value:            { type: String },
+    placeholder:      { type: String, reflect: true },
+    hint:             { type: String, reflect: true },
+    iconLeading:      { type: String, reflect: true, attribute: 'icon-leading' },
+    iconTrailing:     { type: String, reflect: true, attribute: 'icon-trailing' },
+    iconLeadingSvg:   { type: String, reflect: true, attribute: 'icon-leading-svg' },
+    iconTrailingSvg:  { type: String, reflect: true, attribute: 'icon-trailing-svg' },
+    required:         { type: Boolean, reflect: true },
+    invalid:          { type: Boolean, reflect: true },
   };
 
   static styles = css`
@@ -96,6 +98,8 @@ class UIInput extends LitBaseElement {
     this.hint = '';
     this.iconLeading = '';
     this.iconTrailing = '';
+    this.iconLeadingSvg = '';
+    this.iconTrailingSvg = '';
     this.required = false;
     this.invalid = false;
   }
@@ -138,15 +142,20 @@ class UIInput extends LitBaseElement {
     return html`<ui-icon class="${className}" name=${iconName}></ui-icon>`;
   }
 
+  #renderSvgIcon(svgPath, className) {
+    if (!svgPath) return nothing;
+    return html`<svg class="${className}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">${html([svgPath])}</svg>`;
+  }
+
   render() {
     return html`
       ${this.label
         ? html`<label>${this.label}${this.required ? ' *' : ''}</label>`
         : nothing}
       <div class="wrap">
-        ${this.#renderIcon(this.iconLeading, 'icon-leading')}
+        ${this.iconLeading ? this.#renderIcon(this.iconLeading, 'icon-leading') : this.#renderSvgIcon(this.iconLeadingSvg, 'icon-leading')}
         ${this.#renderField()}
-        ${this.#renderIcon(this.iconTrailing, 'icon-trailing')}
+        ${this.iconTrailing ? this.#renderIcon(this.iconTrailing, 'icon-trailing') : this.#renderSvgIcon(this.iconTrailingSvg, 'icon-trailing')}
       </div>
       ${this.hint ? html`<div class="hint">${this.hint}</div>` : nothing}
     `;

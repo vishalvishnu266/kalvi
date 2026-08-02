@@ -130,24 +130,12 @@ impl Component for Input {
         if let Some(ref v) = self.hint        { attrs.push(Attr::kv("hint",        v.as_str())); }
         if let Some(ref i) = self.icon_leading  { attrs.push(Attr::kv("icon-leading",  i.as_str())); }
         if let Some(ref i) = self.icon_trailing { attrs.push(Attr::kv("icon-trailing", i.as_str())); }
+        if let Some(ref s) = self.icon_leading_svg  { attrs.push(Attr::kv("icon-leading-svg",  s.as_str())); }
+        if let Some(ref s) = self.icon_trailing_svg { attrs.push(Attr::kv("icon-trailing-svg", s.as_str())); }
         if self.required { attrs.push(Attr::flag("required")); }
         if self.invalid  { attrs.push(Attr::flag("invalid")); }
 
-        // Build content with inline SVG icons if provided
-        let mut body = String::new();
-        if let Some(ref svg) = self.icon_leading_svg {
-            body.push_str(&format!(r#"<svg class="icon-leading" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:var(--space-4);top:50%;transform:translateY(-50%);width:18px;height:18px;pointer-events:none;">{}</svg>"#, svg));
-        }
-        if let Some(ref svg) = self.icon_trailing_svg {
-            body.push_str(&format!(r#"<svg class="icon-trailing" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;right:var(--space-4);top:50%;transform:translateY(-50%);width:18px;height:18px;pointer-events:none;">{}</svg>"#, svg));
-        }
-
-        if body.is_empty() {
-            // ui-input has no slotted children — always self-closing style.
-            wrap("ui-input", &attrs, "")
-        } else {
-            // With inline SVG, wrap as a container
-            wrap("ui-input", &attrs, &body)
-        }
+        // ui-input has no slotted children — always self-closing style.
+        wrap("ui-input", &attrs, "")
     }
 }
