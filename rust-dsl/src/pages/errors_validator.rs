@@ -65,6 +65,7 @@ pub fn build(
         .add(input().label("Student email").name("email").required()
              .kind(InputType::Email)
              .value(values.email.unwrap_or(""))
+             .icon_leading_svg(r#"<path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><polyline points="22 6 12 13 2 6"/>"#)
              .maybe_error(errors.email))
         .add(input().label("Guardian email").name("g_email").required()
              .kind(InputType::Email)
