@@ -1,4 +1,4 @@
-import { LitBaseElement, html, css, nothing } from './base.js';
+import { LitBaseElement, html, css, nothing, unsafeHTML } from './base.js';
 
 /**
  * <ui-input label="Full name" placeholder="e.g. Aarav" name="fullName" required></ui-input>
@@ -146,7 +146,8 @@ class UIInput extends LitBaseElement {
 
   #renderSvgIcon(svgPath, className) {
     if (!svgPath) return nothing;
-    return html`<svg class="${className}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">${html([svgPath])}</svg>`;
+    // Use unsafeHTML for SVG content since it contains markup
+    return html`<svg class="${className}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">${unsafeHTML(svgPath)}</svg>`;
   }
 
   render() {
