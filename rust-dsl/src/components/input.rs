@@ -11,7 +11,7 @@
 //!     .render();
 //! ```
 
-use crate::components::icon::IntoIconName;
+use crate::components::icon::{IntoIconName, IconSvg};
 use crate::core::{wrap, Attr, Component};
 
 /// The `type` attribute of an input.
@@ -43,6 +43,8 @@ pub struct Input {
     invalid: bool,
     icon_leading: Option<String>,
     icon_trailing: Option<String>,
+    icon_leading_svg: Option<String>,
+    icon_trailing_svg: Option<String>,
 }
 
 /// Start building a new input.
@@ -52,6 +54,7 @@ pub fn input() -> Input {
         value: None, placeholder: None, hint: None,
         required: false, invalid: false,
         icon_leading: None, icon_trailing: None,
+        icon_leading_svg: None, icon_trailing_svg: None,
     }
 }
 
@@ -77,6 +80,14 @@ impl Input {
     ///   * a `&'static str` or `String` for one-off / dynamic names.
     pub fn icon_trailing(mut self, name: impl IntoIconName) -> Self {
         self.icon_trailing = Some(name.into_icon_name()); self
+    }
+    /// Attach a leading inline SVG icon.
+    pub fn icon_leading_svg(mut self, svg: impl Into<String>) -> Self {
+        self.icon_leading_svg = Some(svg.into()); self
+    }
+    /// Attach a trailing inline SVG icon.
+    pub fn icon_trailing_svg(mut self, svg: impl Into<String>) -> Self {
+        self.icon_trailing_svg = Some(svg.into()); self
     }
 
     /// Attach a **field-level error message**. Convention:
@@ -122,7 +133,21 @@ impl Component for Input {
         if self.required { attrs.push(Attr::flag("required")); }
         if self.invalid  { attrs.push(Attr::flag("invalid")); }
 
-        // ui-input has no slotted children — always self-closing style.
-        wrap("ui-input", &attrs, "")
+        // Build content with inline SVG icons if provided
+        let mut body = String::new();
+        if let Some(ref svg) = self.icon_leading_svg {
+            body.push_str(&format!(r#"<svg class="icon-leading" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:var(--space-4);top:50%;transform:translateY(-50%);width:18px;height:18px;pointer-events:none;">{}</svg>"#, svg));
+        }
+        if let Some(ref svg) = self.icon_trailing_svg {
+            body.push_str(&format!(r#"<svg class="icon-trailing" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;right:var(--space-4);top:50%;transform:translateY(-50%);width:18px;height:18px;pointer-events:none;">{}</svg>"#, svg));
+        }
+
+        if body.is_empty() {
+            // ui-input has no slotted children — always self-closing style.
+            wrap("ui-input", &attrs, "")
+        } else {
+            // With inline SVG, wrap as a container
+            wrap("ui-input", &attrs, &body)
+        }
     }
 }

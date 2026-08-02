@@ -46,6 +46,22 @@ impl IntoIconName for &'static str    { fn into_icon_name(self) -> String { self
 impl IntoIconName for String          { fn into_icon_name(self) -> String { self               } }
 impl IntoIconName for &String         { fn into_icon_name(self) -> String { self.clone()       } }
 
+/// Raw SVG path data — allows passing inline SVG paths directly instead of icon names.
+///
+/// Use this for custom or one-off icons where you have the SVG path available:
+/// ```ignore
+/// icon_svg("<path d=\"M12 2v20\"/>").size(24)
+/// ```
+#[derive(Debug, Clone)]
+pub struct IconSvg(pub String);
+
+impl IconSvg {
+    /// Create a new inline SVG from a path string.
+    pub fn from(svg: impl Into<String>) -> Self {
+        IconSvg(svg.into())
+    }
+}
+
 /// Central catalogue of icons **that actually exist** in the underlying
 /// `<ui-icon>` component (see `lit-components/components/ui-icon.js`,
 /// the `PATHS` map).
@@ -120,6 +136,9 @@ pub mod Icons {
     pub const FILE:      IconName = IconName("file");
     pub const STAR:      IconName = IconName("star");
 
+    // ── Visibility ──
+    pub const EYE:       IconName = IconName("eye");
+
     // Legacy alias so old code compiles — `DASHBOARD` maps to the closest
     // available icon (the grid).
     pub const DASHBOARD: IconName = GRID;
@@ -136,6 +155,47 @@ pub fn icon(name: impl IntoIconName) -> Icon {
 
 impl Icon {
     pub fn size(mut self, px: u32) -> Self { self.size = px; self }
+}
+
+/// Inline SVG icon component — renders raw SVG content directly.
+///
+/// Use this for custom SVG paths that aren't in the icon catalogue:
+/// ```ignore
+/// use lit_ui::prelude::*;
+///
+/// icon_svg("<path d=\"M12 2v20\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/>")
+///     .size(24)
+///     .render()
+/// ```
+pub struct IconSvgComponent { svg: String, size: u32 }
+
+/// Start building an inline SVG icon.
+pub fn icon_svg(svg: impl Into<String>) -> IconSvgComponent {
+    IconSvgComponent { svg: svg.into(), size: 18 }
+}
+
+impl IconSvgComponent {
+    pub fn size(mut self, px: u32) -> Self { self.size = px; self }
+}
+
+impl Component for IconSvgComponent {
+    fn render(&self) -> String {
+        let px = self.size;
+        wrap("svg",
+            &[
+                Attr::kv("viewBox", "0 0 24 24"),
+                Attr::kv("fill", "none"),
+                Attr::kv("stroke", "currentColor"),
+                Attr::kv("stroke-width", "1.75"),
+                Attr::kv("stroke-linecap", "round"),
+                Attr::kv("stroke-linejoin", "round"),
+                Attr::kv("width", px.to_string()),
+                Attr::kv("height", px.to_string()),
+                Attr::kv("style", "display:inline-block;vertical-align:middle;"),
+            ],
+            &self.svg
+        )
+    }
 }
 
 impl Component for Icon {
