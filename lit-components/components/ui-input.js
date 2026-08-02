@@ -6,14 +6,16 @@ import { LitBaseElement, html, css, nothing } from './base.js';
  * <ui-input type="textarea" label="Notes" hint="Max 500 chars"></ui-input>
  *
  * DSL surface:
- *   - label       : string
- *   - type        : "text" (default) | "password" | "email" | "number" | "textarea"
- *   - name        : form field name
- *   - value       : current value
- *   - placeholder : placeholder text
- *   - hint        : helper / error text below the field
- *   - required    : boolean
- *   - invalid     : boolean, apply the error styling
+ *   - label         : string
+ *   - type          : "text" (default) | "password" | "email" | "number" | "textarea"
+ *   - name          : form field name
+ *   - value         : current value
+ *   - placeholder   : placeholder text
+ *   - hint          : helper / error text below the field
+ *   - icon-leading  : icon name (e.g. "search")
+ *   - icon-trailing : icon name (e.g. "check")
+ *   - required      : boolean
+ *   - invalid       : boolean, apply the error styling
  *
  * Emits:
  *   - "ui-input"  on every keystroke  ({ value, name })
@@ -21,14 +23,16 @@ import { LitBaseElement, html, css, nothing } from './base.js';
  */
 class UIInput extends LitBaseElement {
   static properties = {
-    label:       { type: String, reflect: true },
-    type:        { type: String, reflect: true },
-    name:        { type: String, reflect: true },
-    value:       { type: String },
-    placeholder: { type: String, reflect: true },
-    hint:        { type: String, reflect: true },
-    required:    { type: Boolean, reflect: true },
-    invalid:     { type: Boolean, reflect: true },
+    label:        { type: String, reflect: true },
+    type:         { type: String, reflect: true },
+    name:         { type: String, reflect: true },
+    value:        { type: String },
+    placeholder:  { type: String, reflect: true },
+    hint:         { type: String, reflect: true },
+    iconLeading:  { type: String, reflect: true, attribute: 'icon-leading' },
+    iconTrailing: { type: String, reflect: true, attribute: 'icon-trailing' },
+    required:     { type: Boolean, reflect: true },
+    invalid:      { type: Boolean, reflect: true },
   };
 
   static styles = css`
@@ -42,7 +46,10 @@ class UIInput extends LitBaseElement {
       font-weight: var(--fw-medium);
       letter-spacing: .01em;
     }
-    .wrap { position: relative; display: block; width: 100%; }
+    .wrap { position: relative; display: flex; align-items: center; width: 100%; }
+    .icon-leading, .icon-trailing { position: absolute; top: 50%; transform: translateY(-50%); pointer-events: none; }
+    .icon-leading { left: var(--space-4); }
+    .icon-trailing { right: var(--space-4); }
     input, textarea {
       display: block;
       width: 100%;
@@ -60,6 +67,8 @@ class UIInput extends LitBaseElement {
       transition: border-color var(--dur-fast) var(--ease),
                   box-shadow var(--dur-fast) var(--ease);
     }
+    :host([icon-leading]) input, :host([icon-leading]) textarea { padding-left: 36px; }
+    :host([icon-trailing]) input, :host([icon-trailing]) textarea { padding-right: 36px; }
     textarea {
       padding: var(--space-3) var(--space-4);
       height: auto; min-height: 88px; resize: vertical;
@@ -85,6 +94,8 @@ class UIInput extends LitBaseElement {
     this.value = '';
     this.placeholder = '';
     this.hint = '';
+    this.iconLeading = '';
+    this.iconTrailing = '';
     this.required = false;
     this.invalid = false;
   }
@@ -122,12 +133,21 @@ class UIInput extends LitBaseElement {
       >`;
   }
 
+  #renderIcon(iconName, className) {
+    if (!iconName) return nothing;
+    return html`<ui-icon class="${className}" name=${iconName}></ui-icon>`;
+  }
+
   render() {
     return html`
       ${this.label
         ? html`<label>${this.label}${this.required ? ' *' : ''}</label>`
         : nothing}
-      <div class="wrap">${this.#renderField()}</div>
+      <div class="wrap">
+        ${this.#renderIcon(this.iconLeading, 'icon-leading')}
+        ${this.#renderField()}
+        ${this.#renderIcon(this.iconTrailing, 'icon-trailing')}
+      </div>
       ${this.hint ? html`<div class="hint">${this.hint}</div>` : nothing}
     `;
   }

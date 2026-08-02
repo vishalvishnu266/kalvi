@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Sunrise K-12 · Transactions</title>
+  <link rel="stylesheet" href="assets/tokens.css">
+  <link rel="stylesheet" href="assets/global.css">
+  <script type="module" src="components/index.js"></script>
+  <style>
+    .filter-bar {
+      display: flex; flex-wrap: wrap; align-items: end;
+      gap: var(--space-3);
+      padding: var(--space-4);
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-4);
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+    .filter-bar > * { min-width: 0; }
+    .filter-bar .grow { flex: 1 1 200px; min-width: 180px; }
+    .filter-bar .actions { margin-left: auto; display: flex; gap: 8px; }
+    @media (max-width: 720px) {
+      .filter-bar .actions { margin-left: 0; width: 100%; }
+    }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: var(--space-4); }
+    .chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 10px; font-size: var(--fs-xs); font-weight: var(--fw-medium);
+      background: var(--color-primary-soft); color: var(--color-primary);
+      border-radius: var(--radius-pill); cursor: pointer;
+      border: 1px solid transparent;
+    }
+    .chip button { background: none; border: 0; color: inherit; cursor: pointer; font-size: 12px; padding: 0; }
+    .amount { font-variant-numeric: tabular-nums; font-weight: var(--fw-semibold); }
+  </style>
+</head>
+<body>
+  <app-shell page-title="Transactions" active="transactions">
+
+    <section style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-4); margin-bottom: var(--space-6);">
+      <ui-stat label="This month"    value="$48,320" delta="+6.4%" trend="up"   icon="wallet"></ui-stat>
+      <ui-stat label="Refunded"      value="$1,240"  delta="-2.1%" trend="down" icon="upload"></ui-stat>
+      <ui-stat label="Failed"        value="12"      delta="+3"    trend="up"   icon="x"></ui-stat>
+      <ui-stat label="Pending"       value="$3,900"  delta="0%"    trend="flat" icon="clipboard"></ui-stat>
+    </section>
+
+    <div class="filter-bar">
+      <ui-input class="grow" label="Search" placeholder="Payer, ref no. or amount…"></ui-input>
+
+      <ui-daterange label="Date range" from="2026-07-01" to="2026-07-28"></ui-daterange>
+
+      <div>
+        <label style="display:block; font-size:var(--fs-xs); color:var(--color-text-muted); margin-bottom:6px; font-weight:500;">Status</label>
+        <ui-segmented value="all">
+          <button value="all">All</button>
+          <button value="success">Success</button>
+          <button value="pending">Pending</button>
+          <button value="failed">Failed</button>
+        </ui-segmented>
+      </div>
+
+      <div>
+        <label style="display:block; font-size:var(--fs-xs); color:var(--color-text-muted); margin-bottom:6px; font-weight:500;">Method</label>
+        <ui-segmented value="any">
+          <button value="any">Any</button>
+          <button value="card">Card</button>
+          <button value="bank">Bank</button>
+          <button value="cash">Cash</button>
+        </ui-segmented>
+      </div>
+
+      <div style="min-width: 220px;">
+        <ui-select label="Grade" placeholder="All grades" clearable multiple searchable>
+          <option value="1-A">Grade 1-A</option>
+          <option value="1-B">Grade 1-B</option>
+          <option value="3-A">Grade 3-A</option>
+          <option value="5-A">Grade 5-A</option>
+          <option value="5-B">Grade 5-B</option>
+          <option value="9-C">Grade 9-C</option>
+          <option value="10-A">Grade 10-A</option>
+          <option value="12-A">Grade 12-A</option>
+        </ui-select>
+      </div>
+
+      <div class="actions">
+        <ui-button variant="secondary" icon="download" onclick="toast('Export queued', { tone:'info', desc:'CSV will be emailed shortly.' })">Export</ui-button>
+        <ui-button icon="plus" onclick="toast('New transaction saved', { tone:'success' })">New</ui-button>
+      </div>
+    </div>
+
+    <div class="chips">
+      <span class="chip">Jul 1 – Jul 28 <button>✕</button></span>
+      <span class="chip">Status: All <button>✕</button></span>
+      <span class="chip">Grade: 5-B <button>✕</button></span>
+    </div>
+
+    <ui-card>
+      <ui-list-item clickable title="TXN-88214 · Aarav Kumar" subtitle="Card · Aug tuition · Jul 24, 09:14">
+        <ui-avatar slot="leading" name="Aarav Kumar"></ui-avatar>
+        <div slot="trailing" style="display:flex; align-items:center; gap:var(--space-3);">
+          <span class="amount">+$420.00</span>
+          <ui-badge tone="success" dot>Success</ui-badge>
+        </div>
+      </ui-list-item>
+      <ui-list-item clickable title="TXN-88213 · Meera Sharma" subtitle="Bank · Aug tuition · Jul 24, 08:52">
+        <ui-avatar slot="leading" name="Meera Sharma"></ui-avatar>
+        <div slot="trailing" style="display:flex; align-items:center; gap:var(--space-3);">
+          <span class="amount">+$380.00</span>
+          <ui-badge tone="warning" dot>Pending</ui-badge>
+        </div>
+      </ui-list-item>
+      <ui-list-item clickable title="TXN-88212 · Rohan Iyer" subtitle="Card · Jul tuition · Jul 23, 22:03">
+        <ui-avatar slot="leading" name="Rohan Iyer"></ui-avatar>
+        <div slot="trailing" style="display:flex; align-items:center; gap:var(--space-3);">
+          <span class="amount">+$540.00</span>
+          <ui-badge tone="danger" dot>Failed</ui-badge>
+        </div>
+      </ui-list-item>
+      <ui-list-item clickable title="TXN-88211 · Zara Fernandes" subtitle="Cash · Bus fee · Jul 23, 15:41">
+        <ui-avatar slot="leading" name="Zara Fernandes"></ui-avatar>
+        <div slot="trailing" style="display:flex; align-items:center; gap:var(--space-3);">
+          <span class="amount">+$60.00</span>
+          <ui-badge tone="success" dot>Success</ui-badge>
+        </div>
+      </ui-list-item>
+      <ui-list-item clickable title="TXN-88210 · Ishaan Patel" subtitle="Card · Library fine · Jul 22, 11:12">
+        <ui-avatar slot="leading" name="Ishaan Patel"></ui-avatar>
+        <div slot="trailing" style="display:flex; align-items:center; gap:var(--space-3);">
+          <span class="amount">+$5.00</span>
+          <ui-badge tone="success" dot>Success</ui-badge>
+        </div>
+      </ui-list-item>
+      <ui-list-item clickable title="TXN-88209 · Priya Nair" subtitle="Refund · Uniform return · Jul 21, 14:00">
+        <ui-avatar slot="leading" name="Priya Nair"></ui-avatar>
+        <div slot="trailing" style="display:flex; align-items:center; gap:var(--space-3);">
+          <span class="amount" style="color:var(--color-danger)">-$25.00</span>
+          <ui-badge>Refund</ui-badge>
+        </div>
+      </ui-list-item>
+    </ui-card>
+
+    <div class="row" style="justify-content:space-between; margin-top: var(--space-4);">
+      <span class="muted" style="font-size: var(--fs-xs);">Showing 6 of 148 transactions</span>
+      <div class="row">
+        <ui-button size="sm" variant="secondary">Previous</ui-button>
+        <ui-button size="sm" variant="secondary">Next</ui-button>
+      </div>
+    </div>
+
+  </app-shell>
+</body>
+</html>
