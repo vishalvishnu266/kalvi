@@ -34,6 +34,38 @@
 
 import { LitBaseElement, html, css, nothing } from './base.js';
 
+// ---- Lifecycle logging -----------------------------------------------------
+// Structured console logs for the SSE turn lifecycle. Enable / disable via:
+//   localStorage.setItem('ui-copilot:debug', '1')   // on
+//   localStorage.removeItem('ui-copilot:debug')     // off  (default: on)
+// Kept as a small helper so the logs are consistent + greppable in devtools.
+function _logEnabled() {
+  try {
+    const v = localStorage.getItem('ui-copilot:debug');
+    return v === null ? true : v === '1' || v === 'true';
+  } catch { return true; }
+}
+const LOG = (phase, extra = {}) => {
+  if (!_logEnabled()) return;
+  // %c styling makes the phases easy to scan in the console.
+  const color = ({
+    'session:new':     'color:#7c3aed',
+    'session:reuse':   'color:#7c3aed',
+    'session:stale':   'color:#ea580c',
+    'stream:open':     'color:#0ea5e9;font-weight:600',
+    'stream:event':    'color:#64748b',
+    'stream:action':   'color:#0891b2',
+    'stream:step':     'color:#64748b',
+    'stream:token':    'color:#94a3b8',
+    'stream:close':    'color:#16a34a;font-weight:600',
+    'stream:abort':    'color:#f59e0b;font-weight:600',
+    'stream:error':    'color:#dc2626;font-weight:600',
+  })[phase] || 'color:#475569';
+  const t = new Date().toISOString().split('T')[1].replace('Z','');
+  // eslint-disable-next-line no-console
+  console.log(`%c[ui-copilot ${t}] ${phase}`, color, extra);
+};
+
 // ---- Client-side "UI tools" the agent can invoke ---------------------------
 // Keep tiny and predictable. Every tool takes a plain object of args.
 const TOOLS = {
@@ -344,15 +376,28 @@ class UICopilot extends LitBaseElement {
       box-shadow: 0 0 0 3px var(--color-primary-ring, rgba(10,132,255,.28));
       background: var(--color-surface, #fff);
     }
-    .composer .send {
+    .composer .send,
+    .composer .stop {
       appearance: none; border: 0; cursor: pointer;
       width: 40px; height: 40px; border-radius: 50%;
-      background: var(--color-primary, #0a84ff);
       color: var(--color-primary-contrast, #fff);
       display: grid; place-items: center;
-      transition: opacity .15s;
+      transition: transform .12s, background .15s;
     }
-    .composer .send[disabled] { opacity: .5; cursor: default; }
+    .composer .send  { background: var(--color-primary, #0a84ff); }
+    .composer .stop  {
+      background: var(--color-danger, #ff3b30);
+      box-shadow: 0 0 0 0 var(--color-danger, #ff3b30);
+      animation: pulse-stop 1.4s infinite;
+    }
+    .composer .send:active,
+    .composer .stop:active { transform: scale(0.94); }
+    .composer .send[disabled] { opacity: .5; cursor: default; animation: none; }
+    @keyframes pulse-stop {
+      0%   { box-shadow: 0 0 0 0   color-mix(in srgb, var(--color-danger, #ff3b30) 55%, transparent); }
+      70%  { box-shadow: 0 0 0 10px color-mix(in srgb, var(--color-danger, #ff3b30) 0%,  transparent); }
+      100% { box-shadow: 0 0 0 0   color-mix(in srgb, var(--color-danger, #ff3b30) 0%,  transparent); }
+    }
   `;
 
   constructor() {
@@ -372,7 +417,12 @@ class UICopilot extends LitBaseElement {
 
   connectedCallback() {
     super.connectedCallback();
-    this._esc = (e) => { if (e.key === 'Escape' && this.open) this._close(); };
+    // Esc: if a turn is in flight, cancel it first; otherwise close the panel.
+    this._esc = (e) => {
+      if (e.key !== 'Escape' || !this.open) return;
+      if (this.busy) { this.cancel(); e.preventDefault(); return; }
+      this._close();
+    };
     document.addEventListener('keydown', this._esc);
 
     // Global keybind: Ctrl/Cmd + J opens the copilot from anywhere.
@@ -427,13 +477,16 @@ class UICopilot extends LitBaseElement {
           if (h.ok) {
             this._messagesEl().innerHTML = await h.text();
             this._scrollBottom();
+            LOG('session:reuse', { session_id: this._sessionId, hydrated: true });
             return;
           }
         } catch (_) { /* fall through to create a new session */ }
       } else {
+        LOG('session:reuse', { session_id: this._sessionId, hydrated: false });
         return;
       }
       // Stale id → drop it and mint a fresh one.
+      LOG('session:stale', { session_id: this._sessionId });
       this._sessionId = null;
       try { localStorage.removeItem(this._storageKey); } catch (_) {}
     }
@@ -445,9 +498,11 @@ class UICopilot extends LitBaseElement {
       const j = await r.json();
       this._sessionId = j.session_id;
       try { localStorage.setItem(this._storageKey, this._sessionId); } catch (_) {}
+      LOG('session:new', { session_id: this._sessionId });
     } catch (err) {
       console.warn('[ui-copilot] session init failed; running detached', err);
       this._sessionId = 'local-' + Math.random().toString(36).slice(2);
+      LOG('session:new', { session_id: this._sessionId, detached: true });
     }
   }
 
@@ -479,8 +534,13 @@ class UICopilot extends LitBaseElement {
        </div>`);
     this._scrollBottom();
 
+    const turnId = 't-' + Math.random().toString(36).slice(2, 8);
+    const t0 = performance.now();
+    let closedByAbort = false;
+
     try {
       this._abort = new AbortController();
+      LOG('stream:open', { turn_id: turnId, session_id: this._sessionId, prompt_len: prompt.length });
       const resp = await fetch(this.streamUrl, {
         method: 'POST',
         signal: this._abort.signal,
@@ -491,13 +551,24 @@ class UICopilot extends LitBaseElement {
         body: JSON.stringify({ session_id: this._sessionId, prompt }),
       });
       if (!resp.ok || !resp.body) throw new Error('stream http ' + resp.status);
-      await this._readSse(resp.body);
+      await this._readSse(resp.body, turnId);
     } catch (err) {
-      if (err.name !== 'AbortError') {
+      if (err.name === 'AbortError') {
+        closedByAbort = true;
+      } else {
+        LOG('stream:error', { turn_id: turnId, message: err.message });
         console.error('[ui-copilot] stream failed', err);
         this._pushError(err.message || 'Failed to reach copilot');
       }
     } finally {
+      const dur_ms = Math.round(performance.now() - t0);
+      LOG('stream:close', {
+        turn_id: turnId,
+        session_id: this._sessionId,
+        dur_ms,
+        by: closedByAbort ? 'client-abort' : 'server-close',
+      });
+      this._abort = null;
       this.busy = false;
       this.step = null;
       // Clean up any leftover pending placeholder.
@@ -507,19 +578,39 @@ class UICopilot extends LitBaseElement {
     }
   }
 
-  async _readSse(body) {
+  /// Public: user-invoked cancellation of the current streaming turn.
+  cancel() {
+    if (!this._abort) return;
+    LOG('stream:abort', { session_id: this._sessionId, by: 'user' });
+    this._abort.abort();
+  }
+
+  async _readSse(body, turnId) {
+    // Reads until either the server closes (normal end-of-turn — the
+    // spawned task drops its Sender) or `_handleEvent` calls
+    // `this._abort.abort()` in response to `message_end`/`error`. Either
+    // way we exit cleanly; no long-lived connection remains.
     const reader = body.getReader();
     const dec = new TextDecoder();
     let buf = '';
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      buf += dec.decode(value, { stream: true });
-      let sep;
-      while ((sep = buf.indexOf('\n\n')) >= 0) {
-        this._handleEvent(buf.slice(0, sep));
-        buf = buf.slice(sep + 2);
+    this._turnId = turnId;
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        let sep;
+        while ((sep = buf.indexOf('\n\n')) >= 0) {
+          this._handleEvent(buf.slice(0, sep));
+          buf = buf.slice(sep + 2);
+        }
       }
+    } catch (err) {
+      // AbortError is expected on message_end — swallow.
+      if (err?.name !== 'AbortError') throw err;
+    } finally {
+      try { reader.releaseLock(); } catch (_) {}
+      this._turnId = null;
     }
   }
 
@@ -534,6 +625,22 @@ class UICopilot extends LitBaseElement {
     const data = dataLines.join('\n');
     const msgs = this._messagesEl();
     if (!msgs) return;
+
+    // Compact per-event log. `token` is high-volume so we downsample.
+    if (event === 'token') {
+      this._tokCount = (this._tokCount || 0) + 1;
+      if (this._tokCount === 1 || this._tokCount % 25 === 0) {
+        LOG('stream:token', { turn_id: this._turnId, seen: this._tokCount });
+      }
+    } else if (event === 'ui_action') {
+      let a; try { a = JSON.parse(data); } catch { a = { raw: data }; }
+      LOG('stream:action', { turn_id: this._turnId, action: a.action, ...a });
+    } else if (event === 'step') {
+      let s; try { s = JSON.parse(data); } catch { s = {}; }
+      LOG('stream:step', { turn_id: this._turnId, ...s });
+    } else {
+      LOG('stream:event', { turn_id: this._turnId, event, bytes: data.length });
+    }
 
     switch (event) {
       case 'message_start': {
@@ -581,13 +688,22 @@ class UICopilot extends LitBaseElement {
         break;
       }
       case 'message_end': {
-        // No-op for now; hook for analytics / logging.
+        // Turn complete → proactively close the SSE connection so we don't
+        // hold an idle HTTP request open waiting for the server to FIN.
+        // The server will also close from its side (task ends → tx drops),
+        // but aborting here means the browser reclaims the connection slot
+        // instantly on any navigation or subsequent turn.
+        LOG('stream:event', { turn_id: this._turnId, event: 'message_end' });
+        this._abort?.abort();
         break;
       }
       case 'error': {
         let msg = data;
         try { msg = JSON.parse(data).message ?? data; } catch {}
+        LOG('stream:error', { turn_id: this._turnId, message: msg });
         this._pushError(msg);
+        // Fatal for this turn — release the socket immediately.
+        this._abort?.abort();
         break;
       }
       default: /* ignore unknown events */
@@ -671,13 +787,23 @@ class UICopilot extends LitBaseElement {
                     placeholder="Ask, navigate, or automate…  (Enter to send, Shift+Enter for newline)"
                     @keydown=${(e) => this._onKeydown(e)}
                     @input=${(e) => this._autosize(e.target)}></textarea>
-          <button class="send" ?disabled=${this.busy} @click=${() => this._send()}
-                  title="Send (Enter)" aria-label="Send">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
-            </svg>
-          </button>
+          ${this.busy ? html`
+            <button class="stop" @click=${() => this.cancel()}
+                    title="Stop this turn (Esc)" aria-label="Stop">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"
+                   aria-hidden="true">
+                <rect x="6" y="6" width="12" height="12" rx="2"/>
+              </svg>
+            </button>
+          ` : html`
+            <button class="send" @click=${() => this._send()}
+                    title="Send (Enter)" aria-label="Send">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+              </svg>
+            </button>
+          `}
         </div>
       </aside>
     `;

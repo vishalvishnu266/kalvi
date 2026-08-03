@@ -40,7 +40,7 @@ use axum::{
     extract::Path,
     http::StatusCode,
     response::{
-        sse::{Event, KeepAlive, Sse},
+        sse::{Event, Sse},
         Html, IntoResponse, Json, Response,
     },
     routing::{get, post},
@@ -49,8 +49,10 @@ use axum::{
 use futures::stream::Stream;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
+use tokio::time::Instant;
 use tokio_stream::wrappers::ReceiverStream;
 use tokio_stream::StreamExt as _;
+use tracing::{debug, info, warn};
 
 // ---------------------------------------------------------------------------
 // State — in-memory "session store" so history hydrates across page reloads.
@@ -133,7 +135,9 @@ async fn history(
     Extension(st): Extension<CopilotState>,
     Path(sid): Path<String>,
 ) -> Html<String> {
-    Html(st.render_history(&sid))
+    let html = st.render_history(&sid);
+    debug!(target: "copilot", session_id = %sid, bytes = html.len(), "history:hydrate");
+    Html(html)
 }
 
 // ---------------------------------------------------------------------------
@@ -151,8 +155,21 @@ async fn message(
     Json(body): Json<SendMsg>,
 ) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, Response> {
     if body.prompt.trim().is_empty() {
+        warn!(target: "copilot", "message:reject empty prompt");
         return Err((StatusCode::BAD_REQUEST, "empty prompt").into_response());
     }
+
+    // Short opaque turn id — same value logged on both sides of every event
+    // in this turn so you can grep a single conversation in `journalctl -f`.
+    let turn_id = format!("t-{}", &uuid::Uuid::new_v4().simple().to_string()[..8]);
+
+    info!(
+        target: "copilot",
+        %turn_id,
+        session_id = %body.session_id,
+        prompt_len = body.prompt.len(),
+        "stream:open"
+    );
 
     // Persist the user turn so history hydrates on reload.
     st.append(
@@ -163,21 +180,58 @@ async fn message(
         ),
     );
 
-    // 32 events buffer is plenty for the mock scenarios below.
+    // Turn-scoped SSE: the channel exists ONLY for the duration of this
+    // scenario. When the spawned task finishes, `EventEmitter` (and its
+    // `Sender`) is dropped → the `Receiver` closes → the `Stream` ends →
+    // axum sends the response epilogue and closes the connection.
+    //
+    // No `KeepAlive` — we do NOT want an idle heartbeat holding the socket
+    // open after the agent is done. One request = one stream = one turn.
     let (tx, rx) = mpsc::channel::<Event>(32);
     let state = st.clone();
     let sid = body.session_id.clone();
     let prompt = body.prompt.clone();
+    let turn_id_task = turn_id.clone();
+    let sid_task = sid.clone();
 
     tokio::spawn(async move {
-        let em = EventEmitter { tx, state, sid };
-        if let Err(e) = run_scenario(&em, &prompt).await {
+        let started = Instant::now();
+        // Emitter owns the sole `Sender`. Any early return (?, panic, drop)
+        // closes the channel and lets the client disconnect immediately.
+        let em = EventEmitter {
+            tx,
+            state,
+            sid: sid_task.clone(),
+            turn_id: turn_id_task.clone(),
+            event_count: std::sync::atomic::AtomicU32::new(0),
+        };
+        let result = run_scenario(&em, &prompt).await;
+        let events_sent = em.event_count.load(std::sync::atomic::Ordering::Relaxed);
+        // Detect the common case where the client already went away — the
+        // channel send will start failing and events don't reach anyone.
+        // We can spot it via `tx.is_closed()`.
+        let client_gone = em.tx.is_closed();
+
+        if let Err(e) = &result {
+            warn!(target: "copilot", turn_id = %turn_id_task, session_id = %sid_task,
+                  error = %e, events = events_sent, "stream:error");
             let _ = em.tx.send(sse_json("error", &serde_json::json!({"message": e}))).await;
         }
+
+        info!(
+            target: "copilot",
+            turn_id = %turn_id_task,
+            session_id = %sid_task,
+            events = events_sent,
+            dur_ms = started.elapsed().as_millis() as u64,
+            by = if client_gone { "client-disconnect" } else { "server-complete" },
+            "stream:close"
+        );
+        // `em` drops here → tx drops → rx returns None → stream ends.
     });
 
     let stream = ReceiverStream::new(rx).map(Ok);
-    Ok(Sse::new(stream).keep_alive(KeepAlive::default()))
+    Ok(Sse::new(stream))
 }
 
 // ---------------------------------------------------------------------------
@@ -188,11 +242,25 @@ struct EventEmitter {
     tx: mpsc::Sender<Event>,
     state: CopilotState,
     sid: String,
+    turn_id: String,
+    /// Number of SSE events actually pushed onto the channel for this turn.
+    /// Handy for the `stream:close` log so you can see "12 events in 340 ms".
+    event_count: std::sync::atomic::AtomicU32,
 }
 
 impl EventEmitter {
     async fn send_event(&self, ev: Event) {
-        let _ = self.tx.send(ev).await;
+        // Bail early if the client has already hung up — no point queueing
+        // more work. `send` would fail anyway; this just makes the log
+        // clearer at the DEBUG level.
+        if self.tx.is_closed() {
+            debug!(target: "copilot", turn_id = %self.turn_id,
+                   "stream:drop (client already disconnected)");
+            return;
+        }
+        if self.tx.send(ev).await.is_ok() {
+            self.event_count.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        }
     }
 
     async fn sleep(&self, ms: u64) {
@@ -249,10 +317,14 @@ impl EventEmitter {
     }
 
     async fn ui_action(&self, payload: serde_json::Value) {
+        debug!(target: "copilot", turn_id = %self.turn_id,
+               action = %payload.get("action").and_then(|v| v.as_str()).unwrap_or("?"),
+               "stream:action");
         self.send_event(sse_json("ui_action", &payload)).await;
     }
 
     async fn end(&self, id: &str) {
+        debug!(target: "copilot", turn_id = %self.turn_id, message_id = %id, "stream:message_end");
         self.send_event(sse_json("message_end", &serde_json::json!({"id": id}))).await;
     }
 }
