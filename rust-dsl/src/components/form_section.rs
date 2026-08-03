@@ -26,10 +26,10 @@
 //!     .save_cancel("Create student");
 //! ```
 //!
-//! Sections are **collapsed by default** — call `.open()` on the sections
-//! that should start expanded (typically the first one, plus any section
-//! that currently has validation errors so the user immediately sees the
-//! offending fields).
+//! Sections are **expanded by default** so users never overlook a whole
+//! block of fields hidden behind a closed header. Use `.collapsed()` on
+//! the sections that should start folded — typically optional / rarely-
+//! used blocks (e.g. "Advanced settings", "Custom fields").
 //!
 //! ## Highlighting sections with errors
 //!
@@ -56,7 +56,13 @@ pub enum SectionTone { Neutral, Danger }
 pub struct FormSection {
     title: String,
     subtitle: Option<String>,
-    open: bool,
+    /// Tri-state expansion:
+    ///   None       → follow the component default (currently: open)
+    ///   Some(true) → explicitly expanded
+    ///   Some(false)→ explicitly collapsed
+    /// We keep the tri-state so `.open()` remains a compile-safe no-op
+    /// for old call sites while `.collapsed()` is the modern opt-out.
+    open: Option<bool>,
     disabled: bool,
     tone: SectionTone,
     actions: Vec<Child>,
@@ -64,11 +70,14 @@ pub struct FormSection {
 }
 
 /// Start a new foldable form section. `title` shows in the header.
+///
+/// **Sections are expanded by default** — call [`FormSection::collapsed`]
+/// on optional/rarely-used sections that should start folded.
 pub fn form_section(title: impl Into<String>) -> FormSection {
     FormSection {
         title: title.into(),
         subtitle: None,
-        open: false,
+        open: None,     // ← inherit component default (expanded)
         disabled: false,
         tone: SectionTone::Neutral,
         actions: Vec::new(),
@@ -82,9 +91,19 @@ impl FormSection {
     pub fn subtitle(mut self, s: impl Into<String>) -> Self {
         self.subtitle = Some(s.into()); self
     }
-    /// Start expanded. Sections are **collapsed by default** — expand
-    /// the first section, or any section that currently has errors.
-    pub fn open(mut self) -> Self { self.open = true; self }
+    /// Explicitly start expanded. Sections are **expanded by default**,
+    /// so calling this is only necessary if you previously wrote
+    /// `.collapsed()` on the same section and want to override it, or
+    /// if you like being explicit at the call site.
+    pub fn open(mut self) -> Self { self.open = Some(true); self }
+    /// Start collapsed — for optional / rarely-used sections
+    /// ("Advanced settings", "Custom fields", "Notes for internal use").
+    ///
+    /// ```ignore
+    /// form_section("Advanced").collapsed()
+    ///     .add(input().label("Legacy code").name("legacy_id"))
+    /// ```
+    pub fn collapsed(mut self) -> Self { self.open = Some(false); self }
     /// Grey out the header and disable toggling. Useful for sections
     /// that are locked until an upstream field is filled in.
     pub fn disabled(mut self) -> Self { self.disabled = true; self }
@@ -117,7 +136,16 @@ impl Component for FormSection {
     fn render(&self) -> String {
         let mut attrs: Vec<Attr> = vec![Attr::kv("title", self.title.as_str())];
         if let Some(ref s) = self.subtitle { attrs.push(Attr::kv("subtitle", s.as_str())); }
-        if self.open     { attrs.push(Attr::flag("open")); }
+        // Emit `collapsed` when the author explicitly opts out. When
+        // `open` is None we simply omit the attribute, so the component
+        // default (expanded) takes effect. `.open()` maps to explicitly
+        // rendering the `open` flag for anyone reading the raw HTML,
+        // though the component would default to open anyway.
+        match self.open {
+            Some(true)  => attrs.push(Attr::flag("open")),
+            Some(false) => attrs.push(Attr::flag("collapsed")),
+            None        => {}
+        }
         if self.disabled { attrs.push(Attr::flag("disabled")); }
         if matches!(self.tone, SectionTone::Danger) {
             attrs.push(Attr::kv("tone", "danger"));
