@@ -28,6 +28,11 @@ pub struct Card {
     /// (some Lit implementations use `flush` as the "on" signal), but the
     /// Rust builder now drives it purely via `padded`.
     flush: bool,
+    /// Drop the card's default `overflow: hidden` so a `<ui-form sticky>`
+    /// child can pin its action bar against the viewport instead of being
+    /// trapped inside the card. Required whenever you host a form with
+    /// `sticky_bottom()` / `sticky_top()` inside a card.
+    sticky_friendly: bool,
     actions: Vec<Child>,
     children: Vec<Child>,
 }
@@ -38,6 +43,7 @@ pub fn card() -> Card {
     Card {
         title: None, subtitle: None,
         padded: true, flush: false,       // ← default flipped: padded on
+        sticky_friendly: false,
         actions: Vec::new(), children: Vec::new(),
     }
 }
@@ -59,6 +65,23 @@ impl Card {
         self.padded = false;
         self.flush  = true;
         self
+    }
+
+    /// Drop the card's default `overflow: hidden` clipping so a
+    /// `<ui-form>` inside it can use `sticky_bottom()` / `sticky_top()`
+    /// and pin its action bar against the viewport rather than being
+    /// trapped inside the card.
+    ///
+    /// ```ignore
+    /// card().title("Edit student").sticky_friendly()
+    ///     .add(form()
+    ///         .sticky_bottom()
+    ///         .csrf(&token)
+    ///         .add(input().label("Name"))
+    ///         .save_cancel("Save"))
+    /// ```
+    pub fn sticky_friendly(mut self) -> Self {
+        self.sticky_friendly = true; self
     }
 
     /// Add an element to the header's "actions" slot (top-right of the card).
@@ -89,6 +112,7 @@ impl Component for Card {
         if let Some(ref s) = self.subtitle { attrs.push(Attr::kv("subtitle", s.as_str())); }
         if self.padded { attrs.push(Attr::flag("padded")); }
         if self.flush  { attrs.push(Attr::flag("flush")); }
+        if self.sticky_friendly { attrs.push(Attr::flag("sticky-friendly")); }
 
         let mut body = String::new();
 

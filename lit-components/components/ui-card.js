@@ -9,17 +9,21 @@ import { LitBaseElement, html, css, nothing } from './base.js';
  * DSL surface:
  *   - title    : optional header title
  *   - subtitle : optional header subtitle
- *   - padded   : boolean, add padding to body
- *   - flush    : boolean, hide the header border
+ *   - padded         : boolean, add padding to body
+ *   - flush          : boolean, hide the header border
+ *   - sticky-friendly: boolean, drop the default overflow:hidden clipping
+ *                      so a <ui-form sticky> child can pin against the
+ *                      viewport instead of being trapped inside the card
  *
  * Slots: default (body), "actions" (top-right of header).
  */
 class UICard extends LitBaseElement {
   static properties = {
-    title:    { type: String, reflect: true },
-    subtitle: { type: String, reflect: true },
-    padded:   { type: Boolean, reflect: true },
-    flush:    { type: Boolean, reflect: true },
+    title:           { type: String,  reflect: true },
+    subtitle:        { type: String,  reflect: true },
+    padded:          { type: Boolean, reflect: true },
+    flush:           { type: Boolean, reflect: true },
+    stickyFriendly:  { type: Boolean, reflect: true, attribute: 'sticky-friendly' },
   };
 
   static styles = css`
@@ -31,6 +35,10 @@ class UICard extends LitBaseElement {
       box-shadow: var(--shadow-sm);
       overflow: hidden;
     }
+    /* Opt-out: cards hosting a <ui-form sticky> must NOT clip their
+       overflow, otherwise the sticky action bar pins against the card
+       box (a few hundred pixels tall) instead of the viewport. */
+    :host([sticky-friendly]) .card { overflow: visible; }
     header {
       display: flex; align-items: center; gap: var(--space-3);
       padding: var(--space-4) var(--space-5);
@@ -55,6 +63,7 @@ class UICard extends LitBaseElement {
     this.subtitle = '';
     this.padded = false;
     this.flush = false;
+    this.stickyFriendly = false;
   }
 
   render() {

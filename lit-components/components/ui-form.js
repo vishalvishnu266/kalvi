@@ -66,14 +66,31 @@ class UIForm extends LitBaseElement {
     }
     :host([inline]) form { flex-direction: row; align-items: end; flex-wrap: wrap; }
 
-    /* Sticky action bar - pins Save/Cancel to the top or bottom of the
-       viewport so users can save from anywhere in a long form without
-       scrolling all the way. position:sticky only engages when the row
-       would otherwise scroll off-screen; short forms behave as before. */
+    /* ------------------------------------------------------------------
+       STICKY ACTION BAR
+       ------------------------------------------------------------------
+       position:sticky pins an element relative to its nearest SCROLLING
+       ancestor, but only while its own containing block is on screen.
+       For the actions row to actually stick we need:
+         (a) the row's containing block (here: the <form>) to be TALLER
+             than the row itself, otherwise there is no scroll range to
+             "stick" through, and
+         (b) no ancestor with overflow:hidden|auto|scroll between the
+             row and the scroll container — such an ancestor becomes the
+             new scroll container and clips the sticky.
+       Requirement (a) is naturally satisfied because <form> contains
+       both the fields slot AND the actions row. Requirement (b) is the
+       responsibility of the page layout — we emit a dev-console warning
+       when we detect a trap ancestor (see connectedCallback).
+       ------------------------------------------------------------------ */
+    :host([sticky="bottom"]) form {
+      /* Give the sticky row a positioning context that spans the whole
+         form height (fields + actions). Without this the row's box
+         collapses to its own height and sticky has nowhere to travel. */
+      min-height: 100%;
+    }
     :host([sticky="bottom"]) .actions {
       position: sticky;
-      /* Add iPhone home-indicator safe-area so the buttons don't sit
-         underneath the OS gesture bar on iOS Safari / PWAs.        */
       bottom: calc(var(--sticky-offset, 0px) + env(safe-area-inset-bottom, 0px));
       z-index: 10;
       background: var(--color-surface);
@@ -85,7 +102,6 @@ class UIForm extends LitBaseElement {
     }
     :host([sticky="top"]) .actions {
       position: sticky;
-      /* Also respect the notch / status-bar inset for top placement. */
       top: calc(var(--sticky-offset, 0px) + env(safe-area-inset-top, 0px));
       z-index: 10;
       background: var(--color-surface);
@@ -95,6 +111,8 @@ class UIForm extends LitBaseElement {
       border-bottom: 1px solid var(--color-border);
       box-shadow: 0 4px 12px -6px rgba(0,0,0,.15);
       border-radius: var(--radius-md) var(--radius-md) 0 0;
+      /* Reorder inside the flex column so the actions render BEFORE
+         the fields visually. */
       order: -1;
     }
     :host([sticky]) .actions { border-top-color: transparent; }
@@ -163,6 +181,58 @@ class UIForm extends LitBaseElement {
     // Intercept clicks on any [type="submit"] / [type="reset"] child.
     this.addEventListener('click', this.#onClick);
     this.addEventListener('keydown', this.#onKey);
+    // Detect scroll/overflow ancestors that would trap the sticky row.
+    // Deferred so the element is actually laid out first.
+    if (this.sticky) {
+      requestAnimationFrame(() => this.#auditStickyAncestors());
+    }
+  }
+
+  /**
+   * `position: sticky` pins against the nearest scrolling ancestor. If
+   * some intermediate ancestor has `overflow: hidden|auto|scroll` it
+   * becomes the sticky's scroll container and the row will "stick"
+   * inside that (usually short) box instead of the viewport — which
+   * looks exactly like "not sticking".
+   *
+   * This walker crosses shadow-root boundaries and warns the developer
+   * with the exact offending element so they can add
+   * `overflow: visible` (or restructure the layout) to fix it.
+   */
+  #auditStickyAncestors() {
+    const traps = ['auto', 'scroll', 'hidden', 'clip'];
+    let node = this.parentNode;
+    let hopped = false;
+    while (node) {
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        const cs = getComputedStyle(node);
+        // The <html> and <body> are the natural scroll containers —
+        // sticking against them is exactly what we want.
+        const isRoot = node === document.documentElement || node === document.body;
+        if (!isRoot) {
+          const yTrap = traps.includes(cs.overflowY);
+          const xTrap = traps.includes(cs.overflowX);
+          if (yTrap || xTrap) {
+            // eslint-disable-next-line no-console
+            console.warn(
+              `[ui-form] sticky="${this.sticky}" may not work because ` +
+              `an ancestor has overflow:${yTrap ? cs.overflowY : cs.overflowX}. ` +
+              `Set that element's overflow to "visible" or move <ui-form> ` +
+              `outside it. Offender:`, node
+            );
+            return;
+          }
+        }
+      }
+      // Cross shadow-root boundaries.
+      const parent = node.parentNode || node.host;
+      if (!parent && !hopped && node.getRootNode && node.getRootNode() !== document) {
+        hopped = true;
+        node = node.getRootNode().host || null;
+      } else {
+        node = parent;
+      }
+    }
   }
 
   #onClick = (e) => {
