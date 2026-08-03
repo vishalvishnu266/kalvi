@@ -28,6 +28,9 @@ import { LitBaseElement, html, css, nothing } from './base.js';
  *   default  — the fields inside the panel
  *   actions  — optional buttons/status pills to the right of the title
  *              (e.g. a "3 errors" badge, or "Reset section")
+ *   banner   — optional <ui-form-banner> or <ui-alert> that renders at
+ *              the top of the panel body (under the header, above the
+ *              fields). Useful for section-scoped error summaries.
  *
  * Emits:
  *   ui-toggle { open: boolean }  — bubbles + composed
@@ -92,6 +95,8 @@ class UICollapse extends LitBaseElement {
       border-top: 1px solid var(--color-border);
       display: flex; flex-direction: column; gap: var(--space-3);
     }
+    /* Section-scoped banner sits above the fields with its own margin. */
+    ::slotted([slot="banner"]) { display: block; margin-bottom: var(--space-1); }
     :host([tone="danger"]) summary { color: var(--color-danger); }
     :host([tone="danger"]) .titles h4 { color: var(--color-danger); }
     :host([tone="danger"]) details { border-color: var(--color-danger); }
@@ -186,7 +191,10 @@ class UICollapse extends LitBaseElement {
           </div>
           <slot name="actions"></slot>
         </summary>
-        <div class="body"><slot></slot></div>
+        <div class="body">
+          <slot name="banner"></slot>
+          <slot></slot>
+        </div>
       </details>
     `;
   }

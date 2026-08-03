@@ -59,6 +59,10 @@ class UIForm extends LitBaseElement {
   static styles = css`
     :host { display: block; }
     form { display: flex; flex-direction: column; gap: var(--space-4); }
+    /* The banner slot sits above the fields with its own gap so the
+       form-level error / success surface reads as a distinct band, not
+       "another field". */
+    ::slotted([slot="banner"]) { display: block; margin-bottom: var(--space-2); }
     .actions {
       display: flex; gap: var(--space-2); justify-content: flex-end;
       padding-top: var(--space-2); border-top: 1px solid var(--color-border);
@@ -355,6 +359,7 @@ class UIForm extends LitBaseElement {
   render() {
     return html`
       <form novalidate>
+        <slot name="banner"></slot>
         <slot></slot>
         <div class="actions"><slot name="actions"></slot></div>
       </form>`;

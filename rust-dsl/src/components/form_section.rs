@@ -65,6 +65,10 @@ pub struct FormSection {
     open: Option<bool>,
     disabled: bool,
     tone: SectionTone,
+    /// Optional section-scoped banner (typically a `FormBanner` or an
+    /// `Alert`) rendered at the top of the panel body — above the
+    /// fields, below the header.
+    banner: Option<Child>,
     actions: Vec<Child>,
     children: Vec<Child>,
 }
@@ -80,6 +84,7 @@ pub fn form_section(title: impl Into<String>) -> FormSection {
         open: None,     // ← inherit component default (expanded)
         disabled: false,
         tone: SectionTone::Neutral,
+        banner: None,
         actions: Vec::new(),
         children: Vec::new(),
     }
@@ -130,6 +135,47 @@ impl FormSection {
     pub fn action(mut self, c: impl Component + 'static) -> Self {
         self.actions.push(Box::new(c)); self
     }
+
+    /// Attach a **section-scoped banner** (usually a [`FormBanner`] or
+    /// an [`Alert`]) at the top of the panel body — above the fields,
+    /// below the header. Use this to scope a form-level message to a
+    /// single section rather than to the whole form.
+    ///
+    /// ```ignore
+    /// form_section("Guardian").danger()
+    ///     .banner(form_banner()
+    ///         .tone(Tone::Danger)
+    ///         .title("2 problems with Guardian details")
+    ///         .errors_summary(vec![
+    ///             ("g_name",  "Guardian name is required"),
+    ///             ("g_email", "Guardian email is invalid"),
+    ///         ]))
+    ///     .add(input().label("Name").name("g_name")
+    ///          .maybe_error(errors.get("g_name").cloned()))
+    ///     .add(input().label("Email").name("g_email")
+    ///          .maybe_error(errors.get("g_email").cloned()))
+    /// ```
+    ///
+    /// [`FormBanner`]: crate::components::form_banner::FormBanner
+    /// [`Alert`]: crate::components::alert::Alert
+    pub fn banner(mut self, b: impl Component + 'static) -> Self {
+        self.banner = Some(Box::new(b)); self
+    }
+
+    /// Convenience — accepts an `Option<..>` so server code doesn't
+    /// need a `match` around every section. `None` = no banner.
+    ///
+    /// Pairs naturally with
+    /// [`errors_summary_banner`](crate::components::form_banner::errors_summary_banner):
+    ///
+    /// ```ignore
+    /// form_section("Guardian")
+    ///     .maybe_banner(errors_summary_banner(guardian_errors))
+    ///     .add(input().label("Name").name("g_name"))
+    /// ```
+    pub fn maybe_banner(self, b: Option<impl Component + 'static>) -> Self {
+        match b { Some(bx) => self.banner(bx), None => self }
+    }
 }
 
 impl Component for FormSection {
@@ -155,6 +201,11 @@ impl Component for FormSection {
         for a in &self.actions {
             body.push_str(r#"<span slot="actions">"#);
             body.push_str(&a.render());
+            body.push_str("</span>");
+        }
+        if let Some(ref b) = self.banner {
+            body.push_str(r#"<span slot="banner">"#);
+            body.push_str(&b.render());
             body.push_str("</span>");
         }
         for c in &self.children {
