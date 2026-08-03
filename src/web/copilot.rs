@@ -37,14 +37,14 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use axum::{
-    extract::{Path, State},
+    extract::Path,
     http::StatusCode,
     response::{
         sse::{Event, KeepAlive, Sse},
         Html, IntoResponse, Json, Response,
     },
     routing::{get, post},
-    Router,
+    Extension, Router,
 };
 use futures::stream::Stream;
 use serde::{Deserialize, Serialize};
@@ -88,14 +88,28 @@ impl CopilotState {
 // Router
 // ---------------------------------------------------------------------------
 
-/// Build the `/copilot/*` sub-router. Wire this into `build_router` with
-/// `.merge(copilot::router(state))`.
-pub fn router(state: CopilotState) -> Router {
+/// Build the `/copilot/*` sub-router.
+///
+/// The state is injected via an `Extension` layer rather than the axum
+/// `State` extractor so this router is **generic over the outer app state**
+/// and can be `.merge()`d into any `Router<S>` (e.g. `Router<AppState>`).
+///
+/// Wire it up like so:
+/// ```ignore
+/// let copilot = copilot::router(copilot::CopilotState::new());
+/// let app = Router::new()
+///     .merge(copilot)
+///     .with_state(state);
+/// ```
+pub fn router<S>(state: CopilotState) -> Router<S>
+where
+    S: Clone + Send + Sync + 'static,
+{
     Router::new()
         .route("/copilot/session",       post(session_new))
         .route("/copilot/history/{sid}", get(history))
         .route("/copilot/message",       post(message))
-        .with_state(state)
+        .layer(Extension(state))
 }
 
 // ---------------------------------------------------------------------------
@@ -115,7 +129,10 @@ async fn session_new() -> Json<SessionResp> {
 // GET /copilot/history/:sid
 // ---------------------------------------------------------------------------
 
-async fn history(State(st): State<CopilotState>, Path(sid): Path<String>) -> Html<String> {
+async fn history(
+    Extension(st): Extension<CopilotState>,
+    Path(sid): Path<String>,
+) -> Html<String> {
     Html(st.render_history(&sid))
 }
 
@@ -130,7 +147,7 @@ struct SendMsg {
 }
 
 async fn message(
-    State(st): State<CopilotState>,
+    Extension(st): Extension<CopilotState>,
     Json(body): Json<SendMsg>,
 ) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, Response> {
     if body.prompt.trim().is_empty() {
