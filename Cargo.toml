@@ -23,6 +23,10 @@ argon2 = "0.5"
 rand_core = { version = "0.6", features = ["std"] }
 axum = "0.8.9"
 tower = "0.5"
+# Async streams — used by the Copilot SSE mock endpoint to convert a
+# tokio mpsc channel into a `Stream` that axum's `Sse` response consumes.
+tokio-stream = { version = "0.1", features = ["sync"] }
+futures = "0.3"
 tower-http = { version = "0.6", features = ["normalize-path"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"] }
 uuid = { version = "1", features = ["v4"] }

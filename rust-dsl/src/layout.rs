@@ -574,6 +574,9 @@ pub fn page_of(title: impl Into<String>, body: impl Component + 'static) -> crat
     crate::components::page::page()
         .title(title)
         .add(container().size(ContainerSize::Lg).add(body))
+        // Every DSL page ships the agentic Copilot FAB. Individual pages can
+        // still disable it by using `page()` directly instead of `page_of`.
+        .with_copilot()
 }
 
 /// Standard "title + secondary line" text block — the pattern used in

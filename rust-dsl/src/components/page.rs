@@ -13,6 +13,13 @@ pub struct Page {
     /// Defaults to `/lit-components` — change with [`Page::assets_base`].
     assets_base: String,
     children: Vec<Child>,
+    /// When true, a `<ui-copilot>` element is appended just before `</body>`
+    /// so the floating chat button appears on every page.
+    with_copilot: bool,
+    copilot_session_url: String,
+    copilot_stream_url:  String,
+    copilot_history_url: String,
+    copilot_label:       String,
 }
 
 /// Start a new HTML page.
@@ -21,6 +28,11 @@ pub fn page() -> Page {
         title: "Untitled".into(),
         assets_base: "/lit-components".into(),
         children: Vec::new(),
+        with_copilot: false,
+        copilot_session_url: "/copilot/session".into(),
+        copilot_stream_url:  "/copilot/message".into(),
+        copilot_history_url: "/copilot/history".into(),
+        copilot_label:       "ERP Copilot".into(),
     }
 }
 
@@ -50,12 +62,36 @@ impl Page {
         for c in iter { self.children.push(Box::new(c)); }
         self
     }
+
+    /// Mount a `<ui-copilot>` floating chat button on this page.
+    ///
+    /// The element sits OUTSIDE any Hotwire Turbo frame so it survives page
+    /// navigations without unmounting the current conversation.
+    pub fn with_copilot(mut self) -> Self { self.with_copilot = true; self }
+
+    /// Override the Copilot session endpoint (default `/copilot/session`).
+    pub fn copilot_session_url(mut self, s: impl Into<String>) -> Self { self.copilot_session_url = s.into(); self.with_copilot = true; self }
+    /// Override the Copilot SSE stream endpoint (default `/copilot/message`).
+    pub fn copilot_stream_url (mut self, s: impl Into<String>) -> Self { self.copilot_stream_url  = s.into(); self.with_copilot = true; self }
+    /// Override the Copilot history endpoint (default `/copilot/history`).
+    pub fn copilot_history_url(mut self, s: impl Into<String>) -> Self { self.copilot_history_url = s.into(); self.with_copilot = true; self }
+    /// Override the Copilot panel title (default `"ERP Copilot"`).
+    pub fn copilot_label      (mut self, s: impl Into<String>) -> Self { self.copilot_label       = s.into(); self.with_copilot = true; self }
 }
 
 impl Component for Page {
     fn render(&self) -> String {
         let mut body = String::new();
         for c in &self.children { body.push_str(&c.render()); }
+        if self.with_copilot {
+            body.push_str(&format!(
+                r#"<ui-copilot session-url="{s}" stream-url="{m}" history-url="{h}" label="{l}"></ui-copilot>"#,
+                s = escape_html(&self.copilot_session_url),
+                m = escape_html(&self.copilot_stream_url),
+                h = escape_html(&self.copilot_history_url),
+                l = escape_html(&self.copilot_label),
+            ));
+        }
 
         // The <body> is fluid (100% width). Use `container()` inside for
         // centred max-width sections; use `container().fluid()` (or nothing)

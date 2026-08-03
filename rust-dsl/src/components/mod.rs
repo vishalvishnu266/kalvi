@@ -66,3 +66,6 @@ pub mod command;
 pub mod form_banner;
 pub mod alert;
 pub mod ack_panel;
+
+// Agentic AI chat window — see `docs` in the module for architecture.
+pub mod copilot;

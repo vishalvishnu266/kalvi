@@ -127,4 +127,7 @@ pub mod prelude {
     };
     pub use crate::components::alert::{alert, Alert};
     pub use crate::components::ack_panel::{ack_panel, AckPanel, AckPlacement};
+
+    // Agentic Copilot chat window (mounts a floating FAB + drawer/sheet).
+    pub use crate::components::copilot::{copilot, Copilot};
 }

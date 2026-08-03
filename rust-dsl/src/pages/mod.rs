@@ -15,6 +15,7 @@ pub mod dashboard;
 pub mod icons;
 pub mod layouts;
 pub mod components;
+pub mod copilot;
 pub mod errors;
 pub mod errors_combos;
 pub mod errors_roundtrip;

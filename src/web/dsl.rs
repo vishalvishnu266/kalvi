@@ -23,8 +23,8 @@ use axum::response::{Html, IntoResponse, Redirect, Response};
 use axum::Form;
 use lit_ui::core::Component;
 use lit_ui::pages::{
-    attendance, components, dashboard, errors, errors_combos, errors_roundtrip, errors_validator,
-    fees, icons, layouts, students,
+    attendance, components, copilot as copilot_page, dashboard, errors, errors_combos,
+    errors_roundtrip, errors_validator, fees, icons, layouts, students,
 };
 use serde::Deserialize;
 use validator::{Validate, ValidationError, ValidationErrors};
@@ -71,6 +71,7 @@ pub async fn index() -> Html<&'static str> {
         <li><a href="/dsl/icons"><div><strong>Icons</strong><br><small>Visual catalogue of every Icons::* constant</small></div></a></li>
         <li><a href="/dsl/layouts"><div><strong>Layout guide</strong><br><small>Every layout primitive & preset with live demos + source</small></div></a></li>
         <li><a href="/dsl/components"><div><strong>Components</strong><br><small>Every UI component with variants + source (buttons, inputs, tables, modals…)</small></div></a></li>
+        <li><a href="/dsl/copilot"><div><strong>Copilot (agentic chat)</strong><br><small>Streaming SSE chat window with mock multi-step scenarios. Mobile-ready.</small></div></a></li>
         <li><a href="/dsl/errors"><div><strong>Error UX</strong><br><small>Field / form / page error surfaces — the handbook for validation UI</small></div></a></li>
         <li><a href="/dsl/errors/combos"><div><strong>Error combinations</strong><br><small>Every meaningful combination of banner + field + alert + ack panel with source</small></div></a></li>
         <li><a href="/dsl/errors/roundtrip"><div><strong>Error round-trip (live)</strong><br><small>Real POST → 422 → Turbo swap → errors inline. Hand-rolled validation.</small></div></a></li>
@@ -112,6 +113,14 @@ pub async fn layouts_page() -> Html<String> {
 
 pub async fn components_page() -> Html<String> {
     Html(components::build().render())
+}
+
+/// `/dsl/copilot` — dedicated demo page for the agentic Copilot chat window.
+/// The `<ui-copilot>` element is auto-injected by `page_of()` on every DSL
+/// page, but this one lists every mock prompt and includes a sample form
+/// so the `fill_form` UI-action has something to populate.
+pub async fn copilot_demo_page() -> Html<String> {
+    Html(copilot_page::build().render())
 }
 
 pub async fn errors_page() -> Html<String> {

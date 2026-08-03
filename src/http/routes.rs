@@ -10,7 +10,7 @@ use axum::{
 
 use crate::http::api_routes;
 use crate::middleware::tracing as wtr;
-use crate::web::{assets as wa, dsl as wd};
+use crate::web::{assets as wa, copilot as wc, dsl as wd};
 
 pub type ServiceHttpError = ServiceError;
 
@@ -55,6 +55,7 @@ pub fn build_router(state: AppState, readiness: Readiness) -> Router {
         .route("/dsl/icons",      get(wd::icons_page))
         .route("/dsl/layouts",    get(wd::layouts_page))
         .route("/dsl/components", get(wd::components_page))
+        .route("/dsl/copilot",    get(wd::copilot_demo_page))
         .route("/dsl/errors",           get(wd::errors_page))
         .route("/dsl/errors/combos",    get(wd::errors_combos_page))
         .route("/dsl/errors/roundtrip",
@@ -68,6 +69,10 @@ pub fn build_router(state: AppState, readiness: Readiness) -> Router {
     let web_tenant = crate::http::web::routes(state.clone());
     let portal_tenant = crate::http::portal::routes(state.clone());
 
+    // Agentic Copilot mock backend (`/copilot/session`, `/message`, `/history/:id`).
+    // In-memory only; safe to construct fresh here — no DB, no LLM.
+    let copilot = wc::router(wc::CopilotState::new());
+
     tracing::debug!("build_router: finalizing assembly and adding middleware");
     let router = Router::new()
         .route("/api/health", get(|| async { "ok" }))
@@ -79,6 +84,7 @@ pub fn build_router(state: AppState, readiness: Readiness) -> Router {
         .nest("/portal/{tenant}", portal_tenant)
         .nest("/web", web_global)
         .nest("/portal", portal_global)
+        .merge(copilot)
         .merge(global)
         .with_state(state)
         .layer(axum::Extension(readiness))
