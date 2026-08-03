@@ -14,6 +14,7 @@
 //! Because the page has zero knowledge of the `validator` crate, `lit-ui`
 //! stays dependency-free.
 
+use std::any::Any;
 use crate::prelude::*;
 
 /// Field values echoed back after a failed submit. Kept as `Option`s so the
@@ -58,7 +59,23 @@ pub fn build(
     };
 
     let f = form().action("/dsl/errors/validator").method("post")
+        .add(form_section("testing")
+            .tone(SectionTone::Danger)
+            .add(input().label("test"))
+            .add(input().label("test"))
+            .add(input().label("test"))
+            .add(input().label("test"))
+            .add(input().label("test"))
+            .add(input().label("test"))
+            .add(input().label("test"))
+            .add(input().label("test"))
+            .add(input().label("test"))
+
+        )
+
         .maybe_banner(top_banner)
+        .add(card().add(input().kind(InputType::Password)))
+        .add(card().add(two_col_with(1,2,input(),input())))
         .add(input().label("Full name").name("name").required()
              .value(values.name.unwrap_or(""))
              .maybe_error(errors.name))
@@ -84,6 +101,7 @@ pub fn build(
                 .maybe_error(errors.consent);
             if values.consent { cb.checked() } else { cb }
         })
+        .sticky_bottom()
         .save_cancel("Save student");
 
     // ── Compose the page ──
@@ -97,72 +115,9 @@ pub fn build(
             .add(button().label("Hand-rolled round-trip").variant(Variant::Secondary).icon(Icons::INFO))
             .add(button().label("Handbook").variant(Variant::Secondary).icon(Icons::GRID)));
 
-    body = body.add(card().add(Node::raw(
-        "<p style=\"margin:0 0 8px\">This is the <strong>same UX</strong> as \
-         <code>/dsl/errors/roundtrip</code>, but the server-side validation \
-         is <strong>declarative</strong> via the <code>validator</code> crate. \
-         The handler is 6 lines total — no hand-written <code>if</code> \
-         branches, no per-field error message strings duplicated in the \
-         handler code.</p>\
-         <p style=\"margin:0;color:var(--color-text-muted);font-size:var(--fs-sm)\">\
-         Try: leave fields empty (attribute-level rules fire). \
-         Same email for student &amp; guardian (schema-level rule fires). \
-         Age &lt; 3 or &gt; 120 (range rule fires). \
-         Invalid website URL (URL rule fires). \
-         Everything valid → green success banner via <code>?ok=1</code>.</p>",
-    )));
 
-    body = body.add(card().add(f));
+    body = body.add(card().add(f).sticky_friendly());
 
-    body = body.add(card().add(Node::raw(
-        "<h3 style=\"margin:0 0 8px\">The struct definition (declarative rules)</h3>\
-         <pre style=\"margin:0 0 16px;padding:12px 14px;background:var(--color-surface);\
-                     border:1px solid var(--color-border);border-radius:8px;\
-                     font-family:ui-monospace,SFMono-Regular,Menlo,monospace;\
-                     font-size:12px;line-height:1.55;overflow:auto\"><code>\
-use validator::Validate;\
-\n\
-\n#[derive(Deserialize, Validate)]\
-\n#[validate(schema(function = \"student_and_guardian_email_differ\"))]\
-\npub struct NewStudent {\
-\n    #[validate(length(min = 2, message = \"Full name must be at least 2 characters\"))]\
-\n    pub name: String,\
-\n\
-\n    #[validate(email(message = \"Student email must be a valid email\"))]\
-\n    pub email: String,\
-\n\
-\n    #[validate(email(message = \"Guardian email must be a valid email\"))]\
-\n    pub g_email: String,\
-\n\
-\n    #[validate(range(min = 3, max = 120, message = \"Age must be 3\u{2013}120\"))]\
-\n    pub age: u8,\
-\n\
-\n    #[validate(url(message = \"Website must be a valid URL\"))]\
-\n    pub website: Option&lt;String&gt;,\
-\n\
-\n    #[validate(custom(function = \"must_be_true\", message = \"You must consent\"))]\
-\n    pub consent: bool,\
-\n}\
-\n</code></pre>\
-\n<h3 style=\"margin:0 0 8px\">The handler (6 lines)</h3>\
-\n<pre style=\"margin:0;padding:12px 14px;background:var(--color-surface);\
-\n            border:1px solid var(--color-border);border-radius:8px;\
-\n            font-family:ui-monospace,SFMono-Regular,Menlo,monospace;\
-\n            font-size:12px;line-height:1.55;overflow:auto\"><code>\
-pub async fn post(Form(input): Form&lt;NewStudent&gt;) -&gt; Response {\
-\n    if let Some(resp) = validate_and_render(&amp;input, |i, e| {\
-\n        errors_validator::build(&amp;values_from(i), &amp;errors_from(e), banner_from_errors(e), false)\
-\n    }) { return resp; }\
-\n    // save(&amp;input).await;\
-\n    Redirect::to(\"/dsl/errors/validator?ok=1\").into_response()\
-\n}\
-\n</code></pre>\
-\n<p style=\"margin:12px 0 0;color:var(--color-text-muted);font-size:var(--fs-sm)\">\
-Compared to the hand-rolled <code>/dsl/errors/roundtrip</code>: the handler \
-went from ~30 lines to 6, and every rule now lives on the struct in one \
-place \u{2014} one obvious source of truth, i18n-ready via validator's message \
-system, unit-testable independent of the handler.</p>",
-    )));
 
     page_of("Validator crate · error UX", body)
 }
