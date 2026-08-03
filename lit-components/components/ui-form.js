@@ -33,6 +33,27 @@ class UIForm extends LitBaseElement {
     action: { type: String, reflect: true },
     method: { type: String, reflect: true },   // "get" | "post"
     novalidate: { type: Boolean, reflect: true },
+    /**
+     * Pin the actions row (Save / Cancel / Delete etc.) so it stays
+     * visible while the user scrolls a long form. Values:
+     *   ""        - not sticky (default)
+     *   "bottom"  - pinned to the bottom of the viewport
+     *   "top"     - pinned to the top of the viewport (renders the
+     *               actions row above the fields as well)
+     *
+     * Uses CSS position:sticky so it costs nothing until the row would
+     * otherwise scroll off-screen - no scroll listeners, no layout
+     * thrash. When pinned it grows a shadow so it visually detaches
+     * from the fields underneath.
+     */
+    sticky: { type: String, reflect: true },
+    /**
+     * Optional CSS length (e.g. "56px", "var(--app-topbar-h)") used as
+     * top when sticky="top" or bottom when sticky="bottom". Defaults to
+     * 0px. Set this to your app-shell topbar height so the sticky bar
+     * sits just below it instead of overlapping.
+     */
+    stickyOffset: { type: String, reflect: true, attribute: 'sticky-offset' },
   };
 
   static styles = css`
@@ -44,6 +65,51 @@ class UIForm extends LitBaseElement {
       margin-top: var(--space-2);
     }
     :host([inline]) form { flex-direction: row; align-items: end; flex-wrap: wrap; }
+
+    /* Sticky action bar - pins Save/Cancel to the top or bottom of the
+       viewport so users can save from anywhere in a long form without
+       scrolling all the way. position:sticky only engages when the row
+       would otherwise scroll off-screen; short forms behave as before. */
+    :host([sticky="bottom"]) .actions {
+      position: sticky;
+      /* Add iPhone home-indicator safe-area so the buttons don't sit
+         underneath the OS gesture bar on iOS Safari / PWAs.        */
+      bottom: calc(var(--sticky-offset, 0px) + env(safe-area-inset-bottom, 0px));
+      z-index: 10;
+      background: var(--color-surface);
+      padding: var(--space-3) var(--space-4);
+      margin: var(--space-2) calc(var(--space-4) * -1) 0;
+      border-top: 1px solid var(--color-border);
+      box-shadow: 0 -4px 12px -6px rgba(0,0,0,.15);
+      border-radius: 0 0 var(--radius-md) var(--radius-md);
+    }
+    :host([sticky="top"]) .actions {
+      position: sticky;
+      /* Also respect the notch / status-bar inset for top placement. */
+      top: calc(var(--sticky-offset, 0px) + env(safe-area-inset-top, 0px));
+      z-index: 10;
+      background: var(--color-surface);
+      padding: var(--space-3) var(--space-4);
+      margin: 0 calc(var(--space-4) * -1) var(--space-2);
+      border-top: 0;
+      border-bottom: 1px solid var(--color-border);
+      box-shadow: 0 4px 12px -6px rgba(0,0,0,.15);
+      border-radius: var(--radius-md) var(--radius-md) 0 0;
+      order: -1;
+    }
+    :host([sticky]) .actions { border-top-color: transparent; }
+
+    /* Mobile polish: on narrow viewports the sticky bar stretches
+       edge-to-edge and the primary button grows to be thumb-friendly. */
+    @media (max-width: 640px) {
+      :host([sticky]) .actions {
+        justify-content: space-between;
+        gap: var(--space-3);
+      }
+      :host([sticky]) .actions ::slotted(ui-button) {
+        flex: 1;
+      }
+    }
   `;
 
   constructor() {
@@ -51,6 +117,45 @@ class UIForm extends LitBaseElement {
     this.action = '';
     this.method = 'post';
     this.novalidate = false;
+    this.sticky = '';
+    this.stickyOffset = '';
+  }
+
+  /**
+   * Enum-like whitelist for the `sticky` attribute. Anything not in
+   * this set is ignored (and dev-warned) so a typo like sticky="botton"
+   * doesn't silently break the layout — the row simply renders
+   * un-pinned as if the attribute were absent.
+   *
+   * The Rust `StickyActions` enum guarantees only these values at
+   * compile time; this guard just defends the raw-HTML path.
+   */
+  static STICKY_VALUES = Object.freeze(['top', 'bottom']);
+
+  updated(changed) {
+    if (changed.has('stickyOffset')) {
+      if (this.stickyOffset) {
+        this.style.setProperty('--sticky-offset', this.stickyOffset);
+      } else {
+        this.style.removeProperty('--sticky-offset');
+      }
+    }
+    if (changed.has('sticky')) {
+      const v = (this.sticky || '').toLowerCase();
+      if (v && !UIForm.STICKY_VALUES.includes(v)) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[ui-form] Ignoring unknown sticky="${this.sticky}". ` +
+          `Expected one of: ${UIForm.STICKY_VALUES.join(', ')}.`
+        );
+        // Remove the attribute so CSS selectors don't half-match.
+        this.removeAttribute('sticky');
+        this.sticky = '';
+      } else if (v !== this.sticky) {
+        // Normalise casing so CSS selectors always match.
+        this.sticky = v;
+      }
+    }
   }
 
   connectedCallback() {

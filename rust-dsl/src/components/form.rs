@@ -1,14 +1,42 @@
 //! `<ui-form>` typed builder.
 
 use crate::components::button::{button, Variant};
+use crate::components::hidden::hidden;
 use crate::components::icon::Icons;
 use crate::core::{wrap, Attr, Child, Component};
+
+/// Where the actions row should stick when the form scrolls.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StickyActions {
+    /// Not sticky — the actions row scrolls with the fields (default).
+    Off,
+    /// Pin the actions row to the top of the viewport. Good when Save
+    /// is the primary intent and the user is likely already scrolling
+    /// down into more optional fields (long edit forms).
+    Top,
+    /// Pin the actions row to the bottom of the viewport. The most
+    /// common ERP pattern: users fill top-to-bottom, and Save is
+    /// always within thumb reach on mobile and one click away on
+    /// desktop, no matter how long the form is.
+    Bottom,
+}
+impl StickyActions {
+    fn as_str(self) -> Option<&'static str> {
+        match self {
+            StickyActions::Off    => None,
+            StickyActions::Top    => Some("top"),
+            StickyActions::Bottom => Some("bottom"),
+        }
+    }
+}
 
 pub struct Form {
     action: Option<String>,
     method: String,      // "get" | "post"
     novalidate: bool,
     inline: bool,
+    sticky: StickyActions,
+    sticky_offset: Option<String>,
     banner: Option<Child>,   // optional <ui-form-banner> at the top
     fields: Vec<Child>,
     actions: Vec<Child>,
@@ -16,7 +44,9 @@ pub struct Form {
 pub fn form() -> Form {
     Form {
         action: None, method: "post".into(),
-        novalidate: false, inline: false, banner: None,
+        novalidate: false, inline: false,
+        sticky: StickyActions::Off, sticky_offset: None,
+        banner: None,
         fields: Vec::new(), actions: Vec::new(),
     }
 }
@@ -78,6 +108,100 @@ impl Form {
     pub fn maybe_banner(self, b: Option<impl Component + 'static>) -> Self {
         match b { Some(bx) => self.banner(bx), None => self }
     }
+
+    // ---------------------------------------------------------------
+    // Hidden-field conveniences (CSRF, method override, arbitrary
+    // hidden values).
+    // ---------------------------------------------------------------
+
+    /// Inject a CSRF token as a hidden field.
+    ///
+    /// The default field name is `_csrf` — override via
+    /// [`Form::csrf_named`] if your server expects `authenticity_token`,
+    /// `csrfmiddlewaretoken`, `__RequestVerificationToken`, etc.
+    ///
+    /// ```ignore
+    /// form().action("/students").method("post")
+    ///     .csrf(&ctx.csrf_token)
+    ///     .add(input().label("Name").name("name"))
+    ///     .save_cancel("Save");
+    /// ```
+    pub fn csrf(self, token: impl Into<String>) -> Self {
+        self.csrf_named("_csrf", token)
+    }
+
+    /// Same as [`Form::csrf`] but with a custom field name (e.g.
+    /// `authenticity_token` for Rails, `csrfmiddlewaretoken` for Django).
+    pub fn csrf_named(self, name: impl Into<String>, token: impl Into<String>) -> Self {
+        self.add(hidden(name, token))
+    }
+
+    /// Inject a `_method` hidden field so a POST form can express PUT,
+    /// PATCH, or DELETE. Standard convention used by Rails, Laravel,
+    /// Axum's `MethodOverrideLayer`, etc.
+    ///
+    /// ```ignore
+    /// form().action("/students/42").method("post")
+    ///     .csrf(&token)
+    ///     .method_override("DELETE")
+    ///     .action_btn(button().label("Delete").variant(Variant::Danger).submit());
+    /// ```
+    pub fn method_override(self, http_verb: impl Into<String>) -> Self {
+        self.add(hidden("_method", http_verb))
+    }
+
+    /// Add a raw hidden field. Thin sugar over
+    /// `.add(hidden(name, value))` — kept so the intent reads clearly at
+    /// the call site.
+    pub fn hidden(self, name: impl Into<String>, value: impl Into<String>) -> Self {
+        self.add(hidden(name, value))
+    }
+
+    // ---------------------------------------------------------------
+    // Sticky action bar — keep Save/Cancel visible while the user
+    // scrolls a long form.
+    // ---------------------------------------------------------------
+
+    /// Pin the actions row (Save / Cancel / Delete …) so it stays on
+    /// screen while the user scrolls. Uses CSS `position: sticky`
+    /// under the hood — no scroll listeners, no layout thrash, and
+    /// short forms behave exactly as before (the row only pins when
+    /// it would otherwise scroll off).
+    ///
+    /// The **bottom** placement is the recommended default for ERP
+    /// edit/create forms (Save always within one click), while
+    /// **top** is useful for review/approval forms where the primary
+    /// action sits above the header.
+    ///
+    /// ```ignore
+    /// form().action("/students").method("post")
+    ///     .csrf(&token)
+    ///     .sticky_actions(StickyActions::Bottom)   // Save follows the scroll
+    ///     .add(form_section("Personal").open().add(input().label("Name")))
+    ///     .add(form_section("Address").add(input().label("Street")))
+    ///     .save_cancel("Save student");
+    /// ```
+    pub fn sticky_actions(mut self, placement: StickyActions) -> Self {
+        self.sticky = placement; self
+    }
+
+    /// Sugar for `sticky_actions(StickyActions::Bottom)`.
+    pub fn sticky_bottom(self) -> Self { self.sticky_actions(StickyActions::Bottom) }
+    /// Sugar for `sticky_actions(StickyActions::Top)`.
+    pub fn sticky_top(self)    -> Self { self.sticky_actions(StickyActions::Top) }
+
+    /// Optional CSS length pushed into `--sticky-offset` on the host
+    /// so the pinned bar sits below your app-shell topbar (or above
+    /// your bottom-nav on mobile) instead of overlapping it.
+    ///
+    /// ```ignore
+    /// form()
+    ///     .sticky_bottom()
+    ///     .sticky_offset("var(--app-bottomnav-h, 0px)")   // sit above bottom-nav
+    /// ```
+    pub fn sticky_offset(mut self, css_length: impl Into<String>) -> Self {
+        self.sticky_offset = Some(css_length.into()); self
+    }
 }
 impl Component for Form {
     fn render(&self) -> String {
@@ -85,6 +209,10 @@ impl Component for Form {
         if let Some(ref a) = self.action { attrs.push(Attr::kv("action", a.as_str())); }
         if self.novalidate { attrs.push(Attr::flag("novalidate")); }
         if self.inline     { attrs.push(Attr::flag("inline")); }
+        if let Some(s) = self.sticky.as_str() { attrs.push(Attr::kv("sticky", s)); }
+        if let Some(ref o) = self.sticky_offset {
+            attrs.push(Attr::kv("sticky-offset", o.as_str()));
+        }
 
         // Banner slot (renders at the top of the form).
         let mut body = String::new();

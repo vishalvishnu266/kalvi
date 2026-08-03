@@ -82,7 +82,9 @@ pub mod prelude {
     pub use crate::components::checkbox::{checkbox, Checkbox};
     pub use crate::components::radio::{radio, radio_group, Radio, RadioGroup};
     pub use crate::components::switch::{switch, Switch};
-    pub use crate::components::form::{form, Form};
+    pub use crate::components::form::{form, Form, StickyActions};
+    pub use crate::components::form_section::{form_section, FormSection, SectionTone};
+    pub use crate::components::hidden::{hidden, Hidden};
     pub use crate::components::table::{table, Table, Column as TableColumn, Align as TableAlign};
     pub use crate::components::data_table::{data_table, DataTable, ColOpts};
     pub use crate::components::pagination::{pagination, Pagination};

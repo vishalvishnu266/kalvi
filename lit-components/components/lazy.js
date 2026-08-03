@@ -32,6 +32,7 @@ const LAZY_MAP = {
   'ui-dropdown-menu': () => import('./ui-dropdown-menu.js'),
   'ui-file-upload':   () => import('./ui-file-upload.js'),
   'ui-form-banner':   () => import('./ui-form-banner.js'),
+  'ui-collapse':      () => import('./ui-collapse.js'),
   'ui-alert':         () => import('./ui-alert.js'),
   'ui-ack-panel':     () => import('./ui-ack-panel.js'),
 };

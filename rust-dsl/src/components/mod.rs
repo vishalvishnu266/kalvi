@@ -32,6 +32,8 @@ pub mod checkbox;
 pub mod radio;
 pub mod switch;
 pub mod form;
+pub mod form_section;
+pub mod hidden;
 pub mod table;
 pub mod data_table;
 pub mod pagination;
