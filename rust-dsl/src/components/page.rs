@@ -119,6 +119,22 @@ impl Component for Page {
        as native screens. No custom lifecycle code needed. -->
   <script type="module" src="https://cdn.jsdelivr.net/npm/@hotwired/turbo@8.0.4/dist/turbo.es2017-esm.min.js"></script>
   <style>
+    /* Breathing room at the top/sides of every DSL page. Individual pages
+       can override by wrapping content in their own container/layout. On
+       mobile we shrink the horizontal gutters so cards don't feel cramped
+       and keep the safe-area inset for iOS notch. */
+    body {{
+      padding: 24px 24px 32px;
+      padding-top:    max(24px, env(safe-area-inset-top));
+      padding-left:   max(24px, env(safe-area-inset-left));
+      padding-right:  max(24px, env(safe-area-inset-right));
+      padding-bottom: max(32px, env(safe-area-inset-bottom));
+      box-sizing: border-box;
+    }}
+    @media (max-width: 640px) {{
+      body {{ padding: 16px 12px 24px; }}
+    }}
+
     /* Hide the app until custom elements are defined, but show a spinner. */
     body:not(.ce-ready) > *:not(#app-loading) {{ visibility: hidden; }}
     #app-loading {{

@@ -383,6 +383,13 @@ class UICopilot extends LitBaseElement {
       }
     };
     document.addEventListener('keydown', this._kbd);
+
+    // Eagerly hydrate any persisted conversation so it's already there
+    // when the user opens the panel after navigating to a new page.
+    // Wait one microtask for the shadow DOM to render `.messages`.
+    queueMicrotask(() => {
+      this.updateComplete?.then?.(() => this._ensureSession()).catch(() => {});
+    });
   }
 
   disconnectedCallback() {
@@ -397,18 +404,47 @@ class UICopilot extends LitBaseElement {
   closePanel() { this._close(); }
 
   // ── Internals ─────────────────────────────────────────────────────────
+  // Storage key for the persisted session id — namespaced by endpoint so
+  // multi-tenant setups (each with its own /web/{tenant}/copilot/*) don't
+  // collide with each other.
+  get _storageKey() { return `ui-copilot:sid:${this.sessionUrl}`; }
+
   async _ensureSession() {
     if (this._sessionId) return;
+
+    // 1) Try to reuse the id we persisted on a previous page.
+    let persisted = null;
+    try { persisted = localStorage.getItem(this._storageKey); } catch (_) {}
+
+    if (persisted) {
+      this._sessionId = persisted;
+      // Try to hydrate immediately; if the backend has forgotten this
+      // session (server restart, cache eviction), we quietly create a new
+      // one below.
+      if (this.historyUrl) {
+        try {
+          const h = await fetch(`${this.historyUrl}/${this._sessionId}`);
+          if (h.ok) {
+            this._messagesEl().innerHTML = await h.text();
+            this._scrollBottom();
+            return;
+          }
+        } catch (_) { /* fall through to create a new session */ }
+      } else {
+        return;
+      }
+      // Stale id → drop it and mint a fresh one.
+      this._sessionId = null;
+      try { localStorage.removeItem(this._storageKey); } catch (_) {}
+    }
+
+    // 2) No persisted id (or it was stale) — ask the backend for a new one.
     try {
       const r = await fetch(this.sessionUrl, { method: 'POST' });
       if (!r.ok) throw new Error('session http ' + r.status);
       const j = await r.json();
       this._sessionId = j.session_id;
-      // Hydrate any previous history for this session.
-      if (this.historyUrl) {
-        const h = await fetch(`${this.historyUrl}/${this._sessionId}`);
-        if (h.ok) this._messagesEl().innerHTML = await h.text();
-      }
+      try { localStorage.setItem(this._storageKey, this._sessionId); } catch (_) {}
     } catch (err) {
       console.warn('[ui-copilot] session init failed; running detached', err);
       this._sessionId = 'local-' + Math.random().toString(36).slice(2);
@@ -652,6 +688,10 @@ class UICopilot extends LitBaseElement {
   }
 
   _reset() {
+    // Also drop the persisted id so the next turn starts a fresh
+    // server-side conversation (in-memory cache entry is orphaned but
+    // harmless — it'll fall out on server restart).
+    try { localStorage.removeItem(this._storageKey); } catch (_) {}
     this._sessionId = null;
     this._lastAssistantId = null;
     this.step = null;
