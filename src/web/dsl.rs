@@ -23,7 +23,7 @@ use axum::response::{Html, IntoResponse, Redirect, Response};
 use axum::Form;
 use lit_ui::core::Component;
 use lit_ui::pages::{
-    attendance, components, copilot as copilot_page, dashboard, errors, errors_combos,
+    attendance, components, dashboard, errors, errors_combos,
     errors_roundtrip, errors_validator, fees, icons, layouts, students,
 };
 use serde::Deserialize;
@@ -71,8 +71,7 @@ pub async fn index() -> Html<&'static str> {
         <li><a href="/dsl/icons"><div><strong>Icons</strong><br><small>Visual catalogue of every Icons::* constant</small></div></a></li>
         <li><a href="/dsl/layouts"><div><strong>Layout guide</strong><br><small>Every layout primitive & preset with live demos + source</small></div></a></li>
         <li><a href="/dsl/components"><div><strong>Components</strong><br><small>Every UI component with variants + source (buttons, inputs, tables, modals…)</small></div></a></li>
-        <li><a href="/dsl/copilot"><div><strong>Copilot (agentic chat)</strong><br><small>Streaming SSE chat window with mock multi-step scenarios. Mobile-ready.</small></div></a></li>
-        <li><a href="/dsl/copilot-v2"><div><strong>Copilot v2 — suggestions, autocomplete, forms, voice</strong><br><small>Non-technical-first UX: proactive chips, live matches, inline forms, follow-ups, confirmation cards, mic input.</small></div></a></li>
+        <li><a href="/dsl/copilot"><div><strong>Copilot (unified agentic chat)</strong><br><small>Proactive suggestions, live autocomplete, inline forms, @mentions, streaming, voice, dark mode — all in one panel.</small></div></a></li>
         <li><a href="/dsl/errors"><div><strong>Error UX</strong><br><small>Field / form / page error surfaces — the handbook for validation UI</small></div></a></li>
         <li><a href="/dsl/errors/combos"><div><strong>Error combinations</strong><br><small>Every meaningful combination of banner + field + alert + ack panel with source</small></div></a></li>
         <li><a href="/dsl/errors/roundtrip"><div><strong>Error round-trip (live)</strong><br><small>Real POST → 422 → Turbo swap → errors inline. Hand-rolled validation.</small></div></a></li>
@@ -116,23 +115,12 @@ pub async fn components_page() -> Html<String> {
     Html(components::build().render())
 }
 
-/// `/dsl/copilot` — dedicated demo page for the agentic Copilot chat window.
-/// The `<ui-copilot>` element is auto-injected by `page_of()` on every DSL
-/// page, but this one lists every mock prompt and includes a sample form
-/// so the `fill_form` UI-action has something to populate.
-pub async fn copilot_demo_page() -> Html<String> {
-    Html(copilot_page::build().render())
-}
-
-/// `/dsl/copilot-v2` — showcase of the second-generation Copilot with
-/// suggestion chips, live autocomplete, inline forms, follow-up flows,
-/// confirmation cards, and a voice-input stub. Uses `<ui-copilot-v2>`
-/// (a separate component from `<ui-copilot>`).
-pub async fn copilot_v2_page() -> Html<&'static str> {
-    // Deliberately NOT using page_of() (which would auto-inject the v1
-    // copilot). We want a clean canvas showing only v2, so we write the
-    // page as a small static template that opts into the same asset
-    // pipeline and design tokens.
+/// `/dsl/copilot` — the unified Copilot demo showcasing every capability
+/// (proactive suggestions, live autocomplete, inline forms, confirmation
+/// cards, streaming multi-step, @-mentions, voice, page nav, dark mode,
+/// pinned/recent). Renders the standalone HTML page in
+/// `copilot_v2_page.html` (kept for its rich hand-written cards).
+pub async fn copilot_demo_page() -> Html<&'static str> {
     Html(include_str!("copilot_v2_page.html"))
 }
 

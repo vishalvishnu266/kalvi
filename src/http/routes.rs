@@ -10,7 +10,7 @@ use axum::{
 
 use crate::http::api_routes;
 use crate::middleware::tracing as wtr;
-use crate::web::{agent as wag, assets as wa, copilot as wc, dsl as wd};
+use crate::web::{agent as wag, assets as wa, dsl as wd};
 
 pub type ServiceHttpError = ServiceError;
 
@@ -56,7 +56,8 @@ pub fn build_router(state: AppState, readiness: Readiness) -> Router {
         .route("/dsl/layouts",    get(wd::layouts_page))
         .route("/dsl/components", get(wd::components_page))
         .route("/dsl/copilot",    get(wd::copilot_demo_page))
-        .route("/dsl/copilot-v2", get(wd::copilot_v2_page))
+        // Backwards-compat alias: /dsl/copilot-v2 → same unified page.
+        .route("/dsl/copilot-v2", get(wd::copilot_demo_page))
         .route("/dsl/errors",           get(wd::errors_page))
         .route("/dsl/errors/combos",    get(wd::errors_combos_page))
         .route("/dsl/errors/roundtrip",
@@ -70,13 +71,8 @@ pub fn build_router(state: AppState, readiness: Readiness) -> Router {
     let web_tenant = crate::http::web::routes(state.clone());
     let portal_tenant = crate::http::portal::routes(state.clone());
 
-    // Agentic Copilot mock backend (`/copilot/session`, `/message`, `/history/:id`).
-    // In-memory only; safe to construct fresh here — no DB, no LLM.
-    let copilot = wc::router(wc::CopilotState::new());
-
-    // Second-generation agent surface: /agent/suggest, /agent/complete,
-    // /agent/schema, /agent/invoke — powers <ui-copilot-v2>.
-    // All state-less mocks; safe to build inline.
+    // Unified agent surface: /agent/{suggest,complete,schema,entities,invoke,stream}
+    // — powers the single <ui-copilot> element. Stateless mock (no DB, no LLM).
     let agent = wag::router::<AppState>();
 
     tracing::debug!("build_router: finalizing assembly and adding middleware");
@@ -90,7 +86,6 @@ pub fn build_router(state: AppState, readiness: Readiness) -> Router {
         .nest("/portal/{tenant}", portal_tenant)
         .nest("/web", web_global)
         .nest("/portal", portal_global)
-        .merge(copilot)
         .merge(agent)
         .merge(global)
         .with_state(state)

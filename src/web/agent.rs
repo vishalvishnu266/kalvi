@@ -120,6 +120,10 @@ async fn suggest(Query(q): Query<SuggestQ>) -> Json<Vec<Item>> {
             Item::new("Overdue fees",            "💰", "fees.overdue",    json!({})),
             Item::new("Add a new student",       "👤", "students.enrol",  json!({})),
             Item::new("Today's timetable",       "🗓️", "timetable.today", json!({})),
+            Item::new("Open Dashboard",          "🏠", "core.navigate",
+                json!({"href":"/dsl/dashboard"})),
+            Item::new("Dark mode",               "🌙", "core.set_theme",
+                json!({"theme":"dark"})),
         ]
     };
     Json(items)
@@ -403,6 +407,13 @@ async fn schema(Query(q): Query<SchemaQ>) -> Json<SchemaOut> {
                 help: Some("The parent will receive an SMS + email.".into()),
                 enum_options: None,
             }],
+        },
+
+        "demo.bulk_import" => SchemaOut {
+            required: vec![],
+            mutating: true,
+            streaming: true,
+            fields: vec![],
         },
 
         _ => SchemaOut { required: vec![], fields: vec![], mutating: false, streaming: false },
@@ -767,16 +778,34 @@ async fn invoke(Json(req): Json<InvokeReq>) -> Json<Value> {
         }),
 
         // ── Meta / core ───────────────────────────────────────────
-        "core.navigate" => json!({
-            "kind": "text",
-            "text": format!("🧭 Navigating to {}", a.get("href").and_then(|v| v.as_str()).unwrap_or("?")),
-        }),
+        // Client-driving tools: return `ui_action` so the browser executes it.
+        // The `text` bubble is still shown so the user gets feedback.
+        "core.navigate" => {
+            let href = a.get("href").and_then(|v| v.as_str()).unwrap_or("/");
+            json!({
+                "kind": "text",
+                "text": format!("🧭 Taking you to {}", href),
+                "ui_action": { "action": "navigate", "href": href },
+            })
+        }
 
-        "core.set_theme" => json!({
-            "kind": "text",
-            "text": format!("🎨 Theme set to {}",
-                            a.get("theme").and_then(|v| v.as_str()).unwrap_or("default")),
-        }),
+        "core.set_theme" => {
+            let theme = a.get("theme").and_then(|v| v.as_str()).unwrap_or("light");
+            json!({
+                "kind": "text",
+                "text": format!("🎨 Switched to {} mode", theme),
+                "ui_action": { "action": "set_theme", "theme": theme },
+            })
+        }
+
+        "core.toast" => {
+            let msg = a.get("message").and_then(|v| v.as_str()).unwrap_or("Hello");
+            json!({
+                "kind": "text",
+                "text": format!("🔔 {}", msg),
+                "ui_action": { "action": "toast", "message": msg, "tone": "info" },
+            })
+        }
 
         "timetable.today" => json!({
             "kind": "table",
@@ -931,6 +960,34 @@ async fn stream_tool(
                     "🎉 {name} is enrolled in Grade {grade}. Welcome SMS sent to guardian at {phone}. \
                      Would you like to charge this term's fees now?", ), 25).await;
                 em.end(&msg_id).await;
+            }
+
+            // A deliberate failure scenario — shows the UX when a step fails
+            // mid-stream. Trigger from the "Bulk import (fails at step 3)"
+            // demo button. Streams progress until step 3, then emits an
+            // `error` event and stops.
+            "demo.bulk_import" => {
+                em.step(1, 4, "Reading uploaded CSV").await;
+                em.tool_call("csv_parse", "file=roster.csv, rows=138").await;
+                em.sleep(650).await;
+                em.tool_result(true, "138 rows parsed").await;
+
+                em.step(2, 4, "Validating fields").await;
+                em.tool_call("validate_rows", "columns=name,dob,grade").await;
+                em.sleep(700).await;
+                em.tool_result(true, "132 valid rows, 6 warnings").await;
+
+                em.step(3, 4, "Writing to database").await;
+                em.tool_call("db_bulk_insert", "table=students, count=132").await;
+                em.sleep(900).await;
+                em.tool_result(false, "Row 47 rejected: duplicate guardian phone").await;
+                em.send(
+                    Event::default().event("error")
+                        .data(json!({
+                            "message": "Bulk import aborted at step 3 — duplicate guardian phone in row 47. \
+                                        First 46 rows were inserted (rolled back). Fix the CSV and retry."
+                        }).to_string())
+                ).await;
             }
 
             _ => {

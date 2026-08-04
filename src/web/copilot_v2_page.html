@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Copilot v2 — Interactive Demo</title>
+  <title>Copilot — Unified Interactive Demo</title>
   <link rel="stylesheet" href="/lit-components/assets/tokens.css" />
   <link rel="stylesheet" href="/lit-components/assets/global.css" />
   <link rel="stylesheet" href="/lit-components/assets/layout.css" />
@@ -66,11 +66,14 @@
 </head>
 <body>
 
-  <h1>Copilot v2 — the non-technical-first experience</h1>
+  <h1>Copilot — one unified surface for humans and agents</h1>
   <p class="lead">
     A single input handles typing, tapping, and speaking. No symbols required.
-    Try any of the scenarios below — or press <span class="kbd">Ctrl</span>+<span class="kbd">J</span>
-    (or tap the ✨ button) to open the panel.
+    Every capability — proactive suggestions, autocomplete, inline forms,
+    confirmation, streaming, @mentions, voice, page navigation, dark mode —
+    ships in the same <code>&lt;ui-copilot&gt;</code> element that&#39;s auto-mounted
+    on every DSL page. Try any scenario below, or press
+    <span class="kbd">Ctrl</span>+<span class="kbd">J</span> to open the panel.
   </p>
 
   <div class="cta">
@@ -155,6 +158,30 @@
         <p>Fee-charge is <em>both</em> mutating and streaming — you see the confirm card first,
            then approval kicks off the 4-step SSE flow.</p>
         <button class="try" onclick="fire('fees.charge', {category:'tuition',term:'march',grade:'5'})">Charge tuition · Grade 5 →</button>
+      </div>
+
+      <div class="card">
+        <h3>⚠️ 12. Failure mid-stream</h3>
+        <p>Not every task succeeds. Bulk import runs, then hits a duplicate on step 3 — the stream stops with a clear error and rollback message.</p>
+        <button class="try" onclick="fire('demo.bulk_import', {})">Bulk import (fails at step 3) →</button>
+      </div>
+
+      <div class="card">
+        <h3>🧭 13. Page navigation</h3>
+        <p>The assistant can drive the app. Ask it to open a page and it emits a <code>ui_action navigate</code> that Turbo-visits the URL.</p>
+        <button class="try" onclick="fire('core.navigate', {href:'/dsl/dashboard'})">Take me to Dashboard →</button>
+      </div>
+
+      <div class="card">
+        <h3>🌙 14. Dark mode toggle</h3>
+        <p>Ask for dark mode — a <code>set_theme</code> action flips <code>&lt;html data-theme&gt;</code>. Design tokens react automatically.</p>
+        <button class="try" onclick="fire('core.set_theme', {theme:'dark'})">Enable dark mode →</button>
+      </div>
+
+      <div class="card">
+        <h3>⭐ 15. Pinned + Recent</h3>
+        <p>Every action you run is remembered in a Recent strip. Right-click any chip to pin it. Pinned + Recent survive page navigation via <code>localStorage</code>.</p>
+        <button class="try" onclick="openCopilot()">Open panel to see chips</button>
       </div>
 
     </div>

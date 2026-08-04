@@ -35,7 +35,9 @@ const LAZY_MAP = {
   'ui-collapse':      () => import('./ui-collapse.js'),
   'ui-alert':         () => import('./ui-alert.js'),
   'ui-ack-panel':     () => import('./ui-ack-panel.js'),
-  'ui-copilot':       () => import('./ui-copilot.js'),
+  // The unified copilot element lives in ui-copilot-v2.js (v2 codebase).
+  // Both names lazy-load the same module and register both custom elements.
+  'ui-copilot':       () => import('./ui-copilot-v2.js'),
   'ui-copilot-v2':    () => import('./ui-copilot-v2.js'),
 };
 

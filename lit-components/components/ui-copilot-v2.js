@@ -39,6 +39,9 @@ class UICopilotV2 extends LitBaseElement {
   static properties = {
     open:         { type: Boolean, reflect: true },
     label:        { type: String },
+    /// Base URL for the agent endpoints (`/agent` default). Change to a
+    /// per-tenant prefix like `/web/acme/agent` for multi-tenant setups.
+    agentBase:    { type: String, attribute: 'agent-base' },
     // internal state
     _suggestions: { state: true },   // proactive chips shown above input
     _matches:     { state: true },   // live autocomplete
@@ -440,19 +443,47 @@ class UICopilotV2 extends LitBaseElement {
     this._mentionCursor = -1;
     this._composerMentions = []; // {id, label} chips above composer
     this._stream = null;
-    this._agentBase = '/agent';
+    this.agentBase = '/agent'; // reflected from `agent-base` attribute
+    // Legacy alias — some internal methods still reference this._agentBase.
+    // We keep them in sync via a getter below to avoid an intrusive refactor.
+    // Recency / favorites tracking, persisted to localStorage.
+    this._recent = [];       // most recent actions (max 6)
+    this._favorites = [];    // pinned by user (max 6)
+    // Client-side UI tools invoked by "core.*" tool responses. Ported from
+    // v1 so the assistant can drive the app (navigate, theme, toast).
+    this._uiTools = {
+      navigate:  ({ href })  => href && (window.Turbo?.visit?.(href) ?? (location.href = href)),
+      set_theme: ({ theme }) => { if (theme) document.documentElement.dataset.theme = theme; },
+      toast:     ({ message, tone = 'info' }) => {
+        const host = document.querySelector('ui-toast-host');
+        host?.push?.({ message, tone });
+      },
+      highlight: ({ selector, ms = 1500 }) => {
+        const el = document.querySelector(selector); if (!el) return;
+        el.classList.add('ai-highlight');
+        setTimeout(() => el.classList.remove('ai-highlight'), ms);
+      },
+      focus: ({ selector }) => document.querySelector(selector)?.focus(),
+    };
   }
 
   connectedCallback() {
     super.connectedCallback();
     this._kbd = (e) => {
+      // Ctrl/Cmd+J — global toggle, works on every page (ported from v1).
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'j') {
         e.preventDefault(); this._toggle();
       }
-      if (e.key === 'Escape' && this.open) this._close();
+      // Esc: cancel stream if running, else close panel.
+      if (e.key === 'Escape' && this.open) {
+        if (this._stream) { this._cancelStream(); e.preventDefault(); return; }
+        this._close();
+      }
     };
     document.addEventListener('keydown', this._kbd);
-    // Prefetch proactive suggestions so the first open feels instant.
+    // Restore any persisted transcript + recent/favorites first, then
+    // prefetch proactive suggestions so the first open feels instant.
+    this._restoreState();
     queueMicrotask(() => this._loadSuggestions());
   }
 
@@ -460,6 +491,61 @@ class UICopilotV2 extends LitBaseElement {
     super.disconnectedCallback();
     document.removeEventListener('keydown', this._kbd);
     try { this._recognizer?.abort(); } catch (_) {}
+    try { this._stream?.aborter?.abort(); } catch (_) {}
+  }
+
+  // Legacy internal alias so the many `this._agentBase` reads in this file
+  // continue to work while the public property is `agentBase`.
+  get _agentBase() { return this.agentBase || '/agent'; }
+
+  // ── Persistence (localStorage) ──────────────────────────────────────
+  // Keyed by agent endpoint base so multi-tenant setups don't collide.
+  get _storageKey() { return `ui-copilot:v2:${this._agentBase}`; }
+
+  _saveState() {
+    try {
+      // Only persist "settled" messages — skip in-flight streams to avoid
+      // dead references, and drop the pendingForm (transient UI).
+      const messages = this._messages.filter(m => m.kind !== 'pending');
+      const payload = {
+        messages, recent: this._recent, favorites: this._favorites,
+        savedAt: Date.now(),
+      };
+      localStorage.setItem(this._storageKey, JSON.stringify(payload));
+    } catch (_) { /* private-mode, quota, etc. */ }
+  }
+
+  _restoreState() {
+    try {
+      const raw = localStorage.getItem(this._storageKey);
+      if (!raw) return;
+      const p = JSON.parse(raw);
+      if (Array.isArray(p.messages))  this._messages  = p.messages;
+      if (Array.isArray(p.recent))    this._recent    = p.recent;
+      if (Array.isArray(p.favorites)) this._favorites = p.favorites;
+    } catch (_) {}
+  }
+
+  _clearState() {
+    try { localStorage.removeItem(this._storageKey); } catch (_) {}
+  }
+
+  // Bump an action into recents (dedup, cap at 6).
+  _rememberAction(item) {
+    if (!item?.tool) return;
+    const dedup = this._recent.filter(r => r.tool !== item.tool || JSON.stringify(r.prefill) !== JSON.stringify(item.prefill));
+    this._recent = [{ title: item.title, icon: item.icon, tool: item.tool, prefill: item.prefill || {} }, ...dedup].slice(0, 6);
+    this._saveState();
+  }
+
+  _toggleFavorite(item) {
+    const key = (i) => `${i.tool}|${JSON.stringify(i.prefill || {})}`;
+    const k = key(item);
+    const has = this._favorites.some(f => key(f) === k);
+    this._favorites = has
+      ? this._favorites.filter(f => key(f) !== k)
+      : [{ title: item.title, icon: item.icon, tool: item.tool, prefill: item.prefill || {} }, ...this._favorites].slice(0, 6);
+    this._saveState();
   }
 
   _open()   { this.open = true; setTimeout(() => this.$('textarea')?.focus(), 100); }
@@ -611,8 +697,9 @@ class UICopilotV2 extends LitBaseElement {
   // ── Suggestion / Autocomplete tap ───────────────────────────────────
   async _runAction(item) {
     // Clear input + matches; the user has committed.
-    this.$('textarea').value = '';
+    const ta = this.$('textarea'); if (ta) ta.value = '';
     this._matches = [];
+    this._rememberAction(item);
     this._pushUser(item.title);
 
     // Fetch tool schema. If it has required args we can't fill from context,
@@ -733,6 +820,8 @@ class UICopilotV2 extends LitBaseElement {
       this._busy = false;
       this._stream = null;
       this._scrollBottom();
+      // Persist the final transcript (streaming HTML included).
+      this._saveState();
     }
   }
 
@@ -844,10 +933,14 @@ class UICopilotV2 extends LitBaseElement {
         body: JSON.stringify({ tool, args }),
       });
       const data = await r.json();
+      // If the tool returned a `ui_action` block, run it client-side.
+      // Examples: {ui_action: {action: "navigate", href: "/dsl/dashboard"}}
+      if (data.ui_action) this._runUiAction(data.ui_action);
       // Replace pending with result.
       this._messages = this._messages
         .filter(m => m.id !== pid)
         .concat([{ id: 'r-' + pid, kind: data.kind || 'text', ...data }]);
+      this._saveState();
     } catch (e) {
       this._messages = this._messages
         .filter(m => m.id !== pid)
@@ -947,15 +1040,43 @@ class UICopilotV2 extends LitBaseElement {
   }
 
   _renderSuggestions() {
-    if (!this._suggestions.length) return nothing;
+    // Recent + favorites always show if we have any — most valuable UX
+    // real estate. Suggestions come second (proactive from server).
+    const hasQuickAccess = this._favorites.length || this._recent.length;
+    const hasSuggestions = this._suggestions.length;
+    if (!hasQuickAccess && !hasSuggestions) return nothing;
     return html`
       <div class="suggestions">
-        <div class="hint">Try one of these — or type in your own words below</div>
-        ${this._suggestions.map(s => html`
-          <button class="chip" @click=${() => this._runAction(s)}>
-            ${s.icon ?? ''} ${s.title}
-          </button>
-        `)}
+        ${this._favorites.length ? html`
+          <div class="hint">⭐ Pinned</div>
+          ${this._favorites.map(f => html`
+            <button class="chip" title="Pinned — click to run"
+                    @click=${() => this._runAction(f)}
+                    @contextmenu=${(e) => { e.preventDefault(); this._toggleFavorite(f); }}>
+              ${f.icon ?? ''} ${f.title}
+            </button>
+          `)}
+        ` : nothing}
+        ${this._recent.length ? html`
+          <div class="hint">🕘 Recent</div>
+          ${this._recent.map(r => html`
+            <button class="chip" title="Recent — right-click to pin"
+                    @click=${() => this._runAction(r)}
+                    @contextmenu=${(e) => { e.preventDefault(); this._toggleFavorite(r); }}>
+              ${r.icon ?? ''} ${r.title}
+            </button>
+          `)}
+        ` : nothing}
+        ${hasSuggestions ? html`
+          <div class="hint">${hasQuickAccess ? '💡 Suggested for this page' : 'Try one of these — or type in your own words below'}</div>
+          ${this._suggestions.map(s => html`
+            <button class="chip"
+                    @click=${() => this._runAction(s)}
+                    @contextmenu=${(e) => { e.preventDefault(); this._toggleFavorite(s); }}>
+              ${s.icon ?? ''} ${s.title}
+            </button>
+          `)}
+        ` : nothing}
       </div>
     `;
   }
@@ -1208,9 +1329,52 @@ class UICopilotV2 extends LitBaseElement {
   }
 
   _clear() {
+    // Wipe transcript + persisted state, but preserve favorites (user pins).
     this._messages = [];
     this._pendingForm = null;
+    this._composerMentions = [];
+    this._recent = [];
+    this._clearState();
+    this._saveState();
   }
+
+  // Dispatch a `ui_action` payload from a tool response — the assistant's
+  // way of driving the app (navigate, focus, theme, toast, highlight).
+  _runUiAction(a) {
+    if (!a || !a.action) return;
+    const fn = this._uiTools[a.action];
+    if (fn) fn(a);
+    else console.warn('[ui-copilot] unknown ui_action', a);
+  }
+
+  // Public API for host pages / tests. Kept stable across v1 → v2.
+  openPanel()  { this._open(); }
+  closePanel() { this._close(); }
 }
 
-customElements.define('ui-copilot-v2', UICopilotV2);
+// Register under BOTH names during the transition, so any HTML that still
+// uses `<ui-copilot-v2>` keeps working. New consumers should use
+// `<ui-copilot>` (the primary, unified element).
+customElements.define('ui-copilot', UICopilotV2);
+if (!customElements.get('ui-copilot-v2')) {
+  customElements.define('ui-copilot-v2', class extends UICopilotV2 {});
+}
+
+// Global .ai-highlight style so `highlight` UI-action has a visible effect
+// even on host pages that don't include their own copy.
+if (typeof document !== 'undefined' && !document.getElementById('ai-highlight-style')) {
+  const s = document.createElement('style');
+  s.id = 'ai-highlight-style';
+  s.textContent = `
+    .ai-highlight {
+      outline: 2px solid var(--color-primary, #0a84ff) !important;
+      outline-offset: 2px;
+      animation: ai-pulse 1.2s ease-in-out;
+    }
+    @keyframes ai-pulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(10,132,255,.28); }
+      50%     { box-shadow: 0 0 0 8px rgba(10,132,255,.28); }
+    }
+  `;
+  document.head.appendChild(s);
+}
