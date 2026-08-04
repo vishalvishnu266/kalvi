@@ -197,14 +197,16 @@ async fn complete(Query(cq): Query<CompleteQ>) -> Json<Vec<Item>> {
 fn fuzzy_score(q: &str, hay: &str) -> i32 {
     if q.is_empty() { return 0; }
     let h = hay.to_lowercase();
-    let mut score = 0;
+    // Explicit type annotation — needed so `saturating_sub` below has a
+    // concrete integer type to dispatch on (was E0689 otherwise).
+    let mut score: i32 = 0;
     for word in q.split_whitespace() {
         if word.len() < 2 { continue; }
         if h.contains(word) {
             score += 40 + if h.starts_with(word) { 20 } else { 0 };
         } else {
             // subsequence check — each hit adds a little
-            let mut qi = 0;
+            let mut qi = 0usize;
             let wb = word.as_bytes();
             for c in h.bytes() {
                 if qi < wb.len() && c == wb[qi] { qi += 1; score += 1; }
