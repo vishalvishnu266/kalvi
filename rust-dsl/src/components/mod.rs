@@ -69,3 +69,6 @@ pub mod ack_panel;
 
 // Agentic AI chat window — see `docs` in the module for architecture.
 pub mod copilot;
+// Reusable primitives extracted from <ui-copilot> — step bars, tool cards,
+// mention popovers — so any page (not just Copilot) can drop them in.
+pub mod copilot_primitives;

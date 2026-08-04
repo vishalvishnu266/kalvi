@@ -59,10 +59,42 @@ class UICopilotV2 extends LitBaseElement {
   };
 
   static styles = css`
+    /* -----------------------------------------------------------------
+       All chrome colors are driven by design tokens (see tokens.css).
+       Adding [data-theme="dark"] to <html> flips the tokens document-wide;
+       because CSS custom properties inherit through the shadow-DOM
+       boundary, this component re-themes automatically with zero JS.
+
+       Local aliases below let us tweak the copilot's palette without
+       touching the global tokens — but by default they resolve straight
+       to the shared vars.  Never hard-code hex here.
+       ----------------------------------------------------------------- */
     :host {
       position: fixed; inset: 0; pointer-events: none; z-index: 2500;
       font-family: var(--font-sans, system-ui, sans-serif);
       color: var(--color-text, #0f172a);
+
+      --cp-bg:            var(--color-surface, #fff);
+      --cp-bg-alt:        var(--color-surface-alt, #f2f4fb);
+      --cp-bg-soft:       var(--color-surface-2, #f8faff);
+      --cp-text:          var(--color-text, #0f172a);
+      --cp-text-muted:    var(--color-text-muted, #475569);
+      --cp-border:        var(--color-border, rgba(0,0,0,.08));
+      --cp-border-strong: var(--color-border-strong, rgba(0,0,0,.16));
+      --cp-primary:       var(--color-primary, #0a84ff);
+      --cp-primary-fg:    var(--color-primary-contrast, #fff);
+      --cp-primary-soft:  var(--color-primary-soft, rgba(10,132,255,.14));
+      --cp-primary-ring:  var(--color-primary-ring, rgba(10,132,255,.28));
+      --cp-danger:        var(--color-danger, #ef4444);
+      --cp-danger-soft:   var(--color-danger-soft, rgba(239,68,68,.14));
+      --cp-danger-strong: var(--color-danger-strong, #991b1b);
+      --cp-warning-soft:  var(--color-warning-soft, rgba(255,193,7,.14));
+      --cp-warning-strong:var(--color-warning-strong, #92400e);
+      --cp-info-soft:     var(--color-info-soft, rgba(90,200,250,.14));
+      --cp-info-strong:   var(--color-info-strong, #036);
+      --cp-info:          var(--color-info, #5ac8fa);
+      --cp-scrim:         var(--color-scrim, rgba(15,23,42,.35));
+      --cp-shadow:        var(--shadow-lg, 0 20px 40px rgba(0,0,0,.25));
     }
 
     /* Floating trigger */
@@ -71,9 +103,9 @@ class UICopilotV2 extends LitBaseElement {
       right: max(16px, env(safe-area-inset-right));
       bottom: max(16px, env(safe-area-inset-bottom));
       width: 56px; height: 56px; border-radius: 50%;
-      background: var(--color-primary, #0a84ff); color: #fff;
+      background: var(--cp-primary); color: var(--cp-primary-fg);
       border: 0; cursor: pointer; pointer-events: auto;
-      box-shadow: var(--shadow-lg, 0 20px 40px rgba(0,0,0,.25));
+      box-shadow: var(--cp-shadow);
       display: grid; place-items: center;
       transition: transform .15s;
     }
@@ -83,7 +115,7 @@ class UICopilotV2 extends LitBaseElement {
     /* Scrim */
     .scrim {
       position: absolute; inset: 0;
-      background: rgba(15,23,42,.35);
+      background: var(--cp-scrim);
       opacity: 0; pointer-events: none;
       transition: opacity .24s;
     }
@@ -92,10 +124,11 @@ class UICopilotV2 extends LitBaseElement {
     /* Panel */
     .panel {
       position: absolute;
-      background: var(--color-surface, #fff);
+      background: var(--cp-bg);
+      color: var(--cp-text);
       display: flex; flex-direction: column;
       pointer-events: auto;
-      box-shadow: var(--shadow-lg, 0 20px 40px rgba(0,0,0,.25));
+      box-shadow: var(--cp-shadow);
       transition: transform .24s;
     }
     @media (min-width: 720px) {
@@ -103,7 +136,7 @@ class UICopilotV2 extends LitBaseElement {
         top: 0; right: 0; bottom: 0;
         width: min(480px, 96vw);
         transform: translateX(100%);
-        border-left: 1px solid var(--color-border, rgba(0,0,0,.08));
+        border-left: 1px solid var(--cp-border);
       }
       :host([open]) .panel { transform: translateX(0); }
     }
@@ -117,7 +150,7 @@ class UICopilotV2 extends LitBaseElement {
       :host([open]) .panel { transform: translateY(0); }
       .grabber {
         width: 40px; height: 4px; margin: 8px auto 0;
-        background: rgba(0,0,0,.16); border-radius: 2px;
+        background: var(--cp-border-strong); border-radius: 2px;
       }
     }
 
@@ -125,43 +158,57 @@ class UICopilotV2 extends LitBaseElement {
     header {
       display: flex; align-items: center; gap: 8px;
       padding: 12px 16px;
-      border-bottom: 1px solid var(--color-border, rgba(0,0,0,.08));
+      border-bottom: 1px solid var(--cp-border);
+      background: var(--cp-bg);
     }
     header .title {
       flex: 1; font-weight: 600; font-size: 15px;
+      color: var(--cp-text);
       display: flex; align-items: center; gap: 8px;
     }
     header .title .dot {
       width: 8px; height: 8px; border-radius: 50%;
-      background: #34c759;
-      box-shadow: 0 0 0 3px rgba(52,199,89,.25);
+      background: var(--color-success, #34c759);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-success, #34c759) 25%, transparent);
     }
     header .iconbtn {
       appearance: none; border: 0; background: transparent; cursor: pointer;
-      color: #475569; width: 32px; height: 32px; border-radius: 8px;
+      color: var(--cp-text-muted);
+      width: 32px; height: 32px; border-radius: 8px;
       display: grid; place-items: center;
     }
-    header .iconbtn:hover { background: rgba(0,0,0,.05); }
+    header .iconbtn:hover {
+      background: var(--color-surface-hover, rgba(0,0,0,.05));
+      color: var(--cp-text);
+    }
 
     /* Suggestion chips (proactive, above input) */
     .suggestions {
       padding: 10px 12px 6px;
       display: flex; gap: 6px; flex-wrap: wrap;
-      border-bottom: 1px dashed rgba(0,0,0,.08);
-      background: linear-gradient(to bottom, rgba(10,132,255,.04), transparent);
+      border-bottom: 1px dashed var(--cp-border);
+      background: linear-gradient(
+        to bottom,
+        color-mix(in srgb, var(--cp-primary) 4%, transparent),
+        transparent
+      );
     }
     .suggestions .hint {
-      width: 100%; font-size: 12px; color: #64748b; margin: 0 0 4px;
+      width: 100%; font-size: 12px; color: var(--cp-text-muted); margin: 0 0 4px;
     }
     .chip {
-      appearance: none; border: 1px solid rgba(10,132,255,.25);
-      background: rgba(10,132,255,.08);
-      color: #0a84ff; font-size: 13px;
+      appearance: none;
+      border: 1px solid color-mix(in srgb, var(--cp-primary) 25%, transparent);
+      background: var(--cp-primary-soft);
+      color: var(--cp-primary);
+      font-size: 13px;
       padding: 6px 10px; border-radius: 999px;
       cursor: pointer; font: inherit;
       transition: transform .1s;
     }
-    .chip:hover { background: rgba(10,132,255,.16); }
+    .chip:hover {
+      background: color-mix(in srgb, var(--cp-primary) 20%, transparent);
+    }
     .chip:active { transform: scale(0.97); }
 
     /* Messages (transcript) */
@@ -170,23 +217,25 @@ class UICopilotV2 extends LitBaseElement {
       padding: 10px 12px;
       display: flex; flex-direction: column; gap: 10px;
       -webkit-overflow-scrolling: touch;
+      background: var(--cp-bg);
     }
     .msg-user, .msg-bot { display: flex; }
     .msg-user { justify-content: flex-end; }
     .msg-user .bubble {
-      background: var(--color-primary, #0a84ff); color: #fff;
+      background: var(--cp-primary); color: var(--cp-primary-fg);
       padding: 8px 12px; border-radius: 14px 14px 4px 14px;
       max-width: 88%;
     }
     .msg-bot .bubble {
-      background: #f1f5f9; color: #0f172a;
+      background: var(--cp-bg-alt);
+      color: var(--cp-text);
       padding: 8px 12px; border-radius: 14px 14px 14px 4px;
       max-width: 88%;
       display: flex; align-items: center; gap: 6px;
     }
     .msg-bot.card .bubble {
-      background: #fff;
-      border: 1px solid #e2e8f0;
+      background: var(--cp-bg);
+      border: 1px solid var(--cp-border);
       padding: 12px;
       border-radius: 12px;
       width: 100%; max-width: 100%;
@@ -200,135 +249,152 @@ class UICopilotV2 extends LitBaseElement {
     /* Result card details */
     .kv { display: grid; grid-template-columns: 100px 1fr; gap: 4px 10px;
           font-size: 13px; margin: 4px 0; }
-    .kv dt { color: #64748b; }
+    .kv dt { color: var(--cp-text-muted); }
+    .kv dd { color: var(--cp-text); margin: 0; }
     .table {
       width: 100%; border-collapse: collapse; font-size: 13px;
-      margin: 6px 0 4px;
+      margin: 6px 0 4px; color: var(--cp-text);
     }
-    .table th, .table td { padding: 5px 8px; text-align: left;
-      border-bottom: 1px solid #e2e8f0; }
-    .table th { color: #64748b; font-weight: 500; font-size: 12px; }
+    .table th, .table td {
+      padding: 5px 8px; text-align: left;
+      border-bottom: 1px solid var(--cp-border);
+    }
+    .table th {
+      color: var(--cp-text-muted); font-weight: 500; font-size: 12px;
+    }
     .badge {
       display: inline-block; padding: 2px 7px; border-radius: 999px;
       font-size: 11px; font-weight: 500;
     }
-    .badge.due  { background: #fee2e2; color: #991b1b; }
-    .badge.ok   { background: #dcfce7; color: #166534; }
-    .badge.info { background: #dbeafe; color: #1e40af; }
+    .badge.due  { background: var(--cp-danger-soft);  color: var(--cp-danger-strong); }
+    .badge.ok   {
+      background: var(--color-success-soft, rgba(52,199,89,.14));
+      color: var(--color-success-strong, #166534);
+    }
+    .badge.info { background: var(--cp-info-soft); color: var(--cp-info-strong); }
 
     /* Inline form (when a tool needs args) */
     .form-card {
-      background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+      background: var(--cp-bg); border: 1px solid var(--cp-border);
+      border-radius: 12px;
       padding: 12px; display: flex; flex-direction: column; gap: 10px;
+      color: var(--cp-text);
     }
-    .form-card h4 { margin: 0 0 4px; font-size: 14px; }
+    .form-card h4 { margin: 0 0 4px; font-size: 14px; color: var(--cp-text); }
     .field { display: flex; flex-direction: column; gap: 4px; }
-    .field label { font-size: 12px; color: #475569; }
+    .field label { font-size: 12px; color: var(--cp-text-muted); }
     .field select,
     .field input {
       appearance: none; -webkit-appearance: none;
       padding: 8px 10px; border-radius: 8px;
-      border: 1px solid #cbd5e1; background: #fff;
-      font: inherit; color: inherit; width: 100%;
+      border: 1px solid var(--cp-border-strong);
+      background: var(--cp-bg-soft);
+      color: var(--cp-text);
+      font: inherit; width: 100%;
       box-sizing: border-box;
     }
     .field select:focus,
-    .field input:focus { outline: none; border-color: #0a84ff;
-      box-shadow: 0 0 0 3px rgba(10,132,255,.2); }
+    .field input:focus {
+      outline: none;
+      border-color: var(--cp-primary);
+      background: var(--cp-bg);
+      box-shadow: 0 0 0 3px var(--cp-primary-ring);
+    }
     .form-actions { display: flex; gap: 6px; justify-content: flex-end; }
     .btn {
       appearance: none; border: 0; cursor: pointer; font: inherit;
       padding: 8px 14px; border-radius: 8px;
     }
-    .btn.primary { background: #0a84ff; color: #fff; }
-    .btn.ghost   { background: transparent; color: #475569; }
-    .btn.danger  { background: #ef4444; color: #fff; }
+    .btn.primary { background: var(--cp-primary); color: var(--cp-primary-fg); }
+    .btn.ghost   { background: transparent; color: var(--cp-text-muted); }
+    .btn.ghost:hover { background: var(--color-surface-hover, rgba(0,0,0,.05)); color: var(--cp-text); }
+    .btn.danger  { background: var(--cp-danger); color: #fff; }
 
     /* Confirm card (before mutations) */
     .confirm-card {
-      background: #fff8e6; border: 1px solid #fde68a;
+      background: var(--cp-warning-soft);
+      border: 1px solid color-mix(in srgb, var(--color-warning, #f59e0b) 45%, transparent);
       border-radius: 12px; padding: 12px;
+      color: var(--cp-text);
     }
-    .confirm-card h4 { margin: 0 0 6px; font-size: 14px; color: #92400e; }
+    .confirm-card h4 { margin: 0 0 6px; font-size: 14px; color: var(--cp-warning-strong); }
     .confirm-card .actions { display: flex; gap: 6px; justify-content: flex-end;
                               margin-top: 10px; }
 
-    /* @-mention chip inside the composer's textarea (rendered via a fake
-       overlay for the demo; a full implementation would use a contenteditable
-       or a decorated textarea). For now we keep mentions in a "chip strip"
-       above the composer so it's mobile-friendly and requires no
-       contenteditable hackery. */
-    .mention-strip {
-      display: flex; flex-wrap: wrap; gap: 4px;
-      padding: 6px 12px 0; min-height: 0;
-    }
-    .mention-strip:empty { display: none; }
+    /* Inline mention chip (rendered INSIDE the contenteditable input).
+       Each is a small non-editable pill the user can delete with Backspace.
+       On mobile they wrap naturally with the text. */
     .mention-chip {
-      display: inline-flex; align-items: center; gap: 4px;
-      padding: 3px 8px; border-radius: 999px;
-      background: #eff6ff; color: #1e40af;
-      border: 1px solid #bfdbfe;
-      font-size: 12px;
-    }
-    .mention-chip button {
-      appearance: none; border: 0; background: transparent; cursor: pointer;
-      color: #1e40af; font-size: 14px; line-height: 1; padding: 0 0 0 4px;
+      display: inline-flex; align-items: center; gap: 2px;
+      padding: 1px 8px; border-radius: 999px;
+      background: var(--cp-primary-soft);
+      color: var(--cp-primary);
+      border: 1px solid color-mix(in srgb, var(--cp-primary) 30%, transparent);
+      font-size: .95em;
+      user-select: all;
+      vertical-align: baseline;
+      line-height: 1.35;
+      cursor: default;
     }
 
     /* @-mention popover — appears above the input, floats over autocomplete */
     .mention-popover {
       position: absolute;
       bottom: 100%; left: 8px; right: 8px;
-      background: #fff; border: 1px solid #e2e8f0;
+      background: var(--cp-bg); border: 1px solid var(--cp-border);
+      color: var(--cp-text);
       border-radius: 12px;
-      box-shadow: 0 -12px 32px rgba(0,0,0,.10);
+      box-shadow: 0 -12px 32px color-mix(in srgb, currentColor 10%, transparent);
       max-height: 260px; overflow: auto;
       z-index: 10;
     }
     .mention-item {
       display: flex; align-items: center; gap: 10px;
       padding: 8px 12px; cursor: pointer;
-      border-bottom: 1px solid #f8fafc;
+      border-bottom: 1px solid var(--cp-border);
     }
     .mention-item:last-child { border-bottom: 0; }
     .mention-item:hover,
-    .mention-item.active { background: #eff6ff; }
+    .mention-item.active { background: var(--cp-primary-soft); }
     .mention-item .avatar {
       width: 28px; height: 28px; border-radius: 50%;
-      background: #f1f5f9; display: grid; place-items: center;
+      background: var(--cp-bg-alt);
+      color: var(--cp-text);
+      display: grid; place-items: center;
       font-size: 14px;
     }
     .mention-item .info { flex: 1; min-width: 0; }
-    .mention-item .info .name { font-size: 13px; font-weight: 500; }
-    .mention-item .info .sub  { font-size: 11px; color: #64748b;
+    .mention-item .info .name { font-size: 13px; font-weight: 500; color: var(--cp-text); }
+    .mention-item .info .sub  { font-size: 11px; color: var(--cp-text-muted);
                                 white-space: nowrap; overflow: hidden;
                                 text-overflow: ellipsis; }
     .mention-item .type {
       font-size: 10px; text-transform: uppercase; letter-spacing: .04em;
-      background: #f1f5f9; padding: 2px 6px; border-radius: 4px;
-      color: #64748b;
+      background: var(--cp-bg-alt); padding: 2px 6px; border-radius: 4px;
+      color: var(--cp-text-muted);
     }
 
     /* Streaming step bar shown between messages + composer */
     .step-bar {
       display: flex; align-items: center; gap: 10px;
       padding: 8px 12px;
-      font-size: 12px; color: #475569;
+      font-size: 12px; color: var(--cp-text-muted);
       background: linear-gradient(to right,
-        rgba(10,132,255,.06), rgba(124,58,237,.04));
-      border-top: 1px dashed #e2e8f0;
+        color-mix(in srgb, var(--cp-primary) 6%, transparent),
+        transparent);
+      border-top: 1px dashed var(--cp-border);
     }
     .step-bar .track {
       flex: 1; height: 4px; border-radius: 2px;
-      background: #e2e8f0; overflow: hidden;
+      background: var(--cp-border); overflow: hidden;
     }
     .step-bar .fill {
       height: 100%;
-      background: linear-gradient(to right, #0a84ff, #7c3aed);
+      background: var(--cp-primary);
       transition: width .35s ease;
     }
     .step-bar .cancel {
-      appearance: none; border: 0; background: #ef4444; color: #fff;
+      appearance: none; border: 0; background: var(--cp-danger); color: #fff;
       padding: 4px 10px; border-radius: 999px; font-size: 11px;
       cursor: pointer;
     }
@@ -337,13 +403,20 @@ class UICopilotV2 extends LitBaseElement {
     .tool-card {
       display: inline-flex; align-items: center; gap: 8px;
       padding: 8px 10px; border-radius: 10px;
-      background: rgba(90,200,250,.14); color: #036;
+      background: var(--cp-info-soft); color: var(--cp-info-strong);
       font-size: 13px;
-      border: 1px dashed #5ac8fa; margin-top: 6px;
+      border: 1px dashed var(--cp-info); margin-top: 6px;
+    }
+    .tool-card.error {
+      background: var(--cp-danger-soft);
+      color: var(--cp-danger-strong);
+      border-color: var(--cp-danger);
+      border-style: solid;
     }
     .tool-card code {
       font-family: ui-monospace, monospace; font-size: 11px;
-      background: rgba(0,0,0,.05); padding: 1px 6px; border-radius: 4px;
+      background: var(--color-surface-hover, rgba(0,0,0,.05));
+      padding: 1px 6px; border-radius: 4px;
     }
     .thinking {
       display: inline-flex; align-items: center; gap: 3px;
@@ -363,13 +436,16 @@ class UICopilotV2 extends LitBaseElement {
     /* Autocomplete dropdown */
     .composer-wrap {
       position: relative;
-      border-top: 1px solid rgba(0,0,0,.08);
-      background: #fff;
+      border-top: 1px solid var(--cp-border);
+      background: var(--cp-bg);
+      color: var(--cp-text);
     }
     .autocomplete {
       position: absolute; bottom: 100%; left: 0; right: 0;
-      background: #fff; border-top: 1px solid #e2e8f0;
-      box-shadow: 0 -8px 20px rgba(0,0,0,.06);
+      background: var(--cp-bg);
+      color: var(--cp-text);
+      border-top: 1px solid var(--cp-border);
+      box-shadow: 0 -8px 20px color-mix(in srgb, currentColor 6%, transparent);
       max-height: 260px; overflow: auto;
       display: none;
     }
@@ -377,53 +453,91 @@ class UICopilotV2 extends LitBaseElement {
     .ac-item {
       display: flex; align-items: center; gap: 10px;
       padding: 8px 12px; cursor: pointer;
-      border-bottom: 1px solid #f1f5f9;
+      border-bottom: 1px solid var(--cp-border);
     }
     .ac-item:last-child { border-bottom: 0; }
     .ac-item:hover,
-    .ac-item.active { background: #eff6ff; }
+    .ac-item.active { background: var(--cp-primary-soft); }
     .ac-item .icon { font-size: 18px; width: 24px; text-align: center; }
     .ac-item .text { flex: 1; }
-    .ac-item .text .title { font-size: 14px; }
-    .ac-item .text .sub   { font-size: 12px; color: #64748b; margin-top: 1px; }
+    .ac-item .text .title { font-size: 14px; color: var(--cp-text); }
+    .ac-item .text .sub   { font-size: 12px; color: var(--cp-text-muted); margin-top: 1px; }
     .ac-item .shortcut {
-      font-size: 11px; color: #94a3b8;
-      background: #f1f5f9; padding: 2px 6px; border-radius: 4px;
+      font-size: 11px; color: var(--cp-text-muted);
+      background: var(--cp-bg-alt); padding: 2px 6px; border-radius: 4px;
       font-family: ui-monospace, monospace;
+    }
+
+    /* Cost badge — hints whether an action is deterministic (instant) or
+       routed through the LLM. Educates power users toward cheap paths. */
+    .cost-badge {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 1px 6px; border-radius: 4px;
+      font-size: 10px; text-transform: uppercase; letter-spacing: .04em;
+      font-weight: 600;
+      vertical-align: middle;
+    }
+    .cost-badge.instant {
+      background: color-mix(in srgb, var(--color-success, #34c759) 18%, transparent);
+      color: var(--color-success-strong, #166534);
+    }
+    .cost-badge.llm {
+      background: color-mix(in srgb, var(--color-warning, #f59e0b) 22%, transparent);
+      color: var(--cp-warning-strong);
+    }
+    .cost-badge.confirm {
+      background: var(--cp-warning-soft);
+      color: var(--cp-warning-strong);
     }
 
     /* Composer */
     .composer {
       display: flex; align-items: end; gap: 6px;
       padding: 8px 10px;
+      background: var(--cp-bg);
     }
-    .composer textarea {
-      flex: 1; resize: none; min-height: 40px; max-height: 140px;
+    /* Contenteditable "input" — accepts inline text + mention chips.
+       Behaves like a growing textarea but can host inline HTML nodes. */
+    .composer .input {
+      flex: 1; min-height: 40px; max-height: 140px;
       padding: 10px 12px; border-radius: 12px;
-      border: 1px solid #cbd5e1; background: #f8fafc;
+      border: 1px solid var(--cp-border-strong);
+      background: var(--cp-bg-soft);
+      color: var(--cp-text);
       font: inherit; line-height: 1.35; outline: none;
+      overflow-y: auto;
+      white-space: pre-wrap; word-wrap: break-word;
     }
-    .composer textarea:focus { border-color: #0a84ff; background: #fff;
-      box-shadow: 0 0 0 3px rgba(10,132,255,.2); }
+    .composer .input:empty::before {
+      content: attr(data-placeholder);
+      color: var(--cp-text-muted); opacity: .8;
+      pointer-events: none;
+    }
+    .composer .input:focus {
+      border-color: var(--cp-primary);
+      background: var(--cp-bg);
+      box-shadow: 0 0 0 3px var(--cp-primary-ring);
+    }
     .composer .iconbtn {
       appearance: none; border: 0; cursor: pointer;
       width: 40px; height: 40px; border-radius: 50%;
       display: grid; place-items: center;
-      color: #fff;
+      color: var(--cp-primary-fg);
     }
-    .composer .mic  { background: #64748b; }
-    .composer .mic.on  { background: #ef4444; animation: pulse 1.4s infinite; }
-    .composer .send { background: #0a84ff; }
+    .composer .mic  { background: var(--cp-text-muted); }
+    .composer .mic.on  { background: var(--cp-danger); animation: pulse 1.4s infinite; }
+    .composer .send { background: var(--cp-primary); }
     @keyframes pulse {
-      0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,.6); }
-      70%     { box-shadow: 0 0 0 10px rgba(239,68,68,0); }
+      0%,100% { box-shadow: 0 0 0 0   color-mix(in srgb, var(--cp-danger) 60%, transparent); }
+      70%     { box-shadow: 0 0 0 10px transparent; }
     }
 
     /* Empty-state helper text */
     .empty {
-      padding: 24px 16px; text-align: center; color: #64748b;
+      padding: 24px 16px; text-align: center; color: var(--cp-text-muted);
     }
-    .empty h3 { margin: 0 0 6px; color: #0f172a; font-size: 15px; }
+    .empty h3 { margin: 0 0 6px; color: var(--cp-text); font-size: 15px; }
     .empty p  { margin: 0; font-size: 13px; line-height: 1.5; }
   `;
 
@@ -548,7 +662,43 @@ class UICopilotV2 extends LitBaseElement {
     this._saveState();
   }
 
-  _open()   { this.open = true; setTimeout(() => this.$('textarea')?.focus(), 100); }
+  _open()   { this.open = true; setTimeout(() => this._inputEl()?.focus(), 100); }
+
+  // The contenteditable "input" — single source of truth for typed text.
+  _inputEl() { return this.renderRoot?.querySelector('.composer .input'); }
+
+  /// Read the plain-text content of the input, ignoring any HTML/formatting.
+  /// Mention chips contribute their `data-label` (with "@") so what the user
+  /// sees matches what we send to the backend as the raw prompt.
+  _inputText() {
+    const el = this._inputEl(); if (!el) return '';
+    let out = '';
+    el.childNodes.forEach(n => {
+      if (n.nodeType === Node.TEXT_NODE) out += n.textContent;
+      else if (n.nodeType === Node.ELEMENT_NODE) {
+        const chip = n.matches?.('.mention-chip') ? n : n.querySelector?.('.mention-chip');
+        if (chip) out += '@' + (chip.dataset.label || '');
+        else out += n.textContent || '';
+      }
+    });
+    return out;
+  }
+
+  _clearInput() {
+    const el = this._inputEl();
+    if (el) { el.innerHTML = ''; this._composerMentions = []; }
+  }
+
+  /// Collect the ordered list of mentions currently in the input, so we can
+  /// pass their IDs to the backend regardless of edit order.
+  _syncMentionsFromDom() {
+    const el = this._inputEl(); if (!el) { this._composerMentions = []; return; }
+    const chips = el.querySelectorAll('.mention-chip');
+    this._composerMentions = [...chips].map(c => ({
+      id: c.dataset.id, label: c.dataset.label, kind: c.dataset.kind || 'student',
+      icon: c.dataset.icon || '👤',
+    }));
+  }
   _close()  { this.open = false; }
   _toggle() { this.open ? this._close() : this._open(); }
 
@@ -573,15 +723,32 @@ class UICopilotV2 extends LitBaseElement {
   }
 
   // ── @-mention detection & typeahead ─────────────────────────────────
-  // Called with the current textarea value and caret position. If the
-  // caret is inside an "@word" token, we open the mention popover;
-  // otherwise we close it and fall through to normal autocomplete.
-  _detectMention(text, caret) {
-    const before = text.slice(0, caret);
+  // We inspect the contenteditable's current caret: if the caret is inside
+  // an "@word" text run (not already inside a chip), open the popover.
+  _detectMentionCE() {
+    const sel = this._selection();
+    if (!sel) { this._mention = null; return false; }
+    const before = sel.textBefore;
     const m = before.match(/(?:^|\s)@(\w*)$/);
     if (!m) { this._mention = null; return false; }
     this._openMention('composer', m[1]);
     return true;
+  }
+
+  /// Return the caret's current text-before context. Only supports
+  /// caret INSIDE a text node (which is the common case for typing).
+  _selection() {
+    const el = this._inputEl(); if (!el) return null;
+    const s = window.getSelection?.();
+    if (!s || !s.rangeCount) return null;
+    const r = s.getRangeAt(0);
+    if (!el.contains(r.startContainer)) return null;
+    // Compute text before caret by walking siblings of the text-node parent.
+    let textBefore = '';
+    if (r.startContainer.nodeType === Node.TEXT_NODE) {
+      textBefore = r.startContainer.textContent.slice(0, r.startOffset);
+    }
+    return { range: r, textBefore };
   }
 
   async _openMention(host, q) {
@@ -598,13 +765,37 @@ class UICopilotV2 extends LitBaseElement {
   _pickMention(item) {
     if (!this._mention) return;
     if (this._mention.host === 'composer') {
-      // Add a chip above the composer + strip the "@word" from the textarea.
-      this._composerMentions = [...this._composerMentions, item];
-      const ta = this.$('textarea');
-      if (ta) {
-        ta.value = ta.value.replace(/(^|\s)@\w*$/, '$1').trimEnd() + ' ';
-        ta.focus();
+      // Replace the "@word" text right before the caret with a real chip
+      // element inside the contenteditable input.
+      const sel = this._selection();
+      if (sel && sel.range.startContainer.nodeType === Node.TEXT_NODE) {
+        const node = sel.range.startContainer;
+        const before = node.textContent.slice(0, sel.range.startOffset);
+        const after  = node.textContent.slice(sel.range.startOffset);
+        const stripped = before.replace(/(^|\s)@\w*$/, '$1');
+        // Rebuild: text-before + [chip] + " " + text-after
+        const chip = document.createElement('span');
+        chip.className = 'mention-chip';
+        chip.contentEditable = 'false';
+        chip.dataset.id = item.id;
+        chip.dataset.label = item.label;
+        chip.dataset.kind = item.kind || 'student';
+        chip.dataset.icon = item.icon || '';
+        chip.textContent = '@' + item.label;
+        const parent = node.parentNode;
+        const nodeAfterText = document.createTextNode(' ' + after);
+        node.textContent = stripped;
+        parent.insertBefore(chip, node.nextSibling);
+        parent.insertBefore(nodeAfterText, chip.nextSibling);
+        // Move caret AFTER the inserted space so typing continues naturally.
+        const s = window.getSelection();
+        const r = document.createRange();
+        r.setStart(nodeAfterText, 1);
+        r.collapse(true);
+        s.removeAllRanges(); s.addRange(r);
       }
+      this._syncMentionsFromDom();
+      this._inputEl()?.focus();
     } else if (this._mention.host.startsWith('form:')) {
       const field = this._mention.host.slice(5);
       this._onFormChange(field, item.id, item.label);
@@ -612,16 +803,13 @@ class UICopilotV2 extends LitBaseElement {
     this._mention = null;
   }
 
-  _removeComposerMention(id) {
-    this._composerMentions = this._composerMentions.filter(m => m.id !== id);
-  }
-
   // ── User actions ────────────────────────────────────────────────────
-  _onInput(e) {
-    const v = e.target.value;
-    const caret = e.target.selectionStart ?? v.length;
-    // Debounce would go here in real code; keep simple for demo.
-    if (this._detectMention(v, caret)) {
+  _onInput() {
+    // Contenteditable — read the merged text and route to mention or match.
+    this._syncMentionsFromDom();
+    const v = this._inputText();
+    this._query = v;
+    if (this._detectMentionCE()) {
       this._matches = []; // hide normal autocomplete while mentioning
     } else {
       this._loadMatches(v);
@@ -648,7 +836,7 @@ class UICopilotV2 extends LitBaseElement {
     if (!this._matches.length) {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        this._sendAsQuestion(e.target.value);
+        this._sendAsQuestion();
       }
       return;
     }
@@ -662,42 +850,34 @@ class UICopilotV2 extends LitBaseElement {
       e.preventDefault();
       const pick = this._matches[this._cursor];
       if (pick) this._runAction(pick);
-      else this._sendAsQuestion(e.target.value);
+      else this._sendAsQuestion();
     }
   }
 
-  _sendAsQuestion(text) {
-    text = (text || '').trim();
-    // If the user typed a message with @mentions, render both text + chips
-    // in the transcript, then decide what to do based on whether mentions
-    // resolved to actionable entities.
+  _sendAsQuestion() {
+    // Read the current contenteditable input (text + chips).
+    this._syncMentionsFromDom();
+    const text = this._inputText().trim();
     const mentions = this._composerMentions;
     if (!text && !mentions.length) return;
 
-    const echo = text + (mentions.length
-      ? ' ' + mentions.map(m => `@${m.label}`).join(' ')
-      : '');
-    this._pushUser(echo);
-
-    this.$('textarea').value = '';
+    this._pushUser(text);
+    this._clearInput();
     this._matches = [];
-    this._composerMentions = [];
 
-    // Simple demo heuristic: if the user mentioned a single student and
-    // the text hints at reminding/fees, dispatch the direct tool. Otherwise
-    // fall through to the free-form "ask" path (which is the LLM in prod).
+    // Demo heuristic: mention + intent keyword → direct tool call, no LLM.
     if (mentions.length === 1 &&
         /remind|fee|due|pay/.test(text.toLowerCase())) {
       this._invoke('student.remind_fees', { student_id: mentions[0].id });
       return;
     }
-    this._invoke('ask', { text: echo, mentions: mentions.map(m => m.id) });
+    this._invoke('ask', { text, mentions: mentions.map(m => m.id) });
   }
 
   // ── Suggestion / Autocomplete tap ───────────────────────────────────
   async _runAction(item) {
     // Clear input + matches; the user has committed.
-    const ta = this.$('textarea'); if (ta) ta.value = '';
+    this._clearInput();
     this._matches = [];
     this._rememberAction(item);
     this._pushUser(item.title);
@@ -813,8 +993,9 @@ class UICopilotV2 extends LitBaseElement {
       await this._readSse(resp.body);
     } catch (e) {
       if (e.name !== 'AbortError') {
+        // Uses .tool-card + .error modifier so dark mode styles apply.
         this._appendStreamingHtml(id,
-          `<div class="tool-card" style="border-color:#ef4444;color:#991b1b;background:#fee2e2">⚠️ ${e.message}</div>`);
+          `<div class="tool-card error">⚠️ ${e.message}</div>`);
       }
     } finally {
       this._busy = false;
@@ -887,7 +1068,7 @@ class UICopilotV2 extends LitBaseElement {
         let msg = payload;
         try { msg = JSON.parse(payload).message ?? payload; } catch {}
         this._appendStreamingHtml(streamMsg.id,
-          `<div class="tool-card" style="border-color:#ef4444;color:#991b1b;background:#fee2e2">⚠️ ${msg}</div>`);
+          `<div class="tool-card error">⚠️ ${msg}</div>`);
         try { this._stream?.aborter?.abort(); } catch (_) {}
         break;
       }
@@ -934,8 +1115,13 @@ class UICopilotV2 extends LitBaseElement {
       });
       const data = await r.json();
       // If the tool returned a `ui_action` block, run it client-side.
-      // Examples: {ui_action: {action: "navigate", href: "/dsl/dashboard"}}
       if (data.ui_action) this._runUiAction(data.ui_action);
+      // Fire any `side_effects` — toasts, focus, downloads, etc. These
+      // convey out-of-band feedback (e.g. "47 SMS queued") beyond the
+      // in-transcript bubble.
+      if (Array.isArray(data.side_effects)) {
+        for (const eff of data.side_effects) this._runSideEffect(eff);
+      }
       // Replace pending with result.
       this._messages = this._messages
         .filter(m => m.id !== pid)
@@ -988,14 +1174,20 @@ class UICopilotV2 extends LitBaseElement {
     rec.interimResults = true;
     rec.continuous = false;
     rec.onresult = (e) => {
-      const ta = this.$('textarea');
+      const el = this._inputEl();
       let final = '', interim = '';
       for (let i = e.resultIndex; i < e.results.length; i++) {
         const t = e.results[i][0].transcript;
         if (e.results[i].isFinal) final += t; else interim += t;
       }
-      ta.value = (final || interim).trim();
-      this._loadMatches(ta.value);
+      // Speech drops as plain text into the contenteditable; existing chips
+      // are preserved because we set textContent on a new trailing node.
+      if (!el) return;
+      const val = (final || interim).trim();
+      // Simple strategy for the demo: replace all content with the utterance.
+      el.textContent = val;
+      this._syncMentionsFromDom();
+      this._loadMatches(val);
     };
     rec.onend = () => { this._listening = false; this._recognizer = null; };
     rec.onerror = () => { this._listening = false; };
@@ -1247,18 +1439,19 @@ class UICopilotV2 extends LitBaseElement {
     `;
   }
 
-  _renderMentionStrip() {
-    if (!this._composerMentions.length) return nothing;
-    return html`
-      <div class="mention-strip">
-        ${this._composerMentions.map(m => html`
-          <span class="mention-chip">
-            @${m.label}
-            <button @click=${() => this._removeComposerMention(m.id)} title="Remove">×</button>
-          </span>
-        `)}
-      </div>
-    `;
+  // (mention strip removed — chips are now inline inside the contenteditable
+  //  input; see .mention-chip CSS and _pickMention DOM insertion.)
+
+  /// Render a small cost badge — "Instant" for deterministic tools,
+  /// "LLM" for freeform Ask, "Confirm" for mutating tools that stop for
+  /// a confirmation. `cost` is the string sent by the backend Item.
+  _costBadge(cost) {
+    if (!cost) return nothing;
+    const label = cost === 'instant' ? '⚡ Instant'
+                : cost === 'llm'     ? '🤖 LLM'
+                : cost === 'confirm' ? '⚠ Confirm'
+                : cost;
+    return html`<span class="cost-badge ${cost}">${label}</span>`;
   }
 
   _renderMentionPopover() {
@@ -1284,7 +1477,6 @@ class UICopilotV2 extends LitBaseElement {
   _renderComposer() {
     return html`
       ${this._renderStepBar()}
-      ${this._renderMentionStrip()}
       <div class="composer-wrap">
         ${this._renderMentionPopover()}
         <div class="autocomplete ${this._matches.length && !this._mention ? 'open' : ''}">
@@ -1294,7 +1486,10 @@ class UICopilotV2 extends LitBaseElement {
                  @click=${() => this._runAction(m)}>
               <div class="icon">${m.icon ?? '•'}</div>
               <div class="text">
-                <div class="title">${m.title}</div>
+                <div class="title">
+                  ${m.title}
+                  ${this._costBadge(m.cost)}
+                </div>
                 ${m.subtitle ? html`<div class="sub">${m.subtitle}</div>` : nothing}
               </div>
               ${m.shortcut ? html`<div class="shortcut">${m.shortcut}</div>` : nothing}
@@ -1302,10 +1497,15 @@ class UICopilotV2 extends LitBaseElement {
           `)}
         </div>
         <div class="composer">
-          <textarea rows="1"
-                    placeholder="Ask, type, or tap the mic…"
-                    @input=${e => this._onInput(e)}
-                    @keydown=${e => this._onKeydown(e)}></textarea>
+          <div class="input"
+               contenteditable="true"
+               role="textbox"
+               spellcheck="true"
+               data-placeholder="Ask, type @ for people, or tap the mic…"
+               @input=${(e) => this._onInput(e)}
+               @keydown=${(e) => this._onKeydown(e)}
+               @keyup=${() => this._onInput()}>
+          </div>
           <button class="iconbtn mic ${this._listening ? 'on' : ''}"
                   title=${this._listening ? 'Stop listening' : 'Speak'}
                   @click=${() => this._toggleMic()}>
@@ -1317,7 +1517,7 @@ class UICopilotV2 extends LitBaseElement {
             </svg>
           </button>
           <button class="iconbtn send"
-                  title="Send" @click=${() => this._sendAsQuestion(this.$('textarea').value)}>
+                  title="Send" @click=${() => this._sendAsQuestion()}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
@@ -1345,6 +1545,51 @@ class UICopilotV2 extends LitBaseElement {
     const fn = this._uiTools[a.action];
     if (fn) fn(a);
     else console.warn('[ui-copilot] unknown ui_action', a);
+  }
+
+  // Side effects are like ui_actions but framed as "things that happened as
+  // a consequence" — currently just toasts, but we could add downloads,
+  // audio notifications, badge counts, etc.
+  _runSideEffect(eff) {
+    if (!eff || !eff.kind) return;
+    if (eff.kind === 'toast') {
+      this._uiTools.toast({ message: eff.message, tone: eff.tone || 'info' });
+      // If no ui-toast-host is on the page, fall back to a native cue so
+      // the demo still communicates the side effect visibly.
+      if (!document.querySelector('ui-toast-host')) {
+        this._flashInlineToast(eff);
+      }
+    }
+    // Extensibility hooks for future kinds:
+    //   'download' → open URL
+    //   'sound'    → play a short audio cue
+    //   'badge'    → increment a counter
+  }
+
+  _flashInlineToast(eff) {
+    // Tiny in-panel fallback toast so the demo shows something even when
+    // <ui-toast-host> isn't mounted.
+    const el = document.createElement('div');
+    el.textContent = eff.message || '';
+    el.style.cssText = `
+      position:fixed; left:50%; bottom:24px; transform:translateX(-50%);
+      background: var(--color-surface, #fff); color: var(--color-text, #0f172a);
+      border: 1px solid var(--color-border, rgba(0,0,0,.08));
+      padding: 10px 14px; border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.18);
+      font: 500 13px/1.3 var(--font-sans, system-ui);
+      z-index: 3000; opacity: 0;
+      transition: opacity .2s, transform .2s;
+    `;
+    document.body.appendChild(el);
+    requestAnimationFrame(() => {
+      el.style.opacity = '1';
+      el.style.transform = 'translateX(-50%) translateY(-6px)';
+    });
+    setTimeout(() => {
+      el.style.opacity = '0';
+      setTimeout(() => el.remove(), 250);
+    }, 2600);
   }
 
   // Public API for host pages / tests. Kept stable across v1 → v2.

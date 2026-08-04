@@ -130,4 +130,9 @@ pub mod prelude {
 
     // Agentic Copilot chat window (mounts a floating FAB + drawer/sheet).
     pub use crate::components::copilot::{copilot, Copilot};
+    // Reusable primitives you can drop on any page.
+    pub use crate::components::copilot_primitives::{
+        step_bar, tool_card_call, tool_card_result, mention_popover,
+        MentionEntity, StepBar, ToolCardCall, ToolCardResult, MentionPopover,
+    };
 }

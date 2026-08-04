@@ -50,20 +50,21 @@ where
 // ---------------------------------------------------------------------------
 
 /// A suggestion/autocomplete/follow-up item — shown as a chip or a row.
+///
+/// `cost` is a hint to the UI so it can show a badge — "Instant" (deterministic
+/// tool, ~10ms), "LLM" (falls through to the AI, ~2s + tokens). Power users
+/// learn to prefer the Instant paths.
 #[derive(Serialize)]
 struct Item {
-    /// Short user-facing label ("Mark today's attendance").
     title: String,
-    /// Optional emoji or icon.
     icon: Option<String>,
-    /// Optional secondary line (e.g. "12 pending").
     subtitle: Option<String>,
-    /// Machine-readable tool name to invoke.
     tool: String,
-    /// Pre-filled arguments (context-derived, page-derived, or curated).
     prefill: Value,
-    /// Optional keyboard shortcut string ("⌘K").
     shortcut: Option<String>,
+    /// "instant" | "llm" | "confirm" — UI renders a small badge.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    cost: Option<String>,
 }
 
 impl Item {
@@ -75,9 +76,12 @@ impl Item {
             tool: tool.into(),
             prefill,
             shortcut: None,
+            cost: Some("instant".into()),
         }
     }
     fn sub(mut self, s: &str) -> Self { self.subtitle = Some(s.into()); self }
+    #[allow(dead_code)]
+    fn cost(mut self, c: &str) -> Self { self.cost = Some(c.into()); self }
 }
 
 // ---------------------------------------------------------------------------
@@ -194,6 +198,24 @@ async fn complete(Query(cq): Query<CompleteQ>) -> Json<Vec<Item>> {
     scored.sort_by(|a, b| b.0.cmp(&a.0));
     out.extend(scored.into_iter().take(6).map(|(_, i)| i));
 
+    // Did-you-mean: if we had few or no direct tool matches, run a cheap
+    // fuzzy search over student names/IDs so typing "aar" surfaces
+    // "Open Aarav Kumar's profile" even before any tool matches.
+    if out.len() < 3 && cq.q.trim().len() >= 2 {
+        let hits = fuzzy_students(&cq.q);
+        for (label, id) in hits.into_iter().take(3) {
+            out.push(Item {
+                title: format!("Open {}'s profile", label),
+                icon: Some("👤".into()),
+                subtitle: Some(format!("Student {}", id)),
+                tool: "students.open".into(),
+                prefill: json!({"student_id": id, "name": label}),
+                shortcut: None,
+                cost: Some("instant".into()),
+            });
+        }
+    }
+
     // Always append the "Ask the assistant" fallback so nothing is a dead end.
     out.push(Item {
         title: format!("Ask the assistant about \"{}\"", cq.q),
@@ -202,8 +224,31 @@ async fn complete(Query(cq): Query<CompleteQ>) -> Json<Vec<Item>> {
         tool: "ask".into(),
         prefill: json!({"text": cq.q}),
         shortcut: None,
+        cost: Some("llm".into()),
     });
     Json(out)
+}
+
+/// Cheap fuzzy student search — mock analog of a real DB search.
+fn fuzzy_students(q: &str) -> Vec<(String, String)> {
+    let students: &[(&str, &str)] = &[
+        ("Aarav Kumar",   "S-42"),
+        ("Priya Shah",    "S-51"),
+        ("Rohan Mehta",   "S-89"),
+        ("Ishaan Rao",    "S-93"),
+        ("Ananya Patel",  "S-15"),
+        ("Vivaan Singh",  "S-80"),
+        ("Kabir Nair",    "S-101"),
+    ];
+    let ql = q.to_lowercase();
+    let mut scored: Vec<(i32, (String, String))> = students.iter()
+        .filter_map(|(name, id)| {
+            let s = fuzzy_score(&ql, name) + fuzzy_score(&ql, id);
+            if s > 0 { Some((s, (name.to_string(), id.to_string()))) } else { None }
+        })
+        .collect();
+    scored.sort_by(|a, b| b.0.cmp(&a.0));
+    scored.into_iter().map(|(_, x)| x).collect()
 }
 
 /// Tiny fuzzy scorer — substring hits + subsequence hits. Enough for the demo.
@@ -616,6 +661,9 @@ async fn invoke(Json(req): Json<InvokeReq>) -> Json<Value> {
         "attendance.notify_absent" => json!({
             "kind": "text",
             "text": "📩 Sent 4 SMS + 4 email notifications to guardians (mock).",
+            "side_effects": [
+                { "kind": "toast", "tone": "success", "message": "Guardians notified — 4 SMS + 4 emails" },
+            ],
         }),
 
         "attendance.compare" => json!({
@@ -675,6 +723,9 @@ async fn invoke(Json(req): Json<InvokeReq>) -> Json<Value> {
         "fees.remind" => json!({
             "kind": "text",
             "text": "📩 Sent 47 SMS + 47 email reminders. Delivery report will be in the inbox in ~5 min.",
+            "side_effects": [
+                { "kind": "toast", "tone": "success", "message": "📩 47 SMS + 47 emails queued" },
+            ],
         }),
 
         "fees.summary" => json!({
@@ -700,6 +751,9 @@ async fn invoke(Json(req): Json<InvokeReq>) -> Json<Value> {
         "fees.export" => json!({
             "kind": "text",
             "text": "📎 Preparing 250 PDFs — you'll get a download link in ~30 seconds (mock).",
+            "side_effects": [
+                { "kind": "toast", "tone": "info", "message": "📎 PDF export started (250 files)" },
+            ],
         }),
 
         // ── Students ──────────────────────────────────────────────
@@ -719,6 +773,17 @@ async fn invoke(Json(req): Json<InvokeReq>) -> Json<Value> {
                       "tool": "core.navigate",
                       "prefill": {"href":"/dsl/students"} },
                 ]
+            })
+        }
+
+        // Direct open-a-profile shortcut, from the did-you-mean fallback.
+        "students.open" => {
+            let id = a.get("student_id").and_then(|v| v.as_str()).unwrap_or("?");
+            let name = a.get("name").and_then(|v| v.as_str()).unwrap_or("Student");
+            json!({
+                "kind": "text",
+                "text": format!("Opening {name}'s profile ({id})."),
+                "ui_action": { "action": "navigate", "href": "/dsl/students" },
             })
         }
 
@@ -857,6 +922,10 @@ async fn invoke(Json(req): Json<InvokeReq>) -> Json<Value> {
             json!({
                 "kind": "text",
                 "text": format!("📩 Fee reminder sent to guardian of {id} (SMS + email)."),
+                "side_effects": [
+                    { "kind": "toast", "tone": "success",
+                      "message": format!("Reminder sent to guardian of {}", id) },
+                ],
             })
         }
 
