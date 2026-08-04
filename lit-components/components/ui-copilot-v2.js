@@ -48,6 +48,11 @@ class UICopilotV2 extends LitBaseElement {
     _listening:   { state: true },   // mic on/off
     _busy:        { state: true },
     _cursor:      { state: true },   // highlighted index in matches list
+    // @-mention typeahead — one popover shared by composer + form fields.
+    _mention:     { state: true },   // {host, q, items} or null
+    _mentionCursor: { state: true },
+    // Streaming state during an SSE turn: {tool, step:{n,of,label}, bubbleId, aborter}
+    _stream:      { state: true },
   };
 
   static styles = css`
@@ -245,6 +250,113 @@ class UICopilotV2 extends LitBaseElement {
     .confirm-card .actions { display: flex; gap: 6px; justify-content: flex-end;
                               margin-top: 10px; }
 
+    /* @-mention chip inside the composer's textarea (rendered via a fake
+       overlay for the demo; a full implementation would use a contenteditable
+       or a decorated textarea). For now we keep mentions in a "chip strip"
+       above the composer so it's mobile-friendly and requires no
+       contenteditable hackery. */
+    .mention-strip {
+      display: flex; flex-wrap: wrap; gap: 4px;
+      padding: 6px 12px 0; min-height: 0;
+    }
+    .mention-strip:empty { display: none; }
+    .mention-chip {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 8px; border-radius: 999px;
+      background: #eff6ff; color: #1e40af;
+      border: 1px solid #bfdbfe;
+      font-size: 12px;
+    }
+    .mention-chip button {
+      appearance: none; border: 0; background: transparent; cursor: pointer;
+      color: #1e40af; font-size: 14px; line-height: 1; padding: 0 0 0 4px;
+    }
+
+    /* @-mention popover — appears above the input, floats over autocomplete */
+    .mention-popover {
+      position: absolute;
+      bottom: 100%; left: 8px; right: 8px;
+      background: #fff; border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      box-shadow: 0 -12px 32px rgba(0,0,0,.10);
+      max-height: 260px; overflow: auto;
+      z-index: 10;
+    }
+    .mention-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 12px; cursor: pointer;
+      border-bottom: 1px solid #f8fafc;
+    }
+    .mention-item:last-child { border-bottom: 0; }
+    .mention-item:hover,
+    .mention-item.active { background: #eff6ff; }
+    .mention-item .avatar {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: #f1f5f9; display: grid; place-items: center;
+      font-size: 14px;
+    }
+    .mention-item .info { flex: 1; min-width: 0; }
+    .mention-item .info .name { font-size: 13px; font-weight: 500; }
+    .mention-item .info .sub  { font-size: 11px; color: #64748b;
+                                white-space: nowrap; overflow: hidden;
+                                text-overflow: ellipsis; }
+    .mention-item .type {
+      font-size: 10px; text-transform: uppercase; letter-spacing: .04em;
+      background: #f1f5f9; padding: 2px 6px; border-radius: 4px;
+      color: #64748b;
+    }
+
+    /* Streaming step bar shown between messages + composer */
+    .step-bar {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 12px;
+      font-size: 12px; color: #475569;
+      background: linear-gradient(to right,
+        rgba(10,132,255,.06), rgba(124,58,237,.04));
+      border-top: 1px dashed #e2e8f0;
+    }
+    .step-bar .track {
+      flex: 1; height: 4px; border-radius: 2px;
+      background: #e2e8f0; overflow: hidden;
+    }
+    .step-bar .fill {
+      height: 100%;
+      background: linear-gradient(to right, #0a84ff, #7c3aed);
+      transition: width .35s ease;
+    }
+    .step-bar .cancel {
+      appearance: none; border: 0; background: #ef4444; color: #fff;
+      padding: 4px 10px; border-radius: 999px; font-size: 11px;
+      cursor: pointer;
+    }
+
+    /* Server-rendered tool cards from SSE — style matches the .card look */
+    .tool-card {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 10px; border-radius: 10px;
+      background: rgba(90,200,250,.14); color: #036;
+      font-size: 13px;
+      border: 1px dashed #5ac8fa; margin-top: 6px;
+    }
+    .tool-card code {
+      font-family: ui-monospace, monospace; font-size: 11px;
+      background: rgba(0,0,0,.05); padding: 1px 6px; border-radius: 4px;
+    }
+    .thinking {
+      display: inline-flex; align-items: center; gap: 3px;
+    }
+    .thinking span {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: currentColor;
+      animation: bp 1s infinite ease-in-out;
+    }
+    .thinking span:nth-child(2) { animation-delay: .15s; }
+    .thinking span:nth-child(3) { animation-delay: .30s; }
+    @keyframes bp {
+      0%,80%,100% { opacity: .2; transform: translateY(0); }
+      40%          { opacity: 1;  transform: translateY(-2px); }
+    }
+
     /* Autocomplete dropdown */
     .composer-wrap {
       position: relative;
@@ -324,6 +436,10 @@ class UICopilotV2 extends LitBaseElement {
     this._listening = false;
     this._busy = false;
     this._cursor = -1;
+    this._mention = null;
+    this._mentionCursor = -1;
+    this._composerMentions = []; // {id, label} chips above composer
+    this._stream = null;
     this._agentBase = '/agent';
   }
 
@@ -370,14 +486,79 @@ class UICopilotV2 extends LitBaseElement {
     } catch (e) { console.warn('[copilot-v2] complete failed', e); }
   }
 
+  // ── @-mention detection & typeahead ─────────────────────────────────
+  // Called with the current textarea value and caret position. If the
+  // caret is inside an "@word" token, we open the mention popover;
+  // otherwise we close it and fall through to normal autocomplete.
+  _detectMention(text, caret) {
+    const before = text.slice(0, caret);
+    const m = before.match(/(?:^|\s)@(\w*)$/);
+    if (!m) { this._mention = null; return false; }
+    this._openMention('composer', m[1]);
+    return true;
+  }
+
+  async _openMention(host, q) {
+    try {
+      const url = `${this._agentBase}/entities?type=student&q=${encodeURIComponent(q)}`;
+      const r = await fetch(url);
+      if (!r.ok) return;
+      const items = await r.json();
+      this._mention = { host, q, items };
+      this._mentionCursor = items.length ? 0 : -1;
+    } catch (e) { console.warn('[copilot-v2] mentions', e); }
+  }
+
+  _pickMention(item) {
+    if (!this._mention) return;
+    if (this._mention.host === 'composer') {
+      // Add a chip above the composer + strip the "@word" from the textarea.
+      this._composerMentions = [...this._composerMentions, item];
+      const ta = this.$('textarea');
+      if (ta) {
+        ta.value = ta.value.replace(/(^|\s)@\w*$/, '$1').trimEnd() + ' ';
+        ta.focus();
+      }
+    } else if (this._mention.host.startsWith('form:')) {
+      const field = this._mention.host.slice(5);
+      this._onFormChange(field, item.id, item.label);
+    }
+    this._mention = null;
+  }
+
+  _removeComposerMention(id) {
+    this._composerMentions = this._composerMentions.filter(m => m.id !== id);
+  }
+
   // ── User actions ────────────────────────────────────────────────────
   _onInput(e) {
     const v = e.target.value;
+    const caret = e.target.selectionStart ?? v.length;
     // Debounce would go here in real code; keep simple for demo.
-    this._loadMatches(v);
+    if (this._detectMention(v, caret)) {
+      this._matches = []; // hide normal autocomplete while mentioning
+    } else {
+      this._loadMatches(v);
+    }
   }
 
   _onKeydown(e) {
+    // Mention popover takes priority when open.
+    if (this._mention && this._mention.items.length) {
+      const n = this._mention.items.length;
+      if (e.key === 'ArrowDown') { e.preventDefault();
+        this._mentionCursor = (this._mentionCursor + 1) % n; return; }
+      if (e.key === 'ArrowUp')   { e.preventDefault();
+        this._mentionCursor = (this._mentionCursor - 1 + n) % n; return; }
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        const pick = this._mention.items[this._mentionCursor];
+        if (pick) this._pickMention(pick);
+        return;
+      }
+      if (e.key === 'Escape') { e.preventDefault(); this._mention = null; return; }
+    }
+
     if (!this._matches.length) {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
@@ -401,12 +582,30 @@ class UICopilotV2 extends LitBaseElement {
 
   _sendAsQuestion(text) {
     text = (text || '').trim();
-    if (!text) return;
-    this._pushUser(text);
+    // If the user typed a message with @mentions, render both text + chips
+    // in the transcript, then decide what to do based on whether mentions
+    // resolved to actionable entities.
+    const mentions = this._composerMentions;
+    if (!text && !mentions.length) return;
+
+    const echo = text + (mentions.length
+      ? ' ' + mentions.map(m => `@${m.label}`).join(' ')
+      : '');
+    this._pushUser(echo);
+
     this.$('textarea').value = '';
     this._matches = [];
-    // Ask the mock agent to answer freeform (fallback path).
-    this._invoke('ask', { text });
+    this._composerMentions = [];
+
+    // Simple demo heuristic: if the user mentioned a single student and
+    // the text hints at reminding/fees, dispatch the direct tool. Otherwise
+    // fall through to the free-form "ask" path (which is the LLM in prod).
+    if (mentions.length === 1 &&
+        /remind|fee|due|pay/.test(text.toLowerCase())) {
+      this._invoke('student.remind_fees', { student_id: mentions[0].id });
+      return;
+    }
+    this._invoke('ask', { text: echo, mentions: mentions.map(m => m.id) });
   }
 
   // ── Suggestion / Autocomplete tap ───────────────────────────────────
@@ -426,7 +625,9 @@ class UICopilotV2 extends LitBaseElement {
     if (missing.length) {
       this._pendingForm = { tool: item.tool, title: item.title, schema, values: prefill };
     } else if (schema.mutating) {
-      this._pushConfirm(item.tool, item.title, prefill, schema);
+      this._pushConfirm(item.tool, item.title, prefill, schema, schema.streaming);
+    } else if (schema.streaming) {
+      this._invokeStream(item.tool, prefill);
     } else {
       this._invoke(item.tool, prefill);
     }
@@ -441,34 +642,38 @@ class UICopilotV2 extends LitBaseElement {
   }
 
   // ── Inline form submission ──────────────────────────────────────────
-  _onFormChange(name, value) {
+  _onFormChange(name, value, label) {
     if (!this._pendingForm) return;
+    // For mention fields we also keep the human label for display.
+    const labels = { ...(this._pendingForm.labels || {}) };
+    if (label != null) labels[name] = label;
     this._pendingForm = {
       ...this._pendingForm,
       values: { ...this._pendingForm.values, [name]: value },
+      labels,
     };
   }
 
   _submitForm() {
     if (!this._pendingForm) return;
     const { tool, title, schema, values } = this._pendingForm;
-    // Basic required-field check.
     const missing = (schema.required || []).filter(k => !values[k]);
     if (missing.length) {
       alert('Please fill: ' + missing.join(', '));
       return;
     }
     this._pendingForm = null;
-    if (schema.mutating) this._pushConfirm(tool, title, values, schema);
+    if (schema.mutating) this._pushConfirm(tool, title, values, schema, schema.streaming);
+    else if (schema.streaming) this._invokeStream(tool, values);
     else this._invoke(tool, values);
   }
   _cancelForm() { this._pendingForm = null; }
 
   // ── Confirmation before mutation ────────────────────────────────────
-  _pushConfirm(tool, title, args, schema) {
+  _pushConfirm(tool, title, args, schema, streaming) {
     const id = 'c-' + Math.random().toString(36).slice(2, 8);
     this._messages = [...this._messages, {
-      id, kind: 'confirm', tool, title, args, schema,
+      id, kind: 'confirm', tool, title, args, schema, streaming: !!streaming,
     }];
     this._scrollBottom();
   }
@@ -477,12 +682,152 @@ class UICopilotV2 extends LitBaseElement {
     const msg = this._messages.find(m => m.id === id);
     if (!msg) return;
     this._messages = this._messages.filter(m => m.id !== id);
-    this._invoke(msg.tool, msg.args);
+    if (msg.streaming) this._invokeStream(msg.tool, msg.args);
+    else this._invoke(msg.tool, msg.args);
   }
 
   _rejectConfirm(id) {
     this._messages = this._messages.filter(m => m.id !== id);
     this._pushBot({ kind: 'text', text: 'Cancelled — nothing was changed.' });
+  }
+
+  // ── Streaming tool invocation (multi-step, SSE) ────────────────────
+  //
+  // Opens a POST /agent/stream connection, reads named SSE events, and
+  // updates the live transcript in real time:
+  //   step         → step bar (n/of + label + %)
+  //   tool_call    → tool card added to a "streaming" bubble
+  //   tool_result  → tool card added
+  //   message_start→ starts an assistant bubble (server-rendered HTML)
+  //   token        → append text into the last streaming bubble
+  //   message_end  → finalise + close connection
+  //   error        → red bubble + close connection
+  //
+  // Design invariant: server closes when done (drops sender); we ALSO
+  // abort() on message_end so we never hold an idle socket.
+  async _invokeStream(tool, args) {
+    // Create an initial "streaming" message that all tool_call / tool_result /
+    // message_start events accumulate into. Keeps the transcript tidy.
+    const id = 's-' + Math.random().toString(36).slice(2, 6);
+    const streamMsg = { id, kind: 'streaming', html: '', tool };
+    this._messages = [...this._messages, streamMsg];
+    this._busy = true;
+    this._stream = { tool, step: null, bubbleId: null, aborter: new AbortController() };
+    this._scrollBottom();
+
+    try {
+      const resp = await fetch(`${this._agentBase}/stream`, {
+        method: 'POST',
+        signal: this._stream.aborter.signal,
+        headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
+        body: JSON.stringify({ tool, args }),
+      });
+      if (!resp.ok || !resp.body) throw new Error('stream http ' + resp.status);
+      await this._readSse(resp.body);
+    } catch (e) {
+      if (e.name !== 'AbortError') {
+        this._appendStreamingHtml(id,
+          `<div class="tool-card" style="border-color:#ef4444;color:#991b1b;background:#fee2e2">⚠️ ${e.message}</div>`);
+      }
+    } finally {
+      this._busy = false;
+      this._stream = null;
+      this._scrollBottom();
+    }
+  }
+
+  async _readSse(body) {
+    const reader = body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        let sep;
+        while ((sep = buf.indexOf('\n\n')) >= 0) {
+          this._handleSseEvent(buf.slice(0, sep));
+          buf = buf.slice(sep + 2);
+        }
+      }
+    } catch (e) { if (e?.name !== 'AbortError') throw e; }
+    finally { try { reader.releaseLock(); } catch (_) {} }
+  }
+
+  _handleSseEvent(chunk) {
+    let event = 'message', data = [];
+    for (const line of chunk.split('\n')) {
+      if (line.startsWith(':')) continue;
+      if (line.startsWith('event:')) event = line.slice(6).trim();
+      else if (line.startsWith('data:')) data.push(line.slice(5).replace(/^ /, ''));
+    }
+    const payload = data.join('\n');
+    const streamMsg = this._messages[this._messages.length - 1];
+    if (!streamMsg || streamMsg.kind !== 'streaming') return;
+
+    switch (event) {
+      case 'step': {
+        try { this._stream = { ...this._stream, step: JSON.parse(payload) }; }
+        catch (_) {}
+        break;
+      }
+      case 'tool_call':
+      case 'tool_result':
+      case 'message_start': {
+        this._appendStreamingHtml(streamMsg.id, payload);
+        if (event === 'message_start') {
+          // Extract the bubble id so subsequent tokens target it.
+          const m = payload.match(/id="([^"]+)"/);
+          if (m) this._stream = { ...this._stream, bubbleId: m[1] };
+        }
+        break;
+      }
+      case 'token': {
+        let id, text;
+        try { ({ id, text } = JSON.parse(payload)); } catch { text = payload; }
+        this._appendTokenToBubble(streamMsg.id, id || this._stream?.bubbleId, text);
+        break;
+      }
+      case 'message_end': {
+        // Server has done its job; close the socket instantly.
+        try { this._stream?.aborter?.abort(); } catch (_) {}
+        break;
+      }
+      case 'error': {
+        let msg = payload;
+        try { msg = JSON.parse(payload).message ?? payload; } catch {}
+        this._appendStreamingHtml(streamMsg.id,
+          `<div class="tool-card" style="border-color:#ef4444;color:#991b1b;background:#fee2e2">⚠️ ${msg}</div>`);
+        try { this._stream?.aborter?.abort(); } catch (_) {}
+        break;
+      }
+    }
+  }
+
+  _appendStreamingHtml(streamId, html) {
+    this._messages = this._messages.map(m =>
+      m.id === streamId ? { ...m, html: m.html + html } : m);
+    this._scrollBottom();
+  }
+
+  _appendTokenToBubble(streamId, bubbleId, text) {
+    if (!text) return;
+    // Live DOM append into the specific bubble — cheaper than re-rendering
+    // and keeps the type-writer effect smooth.
+    const el = this.renderRoot?.querySelector(
+      `[data-stream="${streamId}"] #${CSS.escape(bubbleId)}`);
+    if (el) {
+      el.textContent += text;
+      this._scrollBottom();
+    } else {
+      // Fallback: put it in the html blob so next render picks it up.
+      this._appendStreamingHtml(streamId, text);
+    }
+  }
+
+  _cancelStream() {
+    try { this._stream?.aborter?.abort(); } catch (_) {}
   }
 
   // ── Tool invocation (the shared code path) ──────────────────────────
@@ -688,6 +1033,14 @@ class UICopilotV2 extends LitBaseElement {
         ${this._renderFollowups(m.followups)}
       </div></div>`;
     }
+    if (m.kind === 'streaming') {
+      // Server sends pre-styled HTML (tool cards + bubble). We inject via
+      // `.innerHTML` because it's trusted (our own server) and we need to
+      // preserve the ids so token appends can target specific bubbles.
+      return html`<div class="msg-bot card"><div class="bubble">
+        <div data-stream=${m.id} .innerHTML=${m.html}></div>
+      </div></div>`;
+    }
     // default: text
     return html`<div class="msg-bot"><div class="bubble">
       <div>${m.text}</div>
@@ -730,6 +1083,20 @@ class UICopilotV2 extends LitBaseElement {
                       </option>
                     `)}
                   </select>`
+                : field.type === 'mention'
+                ? html`<div style="position:relative">
+                    <input type="text"
+                           placeholder=${field.placeholder || 'Type @ to search'}
+                           .value=${(f.labels && f.labels[field.name])
+                                    ? '@' + f.labels[field.name]
+                                    : ''}
+                           @focus=${() => this._openMention(`form:${field.name}`, '')}
+                           @input=${e => {
+                             // Strip leading "@" then re-search.
+                             const q = e.target.value.replace(/^@/, '');
+                             this._openMention(`form:${field.name}`, q);
+                           }} />
+                  </div>`
                 : html`<input type=${field.type || 'text'}
                               placeholder=${field.placeholder || ''}
                               .value=${f.values[field.name] || ''}
@@ -746,10 +1113,60 @@ class UICopilotV2 extends LitBaseElement {
     `;
   }
 
+  _renderStepBar() {
+    if (!this._stream || !this._stream.step) return nothing;
+    const { n, of, label } = this._stream.step;
+    const pct = Math.round((n / of) * 100);
+    return html`
+      <div class="step-bar">
+        <span>Step ${n}/${of} · ${label}</span>
+        <div class="track"><div class="fill" style="width:${pct}%"></div></div>
+        <button class="cancel" @click=${() => this._cancelStream()}>Cancel</button>
+      </div>
+    `;
+  }
+
+  _renderMentionStrip() {
+    if (!this._composerMentions.length) return nothing;
+    return html`
+      <div class="mention-strip">
+        ${this._composerMentions.map(m => html`
+          <span class="mention-chip">
+            @${m.label}
+            <button @click=${() => this._removeComposerMention(m.id)} title="Remove">×</button>
+          </span>
+        `)}
+      </div>
+    `;
+  }
+
+  _renderMentionPopover() {
+    if (!this._mention || !this._mention.items.length) return nothing;
+    return html`
+      <div class="mention-popover">
+        ${this._mention.items.map((it, i) => html`
+          <div class="mention-item ${i === this._mentionCursor ? 'active' : ''}"
+               @mouseenter=${() => this._mentionCursor = i}
+               @click=${() => this._pickMention(it)}>
+            <div class="avatar">${it.icon || '•'}</div>
+            <div class="info">
+              <div class="name">${it.label}</div>
+              <div class="sub">${it.subtitle}</div>
+            </div>
+            <span class="type">${it.kind}</span>
+          </div>
+        `)}
+      </div>
+    `;
+  }
+
   _renderComposer() {
     return html`
+      ${this._renderStepBar()}
+      ${this._renderMentionStrip()}
       <div class="composer-wrap">
-        <div class="autocomplete ${this._matches.length ? 'open' : ''}">
+        ${this._renderMentionPopover()}
+        <div class="autocomplete ${this._matches.length && !this._mention ? 'open' : ''}">
           ${this._matches.map((m, i) => html`
             <div class="ac-item ${i === this._cursor ? 'active' : ''}"
                  @mouseenter=${() => this._cursor = i}

@@ -135,6 +135,28 @@
         <button class="try" onclick="typeInto('what is the meaning of life')">Try a wild question</button>
       </div>
 
+      <div class="card">
+        <h3>@ 9. Mention typeahead</h3>
+        <p>Type <span class="kbd">@</span> in the composer — a picker of students, staff, and classes appears.
+           Pick one to insert a chip. Say “remind Aarav about fees” to fire the tool directly.</p>
+        <button class="try" onclick="typeInto('remind @')">Type “remind @”</button>
+      </div>
+
+      <div class="card">
+        <h3>🌊 10. Streaming multi-step (SSE)</h3>
+        <p>Some actions have several sub-steps. Enrolling a student runs 4 tools —
+           each streams a tool card and updates the progress bar live. Then the final
+           text is typed word-by-word.</p>
+        <button class="try" onclick="fire('students.enrol', {full_name:'Aarav Kumar', grade:'5', guardian_phone:'+91 98xxx xxxxx'})">Enrol Aarav (streaming) →</button>
+      </div>
+
+      <div class="card">
+        <h3>💸 11. Streaming with confirmation</h3>
+        <p>Fee-charge is <em>both</em> mutating and streaming — you see the confirm card first,
+           then approval kicks off the 4-step SSE flow.</p>
+        <button class="try" onclick="fire('fees.charge', {category:'tuition',term:'march',grade:'5'})">Charge tuition · Grade 5 →</button>
+      </div>
+
     </div>
   </section>
 
@@ -164,6 +186,14 @@
       <tr>
         <td><strong>Voice</strong></td>
         <td>Browser <code>SpeechRecognition</code> API. Free, no external service. Falls back gracefully.</td>
+      </tr>
+      <tr>
+        <td><strong>Mentions</strong></td>
+        <td><code>GET /agent/entities?type=student&amp;q=…</code> — typeahead over students, staff, classes. Chip resolves to a stable ID.</td>
+      </tr>
+      <tr>
+        <td><strong>Streaming</strong></td>
+        <td><code>POST /agent/stream {tool,args}</code> — Server-Sent Events with named events (<code>step</code>, <code>tool_call</code>, <code>tool_result</code>, <code>token</code>, <code>message_end</code>). Per-turn connection — closes as soon as the turn is done.</td>
       </tr>
     </table>
   </div>
