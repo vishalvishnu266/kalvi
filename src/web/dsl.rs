@@ -72,6 +72,7 @@ pub async fn index() -> Html<&'static str> {
         <li><a href="/dsl/layouts"><div><strong>Layout guide</strong><br><small>Every layout primitive & preset with live demos + source</small></div></a></li>
         <li><a href="/dsl/components"><div><strong>Components</strong><br><small>Every UI component with variants + source (buttons, inputs, tables, modals…)</small></div></a></li>
         <li><a href="/dsl/copilot"><div><strong>Copilot (agentic chat)</strong><br><small>Streaming SSE chat window with mock multi-step scenarios. Mobile-ready.</small></div></a></li>
+        <li><a href="/dsl/copilot-v2"><div><strong>Copilot v2 — suggestions, autocomplete, forms, voice</strong><br><small>Non-technical-first UX: proactive chips, live matches, inline forms, follow-ups, confirmation cards, mic input.</small></div></a></li>
         <li><a href="/dsl/errors"><div><strong>Error UX</strong><br><small>Field / form / page error surfaces — the handbook for validation UI</small></div></a></li>
         <li><a href="/dsl/errors/combos"><div><strong>Error combinations</strong><br><small>Every meaningful combination of banner + field + alert + ack panel with source</small></div></a></li>
         <li><a href="/dsl/errors/roundtrip"><div><strong>Error round-trip (live)</strong><br><small>Real POST → 422 → Turbo swap → errors inline. Hand-rolled validation.</small></div></a></li>
@@ -121,6 +122,18 @@ pub async fn components_page() -> Html<String> {
 /// so the `fill_form` UI-action has something to populate.
 pub async fn copilot_demo_page() -> Html<String> {
     Html(copilot_page::build().render())
+}
+
+/// `/dsl/copilot-v2` — showcase of the second-generation Copilot with
+/// suggestion chips, live autocomplete, inline forms, follow-up flows,
+/// confirmation cards, and a voice-input stub. Uses `<ui-copilot-v2>`
+/// (a separate component from `<ui-copilot>`).
+pub async fn copilot_v2_page() -> Html<&'static str> {
+    // Deliberately NOT using page_of() (which would auto-inject the v1
+    // copilot). We want a clean canvas showing only v2, so we write the
+    // page as a small static template that opts into the same asset
+    // pipeline and design tokens.
+    Html(include_str!("copilot_v2_page.html"))
 }
 
 pub async fn errors_page() -> Html<String> {

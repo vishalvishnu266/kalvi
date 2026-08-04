@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Copilot v2 — Interactive Demo</title>
+  <link rel="stylesheet" href="/lit-components/assets/tokens.css" />
+  <link rel="stylesheet" href="/lit-components/assets/global.css" />
+  <link rel="stylesheet" href="/lit-components/assets/layout.css" />
+  <script type="module" src="/lit-components/components/index.js"></script>
+  <style>
+    body {
+      padding: 24px;
+      padding-top:    max(24px, env(safe-area-inset-top));
+      padding-left:   max(24px, env(safe-area-inset-left));
+      padding-right:  max(24px, env(safe-area-inset-right));
+      padding-bottom: max(32px, env(safe-area-inset-bottom));
+      max-width: 900px;
+      margin: 0 auto;
+      font-family: var(--font-sans, system-ui, sans-serif);
+      color: var(--color-text, #0f172a);
+      background: var(--color-bg, #f8fafc);
+    }
+    @media (max-width: 640px) { body { padding: 16px 12px 24px; } }
+    h1 { margin: 0 0 6px; font-size: 24px; }
+    .lead { color: #475569; margin: 0 0 24px; font-size: 15px; line-height: 1.5; }
+    .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+    .card {
+      background: #fff; border: 1px solid #e2e8f0;
+      border-radius: 12px; padding: 14px;
+    }
+    .card h3 { margin: 0 0 6px; font-size: 15px; display:flex; align-items:center; gap:8px; }
+    .card p  { margin: 0; color: #475569; font-size: 13px; line-height: 1.45; }
+    .card .try {
+      display: block; text-align: center; margin-top: 10px;
+      padding: 8px 10px; border-radius: 8px;
+      background: #0a84ff; color: #fff; text-decoration: none; font-size: 13px;
+      cursor: pointer; border: 0; width: 100%; font: inherit;
+    }
+    .card .try:hover { background: #0369a1; }
+    .kbd {
+      display: inline-block; padding: 2px 6px; border-radius: 4px;
+      background: #f1f5f9; border: 1px solid #cbd5e1;
+      font-family: ui-monospace, monospace; font-size: 12px;
+    }
+    .cta {
+      background: linear-gradient(135deg, #0a84ff, #7c3aed);
+      color: #fff; padding: 18px; border-radius: 12px; margin: 0 0 24px;
+      display: flex; justify-content: space-between; align-items: center; gap: 12px;
+    }
+    .cta strong { font-size: 16px; }
+    .cta button {
+      background: #fff; color: #0a84ff; border: 0; padding: 10px 18px;
+      border-radius: 8px; font: inherit; cursor: pointer; font-weight: 600;
+    }
+    section h2 { font-size: 15px; margin: 24px 0 10px; color: #334155; }
+    .mode-guide {
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+      padding: 16px; margin-top: 24px;
+    }
+    .mode-guide table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .mode-guide td { padding: 8px 6px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+    .mode-guide td:first-child { width: 130px; color: #64748b; }
+    .foot { color: #94a3b8; font-size: 12px; margin-top: 32px; text-align: center; }
+  </style>
+</head>
+<body>
+
+  <h1>Copilot v2 — the non-technical-first experience</h1>
+  <p class="lead">
+    A single input handles typing, tapping, and speaking. No symbols required.
+    Try any of the scenarios below — or press <span class="kbd">Ctrl</span>+<span class="kbd">J</span>
+    (or tap the ✨ button) to open the panel.
+  </p>
+
+  <div class="cta">
+    <div>
+      <strong>Open the Copilot panel</strong><br />
+      <span style="opacity:.85;font-size:13px">Press Ctrl/Cmd+J or click →</span>
+    </div>
+    <button onclick="document.querySelector('ui-copilot-v2')?.openPanel?.() || document.querySelector('ui-copilot-v2')?._open?.()">
+      Open Copilot →
+    </button>
+  </div>
+
+  <section>
+    <h2>Scenario walkthroughs — tap any card to fire the flow</h2>
+    <div class="grid">
+
+      <div class="card">
+        <h3>💡 1. Proactive suggestions</h3>
+        <p>The moment you open the panel, four suggestion chips are already there — tailored to the current page. No typing needed.</p>
+        <button class="try" onclick="openCopilot()">Open panel &amp; see chips</button>
+      </div>
+
+      <div class="card">
+        <h3>⌨️ 2. Live autocomplete</h3>
+        <p>Start typing “attend” or “fees” — matches appear inline. Arrow keys or tap to pick. Zero LLM calls.</p>
+        <button class="try" onclick="typeInto('attend')">Try “attend”</button>
+      </div>
+
+      <div class="card">
+        <h3>📝 3. Inline guided form</h3>
+        <p>Some actions need details. Instead of erroring, an inline form appears — with sensible defaults and dropdowns.</p>
+        <button class="try" onclick="fire('attendance.mark', {date:'today'})">Mark today’s attendance →</button>
+      </div>
+
+      <div class="card">
+        <h3>⚠️ 4. Confirmation before mutations</h3>
+        <p>Any action that changes data first shows a “Confirm &amp; do it” card. Trust-building by default.</p>
+        <button class="try" onclick="fire('fees.charge', {})">Charge fees (mutation) →</button>
+      </div>
+
+      <div class="card">
+        <h3>📊 5. Rich result cards</h3>
+        <p>Results render as tables, stats, or text — reusing your DSL primitives inside the chat.</p>
+        <button class="try" onclick="fire('fees.overdue', {})">Show overdue fees</button>
+      </div>
+
+      <div class="card">
+        <h3>🔁 6. Follow-up chips</h3>
+        <p>Every result offers 1–2 relevant next actions. Compounds into a workflow, not a dead end.</p>
+        <button class="try" onclick="fire('attendance.report', {month:'march'})">Attendance report →</button>
+      </div>
+
+      <div class="card">
+        <h3>🎙️ 7. Voice input (stub)</h3>
+        <p>Tap the mic icon in the composer to speak. Uses the browser’s Web Speech API on Chrome/Edge/Safari.</p>
+        <button class="try" onclick="openCopilot()">Open &amp; try the mic</button>
+      </div>
+
+      <div class="card">
+        <h3>💬 8. Free-form fallback</h3>
+        <p>Nothing matches? Press Enter and it goes to the “Ask the assistant” path — where a real LLM would handle it.</p>
+        <button class="try" onclick="typeInto('what is the meaning of life')">Try a wild question</button>
+      </div>
+
+    </div>
+  </section>
+
+  <div class="mode-guide">
+    <h2 style="margin-top:0">Under the hood — what powers this</h2>
+    <table>
+      <tr>
+        <td><strong>Suggestions</strong></td>
+        <td><code>GET /agent/suggest?page=/dsl/copilot-v2</code> — page-aware, ~10ms, zero LLM.</td>
+      </tr>
+      <tr>
+        <td><strong>Autocomplete</strong></td>
+        <td><code>GET /agent/complete?q=…</code> — deterministic fuzzy match against a rules table.</td>
+      </tr>
+      <tr>
+        <td><strong>Form schema</strong></td>
+        <td><code>GET /agent/schema?tool=…</code> — returns fields, required flags, enum options.</td>
+      </tr>
+      <tr>
+        <td><strong>Invocation</strong></td>
+        <td><code>POST /agent/invoke {tool, args}</code> — the shared tool registry runs the action.</td>
+      </tr>
+      <tr>
+        <td><strong>Same registry</strong></td>
+        <td>English typing, chip taps, and slash commands (future) all end up here — one code path.</td>
+      </tr>
+      <tr>
+        <td><strong>Voice</strong></td>
+        <td>Browser <code>SpeechRecognition</code> API. Free, no external service. Falls back gracefully.</td>
+      </tr>
+    </table>
+  </div>
+
+  <p class="foot">Everything on this page is mock data. Swap the mock for real tools without changing the UI.</p>
+
+  <ui-copilot-v2 label="ERP Copilot"></ui-copilot-v2>
+
+  <script>
+    // Small demo helpers so buttons on this page can drive the copilot.
+    function copilot() { return document.querySelector('ui-copilot-v2'); }
+    function openCopilot() {
+      const c = copilot(); if (!c) return;
+      c._open ? c._open() : (c.open = true);
+    }
+    function typeInto(text) {
+      openCopilot();
+      setTimeout(() => {
+        const ta = copilot().renderRoot.querySelector('textarea');
+        if (!ta) return;
+        ta.value = text;
+        ta.focus();
+        // Trigger the component's autocomplete path.
+        ta.dispatchEvent(new Event('input', { bubbles: true }));
+      }, 120);
+    }
+    function fire(tool, prefill) {
+      openCopilot();
+      setTimeout(() => {
+        const c = copilot();
+        c._runAction({ title: friendlyTitle(tool), tool, prefill: prefill || {} });
+      }, 120);
+    }
+    function friendlyTitle(tool) {
+      const map = {
+        'attendance.mark': "Mark today's attendance",
+        'attendance.report': "Attendance report",
+        'attendance.absentees': "Yesterday's absentees",
+        'fees.overdue':  "Overdue fees",
+        'fees.charge':   "Charge a fee category",
+        'students.enrol':"Add a new student",
+        'students.find': "Find a student",
+        'timetable.today': "Today's timetable",
+      };
+      return map[tool] || tool;
+    }
+  </script>
+</body>
+</html>

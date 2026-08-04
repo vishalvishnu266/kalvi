@@ -36,6 +36,7 @@ const LAZY_MAP = {
   'ui-alert':         () => import('./ui-alert.js'),
   'ui-ack-panel':     () => import('./ui-ack-panel.js'),
   'ui-copilot':       () => import('./ui-copilot.js'),
+  'ui-copilot-v2':    () => import('./ui-copilot-v2.js'),
 };
 
 const requested = new Set();
