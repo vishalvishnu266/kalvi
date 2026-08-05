@@ -25,6 +25,7 @@ import './ui-fragment.js';
 import './ui-app-shell.js';
 import './ui-copilot.js';
 import './ui-launcher.js';
+import './ui-primary-bar.js';
 
 // ---- Restore saved theme + primary color BEFORE first paint ----
 // (Was in the old index.js; kept here because it must run in the critical

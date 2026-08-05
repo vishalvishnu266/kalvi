@@ -56,6 +56,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/",          get(pages::landing::handler))
+        .route("/apps",      get(pages::apps::handler))
         .route("/dashboard", get(pages::dashboard::handler))
         .route("/admin",     get(pages::admin::handler))
         .route("/users",     get(pages::users::handler))

@@ -58,8 +58,10 @@ class UiAppShell extends LitBaseElement {
         "toast    toast     toast"
         "modal    modal     modal"
         "bottombar bottombar bottombar";
-      /* Desktop: 56px activity bar (icons only), fluid main, sized copilot. */
-      grid-template-columns: var(--shell-sidebar, 56px) 1fr var(--shell-copilot, 360px);
+      /* Desktop: 0px sidebar by default (empty slot reserved for
+         per-page power tools), fluid main, no copilot column (copilot
+         now floats as a card — see ui-copilot.js). */
+      grid-template-columns: var(--shell-sidebar, 0px) 1fr 0px;
       grid-template-rows: auto 1fr auto auto auto;
       min-height: 100dvh;
       background: var(--color-bg, #fff);
@@ -94,12 +96,10 @@ class UiAppShell extends LitBaseElement {
         grid-template-columns: 1fr;
       }
       .sidebar { display: none; }
-      /* Bottom tab bar sticks to the bottom viewport. */
-      .bottombar {
-        position: sticky; bottom: 0;
-        background: var(--color-bg, #fff);
-        z-index: 80;
-      }
+      /* The primary bar is fixed-positioned by its own CSS, so the
+         bottombar slot just needs to reserve visual space so the last
+         line of content isn't hidden behind it. */
+      .bottombar { min-height: 66px; }
       .copilot {
         position: fixed;
         left: 0; right: 0; bottom: 0;

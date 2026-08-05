@@ -1,25 +1,27 @@
 // -----------------------------------------------------------------------------
-// <ui-copilot> — the lean, IDE-style copilot pane.
+// <ui-copilot> — floating AI chat pane.
 //
-// UX contract:
-//   • Desktop (≥768px): occupies the shell's `copilot` slot on the RIGHT
-//     side. Toggleable via `open` attribute or floating "Copilot" button.
-//   • Mobile (<768px): slides up from the BOTTOM as a sheet, covering
-//     ~75% of the viewport. Toggled via a fixed round FAB at the corner.
+// Placement:
+//   • Desktop (≥769px): floating popover, docked to the bottom-right
+//     corner. 420 × 640, rounded, soft shadow.
+//   • Mobile  (≤768px): bottom sheet, 85dvh, rounded top corners.
+//
+// Both modes share the exact same DOM; the CSS below flips between the
+// two. Hidden by default; the AI icon in <ui-primary-bar> toggles it.
 //
 // Wire contract:
-//   • Composer POSTs JSON `{utterance, context}` to /agent.
-//   • Server responds with an SSE stream. Each `event: fragment` payload
-//     is a `<ui-fragment target="…" action="…">…</ui-fragment>` envelope.
-//   • We hand each envelope to `window.ui.applyAll(...)` so the exact
-//     same code path applies agent-authored swaps and normal navigation.
-//   • Chat bubbles are appended to the special `copilot-chat` island
-//     which lives inside this component's light DOM.
+//   • POST /agent  with { utterance, context } as JSON
+//   • Response is an SSE stream of `event: fragment` frames whose data
+//     is a <ui-fragment target=… action=…>…</ui-fragment> envelope.
+//   • Each fragment is applied via window.ui.applyAll(), so agent-driven
+//     changes flow through the same pipeline as normal navigation.
 //
-// This is intentionally NOT a Lit element. Plain HTMLElement keeps the
-// bundle small and side-steps the shadow-DOM slot boundary that would
-// otherwise force us to re-implement <ui-fragment target="copilot-chat">
-// lookup logic. Chat bubbles land in a light-DOM child.
+// UX:
+//   • Every "turn" (user question + agent reply) is rendered as a card
+//     to feel less like IRC and more like Perplexity / ChatGPT.
+//   • Enter to send, Shift+Enter for newline.
+//   • Composer autofocuses when opened.
+//   • Esc closes.
 // -----------------------------------------------------------------------------
 
 class UiCopilot extends HTMLElement {
@@ -27,182 +29,95 @@ class UiCopilot extends HTMLElement {
     if (this._mounted) return;
     this._mounted = true;
 
-    // Endpoint is configurable so a subclass or app can point it at a
-    // different backend (e.g. /agent/v2) without editing this file.
     this.endpoint = this.getAttribute('endpoint') || '/agent';
 
-    // Build the internal DOM once. Everything is light DOM so the
-    // fragment-applier can find [slot="copilot-chat"] with the same
-    // selector strategy it uses for every other island.
-    this.innerHTML = `
-      <style>
-        ui-copilot {
-          --uc-bg:      var(--color-bg, #fff);
-          --uc-fg:      var(--color-fg, #111);
-          --uc-border:  var(--color-border, #e5e7eb);
-          --uc-accent:  var(--color-primary, #4f46e5);
-          --uc-radius:  14px;
+    // Install document-level styles once — shared across all instances.
+    UiCopilot._installStyles();
 
-          display: flex;
-          flex-direction: column;
-          height: 100%;
-          background: var(--uc-bg);
-          color: var(--uc-fg);
-          font: inherit;
-        }
-        /* Desktop: always visible inside the shell's copilot slot. */
-        /* Mobile: hidden internals when the sheet is closed so tabbing
-           doesn't reach them through the fully-translated container. */
-        @media (max-width: 768px) {
-          ui-copilot:not([open]) [data-uc="header"],
-          ui-copilot:not([open]) [data-uc="chat"],
-          ui-copilot:not([open]) [data-uc="composer"] {
-            visibility: hidden;
-          }
-        }
-        /* The floating action button (mobile only). Lives OUTSIDE the
-           copilot's flex column so its position isn't affected by the
-           sheet's transform. Injected into <body> at connect time — see
-           _installFab(). */
-        .ui-copilot-fab {
-          position: fixed;
-          right: 16px; bottom: 16px;
-          width: 52px; height: 52px;
-          border-radius: 50%;
-          background: var(--color-primary, #4f46e5);
-          color: #fff;
-          border: 0;
-          font-size: 22px;
-          cursor: pointer;
-          box-shadow: 0 4px 14px rgba(0, 0, 0, .18);
-          z-index: 95;
-          display: none;
-        }
-        @media (max-width: 768px) {
-          .ui-copilot-fab { display: grid; place-items: center; }
-        }
-        ui-copilot [data-uc="header"] {
-          display: flex; align-items: center; justify-content: space-between;
-          padding: 12px 14px;
-          border-bottom: 1px solid var(--uc-border);
-          font-weight: 600; font-size: 13px;
-        }
-        ui-copilot [data-uc="close"] {
-          background: none; border: 0; font-size: 18px; cursor: pointer;
-          color: inherit; opacity: .6; line-height: 1; padding: 4px;
-        }
-        ui-copilot [data-uc="close"]:hover { opacity: 1; }
-        ui-copilot [data-uc="chat"] {
-          flex: 1; overflow-y: auto;
-          padding: 10px 14px;
-          display: flex; flex-direction: column;
-        }
-        ui-copilot [data-uc="chat"]:empty::before {
-          content: 'Ask me to navigate, add a user, toggle dark mode, …';
-          opacity: .5; font-size: 12px; padding: 8px 0;
-        }
-        ui-copilot [data-uc="composer"] {
-          display: flex; gap: 8px;
-          padding: 10px 12px;
-          border-top: 1px solid var(--uc-border);
-        }
-        ui-copilot [data-uc="input"] {
-          flex: 1;
-          padding: 8px 10px;
-          font: inherit; font-size: 13px;
-          border: 1px solid var(--uc-border);
-          border-radius: 8px;
-          background: var(--color-surface-2, #f5f5f7);
-          color: inherit;
-          outline: none;
-        }
-        ui-copilot [data-uc="input"]:focus {
-          border-color: var(--uc-accent);
-          background: var(--uc-bg);
-        }
-        ui-copilot [data-uc="send"] {
-          padding: 8px 14px;
-          font: inherit; font-size: 13px; font-weight: 500;
-          border: 0; border-radius: 8px;
-          background: var(--uc-accent); color: #fff;
-          cursor: pointer;
-        }
-        ui-copilot [data-uc="send"]:disabled { opacity: .5; cursor: default; }
-        ui-copilot [data-uc="you"] {
-          align-self: flex-end;
-          max-width: 85%;
-          padding: 8px 12px; margin: 4px 0;
-          background: var(--uc-accent); color: #fff;
-          border-radius: 12px 12px 2px 12px;
-          font-size: 13px; line-height: 1.4;
-        }
-      </style>
-      <div data-uc="header">
-        <span>🤖 Copilot</span>
-        <button type="button" data-uc="close" aria-label="Close copilot">×</button>
+    this.innerHTML = `
+      <div class="ui-cop-shell" role="dialog" aria-label="AI copilot">
+        <div class="ui-cop-header">
+          <div class="ui-cop-title">
+            <span class="ui-cop-title-glyph">✨</span>
+            <span>AI</span>
+          </div>
+          <button type="button" class="ui-cop-close" aria-label="Close">×</button>
+        </div>
+
+        <div class="ui-cop-turns" data-uc="chat" aria-live="polite"></div>
+
+        <form class="ui-cop-composer" data-uc="composer" autocomplete="off">
+          <textarea data-uc="input"
+                    placeholder="Ask anything, or try: go to dashboard, dark mode…"
+                    rows="1"
+                    aria-label="Message the copilot"></textarea>
+          <button type="submit" class="ui-cop-send" data-uc="send" aria-label="Send">
+            <ui-icon name="arrow-right" size="16"></ui-icon>
+          </button>
+        </form>
       </div>
-      <div slot="copilot-chat" data-uc="chat" aria-live="polite"></div>
-      <form data-uc="composer" autocomplete="off">
-        <input data-uc="input" type="text" name="utterance"
-               placeholder="Try: go to dashboard, add user, dark mode …"
-               aria-label="Message the copilot">
-        <button data-uc="send" type="submit">Send</button>
-      </form>
     `;
 
     this.$chat     = this.querySelector('[data-uc="chat"]');
     this.$input    = this.querySelector('[data-uc="input"]');
     this.$send     = this.querySelector('[data-uc="send"]');
     this.$composer = this.querySelector('[data-uc="composer"]');
-    this.$close    = this.querySelector('[data-uc="close"]');
+    this.$close    = this.querySelector('.ui-cop-close');
 
-    this.$composer.addEventListener('submit', (e) => this._onSubmit(e));
-    this.$close.addEventListener('click', () => this.close());
+    this.$composer.addEventListener('submit',  (e) => this._onSubmit(e));
+    this.$close.addEventListener('click',      () => this.close());
+    this.$input.addEventListener('keydown',    (e) => this._onKeydown(e));
+    this.$input.addEventListener('input',      () => this._autogrow());
 
-    // Install the mobile FAB once (idempotent). Lives on the document
-    // body so it isn't affected by the sheet's transform.
-    this._installFab();
+    // Backdrop click on the host closes on mobile (matches sheet UX).
+    this.addEventListener('click', (e) => {
+      if (e.target === this) this.close();
+    });
+
+    // Esc anywhere in the copilot closes.
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && this.hasAttribute('open')) this.close();
+    });
   }
 
-  /**
-   * Add a floating "🤖" button to <body> on first connect. Clicking it
-   * opens this copilot. If the button already exists (e.g. multiple
-   * <ui-copilot> instances) the newest one wins the toggle target —
-   * fine for our single-shell architecture.
-   */
-  _installFab() {
-    let fab = document.querySelector('.ui-copilot-fab');
-    if (!fab) {
-      fab = document.createElement('button');
-      fab.type = 'button';
-      fab.className = 'ui-copilot-fab';
-      fab.setAttribute('aria-label', 'Open copilot');
-      fab.textContent = '🤖';
-      document.body.appendChild(fab);
+  open() {
+    this.setAttribute('open', '');
+    // rAF so the input exists in the layout tree when we focus.
+    requestAnimationFrame(() => this.$input?.focus());
+  }
+  close()   { this.removeAttribute('open'); }
+  toggle()  { this.hasAttribute('open') ? this.close() : this.open(); }
+
+  _onKeydown(e) {
+    // Enter → send (Shift+Enter → newline).
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      this.$composer.requestSubmit();
     }
-    fab.onclick = () => this.toggle();
   }
 
-  /** Open/close helpers — driven by the mobile FAB + close button. */
-  open()   { this.setAttribute('open', ''); }
-  close()  { this.removeAttribute('open'); }
-  toggle() { this.hasAttribute('open') ? this.close() : this.open(); }
+  _autogrow() {
+    // Textarea grows with content, capped at 6 lines.
+    const ta = this.$input;
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(ta.scrollHeight, 6 * 22) + 'px';
+  }
 
   async _onSubmit(e) {
     e.preventDefault();
     const utterance = this.$input.value.trim();
     if (!utterance) return;
 
-    // Optimistic echo — user's message appears immediately, no round-trip.
-    this._pushUserBubble(utterance);
+    const turn = this._beginTurn(utterance);
     this.$input.value = '';
+    this._autogrow();
     this.$send.disabled = true;
 
     try {
-      await this._streamTurn(utterance);
+      await this._streamTurn(utterance, turn);
     } catch (err) {
       console.error('[copilot] turn failed:', err);
-      this._pushSystemBubble(`Error: ${err.message || err}`);
+      turn.appendError(err.message || String(err));
     } finally {
       this.$send.disabled = false;
       this.$input.focus();
@@ -210,11 +125,56 @@ class UiCopilot extends HTMLElement {
   }
 
   /**
-   * POST the utterance and stream the fragment envelopes back via the
-   * Fetch Streams API. We could use EventSource, but it forces GET and
-   * doesn't let us set headers cleanly.
+   * Start a new turn card. Returns an object with helpers to append
+   * agent bubbles / tool cards / errors as SSE frames arrive.
    */
-  async _streamTurn(utterance) {
+  _beginTurn(utterance) {
+    const card = document.createElement('div');
+    card.className = 'ui-cop-turn';
+    card.innerHTML = `
+      <div class="ui-cop-you">
+        <span class="ui-cop-avatar ui-cop-avatar--you">You</span>
+        <div class="ui-cop-you-text"></div>
+      </div>
+      <div class="ui-cop-answer" data-cop-answer>
+        <span class="ui-cop-avatar ui-cop-avatar--ai">✨</span>
+        <div class="ui-cop-answer-body">
+          <span class="ui-cop-thinking">
+            <span class="ui-cop-dot"></span><span class="ui-cop-dot"></span><span class="ui-cop-dot"></span>
+          </span>
+        </div>
+      </div>
+    `;
+    card.querySelector('.ui-cop-you-text').textContent = utterance;
+    this.$chat.appendChild(card);
+    this._scroll();
+
+    const body = card.querySelector('.ui-cop-answer-body');
+    const thinking = card.querySelector('.ui-cop-thinking');
+    let cleared = false;
+
+    // Return a small controller the caller uses to fill the answer.
+    return {
+      // Called when a real fragment lands — remove the thinking dots.
+      ensureCleared: () => {
+        if (!cleared) { thinking?.remove(); cleared = true; }
+      },
+      appendHTML: (html) => {
+        body.insertAdjacentHTML('beforeend', html);
+        this._scroll();
+      },
+      appendError: (msg) => {
+        thinking?.remove();
+        const el = document.createElement('div');
+        el.className = 'ui-cop-error';
+        el.textContent = msg;
+        body.appendChild(el);
+        this._scroll();
+      },
+    };
+  }
+
+  async _streamTurn(utterance, turn) {
     const res = await fetch(this.endpoint, {
       method: 'POST',
       headers: {
@@ -237,62 +197,219 @@ class UiCopilot extends HTMLElement {
       const { value, done } = await reader.read();
       if (done) break;
       buf += decoder.decode(value, { stream: true });
-      // SSE frames are separated by a blank line. Parse whichever
-      // complete frames are in the buffer, keep the tail for next read.
       let idx;
       while ((idx = buf.indexOf('\n\n')) !== -1) {
         const raw = buf.slice(0, idx);
         buf = buf.slice(idx + 2);
-        this._handleSseFrame(raw);
+        this._handleSseFrame(raw, turn);
       }
     }
   }
 
-  /** Parse a single SSE frame ("event: X\ndata: Y") and dispatch it. */
-  _handleSseFrame(frame) {
+  _handleSseFrame(frame, turn) {
     let event = 'message';
     let data  = '';
     for (const line of frame.split('\n')) {
-      if (line.startsWith('event:')) event = line.slice(6).trim();
-      else if (line.startsWith('data:')) {
-        // Multi-line `data:` fields are joined with '\n'.
-        data += (data ? '\n' : '') + line.slice(5).trim();
-      }
+      if (line.startsWith('event:'))     event = line.slice(6).trim();
+      else if (line.startsWith('data:')) data  += (data ? '\n' : '') + line.slice(5).trim();
     }
     if (event === 'done') return;
     if (event !== 'fragment' || !data) return;
 
-    // Apply exactly like a normal navigation payload — reuses the
-    // shell's `<ui-fragment>` upgrader.
+    // Extract the <ui-fragment target=…>...</ui-fragment> envelope.
     const tpl = document.createElement('template');
     tpl.innerHTML = data;
-    if (window.ui && typeof window.ui.applyAll === 'function') {
-      window.ui.applyAll(tpl.content);
+    const frag = tpl.content.querySelector('ui-fragment');
+    if (!frag) return;
+
+    const target = frag.getAttribute('target') || 'main';
+
+    // Route:
+    //   copilot-chat → append inside THIS turn's answer body as an
+    //                  agent bubble (not directly into the chat area)
+    //   anything else → hand off to window.ui.applyAll (main swap,
+    //                  side effect, etc.).
+    if (target === 'copilot-chat') {
+      turn.ensureCleared();
+      turn.appendHTML(frag.innerHTML);
     } else {
-      // Fallback if shell.js hasn't booted for any reason: append raw.
-      this.$chat.append(...tpl.content.childNodes);
+      if (window.ui?.applyAll) window.ui.applyAll(tpl.content);
     }
-    this._scrollChat();
   }
 
-  _pushUserBubble(text) {
-    const el = document.createElement('div');
-    el.dataset.uc = 'you';
-    el.textContent = text;
-    this.$chat.appendChild(el);
-    this._scrollChat();
-  }
-  _pushSystemBubble(text) {
-    const el = document.createElement('div');
-    el.className = 'ui-copilot-bubble';
-    el.style.cssText = 'padding:10px 12px;margin:4px 0;background:#fee2e2;color:#991b1b;border-radius:10px;font-size:13px;';
-    el.textContent = text;
-    this.$chat.appendChild(el);
-    this._scrollChat();
-  }
-  _scrollChat() {
-    // rAF so the DOM has painted before we measure scroll height.
+  _scroll() {
     requestAnimationFrame(() => { this.$chat.scrollTop = this.$chat.scrollHeight; });
+  }
+
+  // ---- One shared stylesheet at document level. ---------------------------
+  static _installStyles() {
+    if (document.querySelector('style[data-ui-copilot]')) return;
+    const style = document.createElement('style');
+    style.dataset.uiCopilot = '';
+    style.textContent = `
+      ui-copilot {
+        --uc-radius:  16px;
+        --uc-shadow:  0 20px 60px rgba(0, 0, 0, .22);
+        position: fixed;
+        z-index: 120;
+        display: none;
+        font: inherit;
+      }
+      ui-copilot[open] { display: block; }
+
+      .ui-cop-shell {
+        display: flex; flex-direction: column;
+        background: var(--color-bg, #fff);
+        color: var(--color-fg, #111);
+        border: 1px solid var(--color-border, #e5e7eb);
+        border-radius: var(--uc-radius);
+        box-shadow: var(--uc-shadow);
+        overflow: hidden;
+      }
+      .ui-cop-header {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--color-border, #e5e7eb);
+      }
+      .ui-cop-title {
+        display: flex; align-items: center; gap: 8px;
+        font-weight: 600; font-size: 14px;
+      }
+      .ui-cop-title-glyph {
+        display: grid; place-items: center;
+        width: 22px; height: 22px; border-radius: 6px;
+        font-size: 13px;
+        background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+        color: #fff;
+      }
+      .ui-cop-close {
+        background: none; border: 0; font-size: 20px; line-height: 1;
+        padding: 4px 8px; border-radius: 6px;
+        color: inherit; opacity: .55; cursor: pointer;
+      }
+      .ui-cop-close:hover { opacity: 1; background: var(--color-surface-2, #f5f5f7); }
+
+      .ui-cop-turns {
+        flex: 1; overflow-y: auto;
+        padding: 14px;
+        display: flex; flex-direction: column; gap: 14px;
+        background: var(--color-surface, #fafafa);
+      }
+      .ui-cop-turns:empty::before {
+        content: 'Ask me anything…';
+        display: block; text-align: center;
+        opacity: .5; font-size: 13px; padding: 24px 0;
+      }
+
+      /* ─── Turn card ─── */
+      .ui-cop-turn {
+        display: flex; flex-direction: column; gap: 8px;
+      }
+      .ui-cop-you, .ui-cop-answer {
+        display: flex; gap: 10px; align-items: flex-start;
+        background: var(--color-bg, #fff);
+        border: 1px solid var(--color-border, #e5e7eb);
+        border-radius: 12px;
+        padding: 10px 12px;
+        font-size: 13px; line-height: 1.5;
+      }
+      .ui-cop-avatar {
+        flex: 0 0 22px;
+        display: grid; place-items: center;
+        width: 22px; height: 22px; border-radius: 6px;
+        font-size: 11px; font-weight: 600;
+        color: #fff;
+      }
+      .ui-cop-avatar--you { background: linear-gradient(135deg, #f59e0b, #ef4444); }
+      .ui-cop-avatar--ai  { background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%); }
+      .ui-cop-you-text    { flex: 1; }
+      .ui-cop-answer-body { flex: 1; }
+      .ui-cop-answer-body > * + * { margin-top: 6px; }
+
+      .ui-cop-error {
+        background: #fef2f2; color: #991b1b;
+        padding: 8px 10px; border-radius: 8px;
+      }
+
+      /* ─── Thinking dots ─── */
+      .ui-cop-thinking {
+        display: inline-flex; gap: 4px; align-items: center;
+      }
+      .ui-cop-dot {
+        width: 6px; height: 6px; border-radius: 50%;
+        background: currentColor; opacity: .3;
+        animation: ui-cop-pulse 1.2s ease-in-out infinite;
+      }
+      .ui-cop-dot:nth-child(2) { animation-delay: .15s; }
+      .ui-cop-dot:nth-child(3) { animation-delay: .30s; }
+      @keyframes ui-cop-pulse {
+        0%, 60%, 100% { opacity: .25; transform: scale(1); }
+        30%           { opacity: 1;   transform: scale(1.25); }
+      }
+
+      /* ─── Composer ─── */
+      .ui-cop-composer {
+        display: flex; align-items: flex-end; gap: 8px;
+        padding: 10px 12px;
+        border-top: 1px solid var(--color-border, #e5e7eb);
+        background: var(--color-bg, #fff);
+      }
+      .ui-cop-composer textarea {
+        flex: 1;
+        padding: 8px 10px;
+        font: inherit; font-size: 13px; line-height: 1.4;
+        border: 1px solid var(--color-border, #e5e7eb);
+        border-radius: 10px;
+        background: var(--color-surface-2, #f5f5f7);
+        color: inherit;
+        outline: none; resize: none;
+        max-height: 140px;
+      }
+      .ui-cop-composer textarea:focus {
+        background: var(--color-bg, #fff);
+        border-color: #7c3aed;
+        box-shadow: 0 0 0 3px rgba(124, 58, 237, .15);
+      }
+      .ui-cop-send {
+        display: grid; place-items: center;
+        width: 34px; height: 34px;
+        padding: 0;
+        border: 0; border-radius: 10px;
+        color: #fff; cursor: pointer;
+        background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+      }
+      .ui-cop-send:disabled { opacity: .5; cursor: default; }
+
+      /* ─── Desktop: floating popover, bottom-right ─── */
+      @media (min-width: 769px) {
+        ui-copilot {
+          right: 20px; bottom: 20px;
+          width: min(420px, 92vw);
+          height: min(640px, 78dvh);
+        }
+        ui-copilot .ui-cop-shell { height: 100%; }
+      }
+
+      /* ─── Mobile: bottom sheet, full width ─── */
+      @media (max-width: 768px) {
+        ui-copilot {
+          left: 0; right: 0; bottom: 0;
+        }
+        ui-copilot .ui-cop-shell {
+          height: 85dvh;
+          border-radius: 18px 18px 0 0;
+          border-bottom: 0;
+        }
+        /* Small drag-handle affordance. */
+        ui-copilot .ui-cop-shell::before {
+          content: '';
+          display: block; margin: 8px auto 0;
+          width: 40px; height: 4px; border-radius: 2px;
+          background: var(--color-border, #e5e7eb);
+        }
+      }
+    `;
+    document.head.appendChild(style);
   }
 }
 
@@ -301,12 +418,8 @@ if (!customElements.get('ui-copilot')) {
 }
 
 // ---------------------------------------------------------------------------
-// Side-effect handlers for the copilot's non-DOM actions.
-//
-// The StubAgent emits `navigate` and `theme-toggle` side effects; the
-// shell.js runtime dispatches them by `kind`. Registered here so they
-// live with the copilot (not with ui-app-shell) — feels right because
-// they only exist because the copilot exists.
+// Side-effect handlers registered for the copilot's non-DOM actions.
+// Same as before — the primary-bar's AI toggle just controls open/close.
 // ---------------------------------------------------------------------------
 if (window.ui && typeof window.ui.registerSideEffect === 'function') {
   window.ui.registerSideEffect('navigate', ({ url } = {}) => {

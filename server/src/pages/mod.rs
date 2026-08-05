@@ -11,6 +11,7 @@
 //! need a new page; it's the whole "how to add a page" contract.
 
 pub mod admin;
+pub mod apps;
 pub mod dashboard;
 pub mod landing;
 pub mod reports;
