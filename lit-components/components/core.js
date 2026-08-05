@@ -16,13 +16,15 @@ import './ui-breadcrumb.js';
 import './ui-skeleton.js';
 import './ui-toast.js';
 
-// NOTE: the framework `ui-app-shell`, `ui-fragment`, and `ui-copilot`
-// are imported here so they are guaranteed to be defined before the
-// first paint (they own the layout, the fragment-application pipeline,
-// and the agent-driven copilot pane respectively).
+// NOTE: the framework `ui-app-shell`, `ui-fragment`, `ui-copilot`, and
+// `ui-launcher` are imported here so they are guaranteed to be defined
+// before the first paint (they own the layout, the fragment-application
+// pipeline, the agent-driven copilot pane, and the ⌘K launcher
+// respectively).
 import './ui-fragment.js';
 import './ui-app-shell.js';
 import './ui-copilot.js';
+import './ui-launcher.js';
 
 // ---- Restore saved theme + primary color BEFORE first paint ----
 // (Was in the old index.js; kept here because it must run in the critical

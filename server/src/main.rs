@@ -12,6 +12,8 @@
 
 mod agent_route;
 mod apps;
+mod commands;
+mod launcher;
 mod pages;
 mod shell;
 
@@ -43,9 +45,14 @@ async fn main() {
         .expect("server crate must have a workspace parent")
         .join("lit-components");
 
+    // The shared command registry — one source of truth for both the
+    // copilot and the launcher.
+    let registry = Arc::new(commands::build());
+
     // The copilot's brain. Rule-based today; swap in an LlmAgent later
     // without touching the route or the client.
-    let agent_state = AgentState { agent: Arc::new(StubAgent::new()) };
+    let agent_state    = AgentState    { agent:    Arc::new(StubAgent::new())    };
+    let launcher_state = launcher::LauncherState { registry: registry.clone()   };
 
     let app = Router::new()
         .route("/",          get(pages::landing::handler))
@@ -54,7 +61,8 @@ async fn main() {
         .route("/users",     get(pages::users::handler))
         .route("/reports",   get(pages::reports::handler))
         .route("/settings",  get(pages::settings::handler))
-        .route("/agent",     post(agent_route::handler).with_state(agent_state))
+        .route("/agent",             post(agent_route::handler).with_state(agent_state))
+        .route("/launcher/search",   get(launcher::handler).with_state(launcher_state))
         .nest_service("/lit-components", ServeDir::new(&lit_components_dir))
         .layer(TraceLayer::new_for_http());
 

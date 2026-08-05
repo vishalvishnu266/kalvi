@@ -13,20 +13,34 @@
 use lit_ui::core::Node;
 use lit_ui::prelude::*;
 
-/// Static topbar. Content is completely server-authored — swapping
-/// via a `topbar` fragment lets pages change breadcrumbs / actions
-/// without a full reload.
+/// Topbar with brand on the left, launcher trigger in the middle,
+/// theme toggle on the right. The launcher trigger is a *fake* input:
+/// clicking anywhere opens the real `<ui-launcher>` panel (which owns
+/// the actual text field). This gives us OS-like discovery without
+/// the complexity of managing two inputs.
 fn topbar() -> impl Component {
-    row()
-        .align(Align::Center)
-        .justify(Justify::Between)
-        .gap(Gap::Md)
-        .add(Node::raw(
-            r#"<strong style="font-size:16px;">🧩 lit-ui framework</strong>"#,
-        ))
-        .add(Node::raw(
-            r#"<span style="opacity:.6;font-size:12px;">click a sidebar link → main swaps, URL updates, no reload</span>"#,
-        ))
+    Node::raw(
+        r#"<div class="ui-topbar">
+             <button type="button" class="ui-topbar-launcher-btn"
+                     onclick="window.ui.openLauncher()"
+                     aria-label="Open launcher (Cmd+K)">
+               <ui-icon name="grid" size="18"></ui-icon>
+             </button>
+             <button type="button" class="ui-topbar-search"
+                     onclick="window.ui.openLauncher()"
+                     aria-label="Search apps and commands (Cmd+K)">
+               <ui-icon name="search" size="16"></ui-icon>
+               <span class="ui-topbar-search-placeholder">Search apps, commands, or ask…</span>
+               <span class="ui-topbar-kbd">⌘K</span>
+             </button>
+             <div class="ui-topbar-spacer"></div>
+             <button type="button" class="ui-topbar-icon-btn"
+                     onclick="var r=document.documentElement;var n=r.dataset.theme==='dark'?'light':'dark';r.dataset.theme=n;try{localStorage.setItem('erp.theme',n)}catch(_){}"
+                     aria-label="Toggle theme">
+               <ui-icon name="sun" size="18"></ui-icon>
+             </button>
+           </div>"#,
+    )
 }
 
 /// Activity bar (desktop). Vertical 56px strip of icon buttons — one
@@ -129,10 +143,63 @@ pub fn chrome(fragments_html: &str, current_path: &str) -> String {
         .copilot(copilot_pane())
         .slot(Region::Custom("bottombar".into()), bottom_tab_bar(current_path));
 
-    // A tiny sheet of CSS specific to the activity bar + tab bar. Kept
-    // inline (rather than in a static file) so a change here doesn't
-    // need a browser cache-bust. Small; not worth splitting out.
+    // Mount the launcher once. It's a full-viewport fixed overlay
+    // (hidden by default), so where we mount it doesn't matter — we
+    // just need it in the DOM. Stash it in the modal region so it's
+    // grouped with the other overlay-like elements.
+    let launcher = Node::raw(r#"<ui-launcher></ui-launcher>"#);
+
+    // A tiny sheet of CSS specific to the topbar + activity bar + tab
+    // bar. Kept inline so a change here doesn't need a browser cache
+    // bust. Small; not worth splitting out.
     let nav_css = Node::raw(r#"<style>
+        /* ─── Topbar ─── */
+        .ui-topbar {
+          display: flex; align-items: center; gap: 10px;
+          height: 44px;
+          width: 100%;
+        }
+        .ui-topbar-launcher-btn,
+        .ui-topbar-icon-btn {
+          display: grid; place-items: center;
+          width: 32px; height: 32px;
+          background: transparent; color: inherit;
+          border: 0; border-radius: 8px;
+          cursor: pointer;
+          opacity: .75;
+        }
+        .ui-topbar-launcher-btn:hover,
+        .ui-topbar-icon-btn:hover {
+          background: var(--color-surface-2, #f5f5f7);
+          opacity: 1;
+        }
+        .ui-topbar-search {
+          display: flex; align-items: center; gap: 8px;
+          flex: 1; max-width: 480px;
+          padding: 6px 10px;
+          background: var(--color-surface-2, #f5f5f7);
+          border: 1px solid transparent;
+          border-radius: 8px;
+          color: inherit; cursor: text;
+          font: inherit; font-size: 13px;
+          text-align: left;
+        }
+        .ui-topbar-search:hover { border-color: var(--color-border, #e5e7eb); }
+        .ui-topbar-search-placeholder { flex: 1; opacity: .55; }
+        .ui-topbar-kbd {
+          font-size: 10px; opacity: .5;
+          padding: 2px 5px;
+          border: 1px solid var(--color-border, #e5e7eb);
+          border-radius: 4px;
+        }
+        .ui-topbar-spacer { flex: 1; }
+        @media (max-width: 768px) {
+          .ui-topbar-search-placeholder { display: none; }
+          .ui-topbar-kbd { display: none; }
+          .ui-topbar-search { max-width: none; }
+        }
+    </style>
+    <style>
         /* ─── Desktop activity bar ─── */
         .ui-activity-bar {
           display: flex; flex-direction: column;
@@ -193,5 +260,6 @@ pub fn chrome(fragments_html: &str, current_path: &str) -> String {
         .no_fouce_gate()
         .add(nav_css)
         .add(shell)
+        .add(launcher)
         .render()
 }

@@ -27,3 +27,7 @@ tower-http = { version = "0.6", features = ["fs", "trace"] }
 # Logging.
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+
+# Query-string deserialisation for the launcher endpoint.
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

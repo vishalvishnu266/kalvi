@@ -68,7 +68,7 @@ class UiAppShell extends LitBaseElement {
     /* Each named slot lives inside a positioned box so we can add
        overflow rules per region without leaking to others. */
     .region { min-width: 0; min-height: 0; }
-    .topbar    { grid-area: topbar;    border-bottom: 1px solid var(--color-border, #e5e7eb); padding: 8px 14px; }
+    .topbar    { grid-area: topbar;    border-bottom: 1px solid var(--color-border, #e5e7eb); padding: 6px 12px; }
     .sidebar   { grid-area: sidebar;   border-right:  1px solid var(--color-border, #e5e7eb); overflow: auto; }
     .main      { grid-area: main;      overflow: auto; }
     .copilot   { grid-area: copilot;   border-left:   1px solid var(--color-border, #e5e7eb); overflow: auto; }

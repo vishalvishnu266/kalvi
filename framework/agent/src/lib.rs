@@ -30,7 +30,9 @@
 //! * **Later:** `LlmAgent` implementing the same trait — swap-in only.
 
 pub mod stub;
+pub mod registry;
 pub use stub::StubAgent;
+pub use registry::{Command, CommandRegistry, CommandCtx, CommandHandler};
 
 use async_trait::async_trait;
 use futures_core::Stream;
