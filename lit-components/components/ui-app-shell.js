@@ -161,6 +161,20 @@ function restoreTransitionPreset() {
   } catch { /* ignore */ }
 }
 
+// ---- Eager module-load setup ---------------------------------------------
+//
+// The style + preset switcher have to be available BEFORE the element
+// upgrades — otherwise the topbar's <select onchange="window.ui.setTransition(..)">
+// throws on first interaction and the very first navigation has no
+// animation because the ::view-transition CSS hasn't been installed yet.
+//
+// Both operations are idempotent and touch only document-level state.
+installTransitionStyle();
+restoreTransitionPreset();
+window.ui = Object.assign(window.ui || {}, {
+  setTransition: setTransitionPreset,
+});
+
 class UiAppShell extends LitBaseElement {
   static styles = css`
     :host {
@@ -205,13 +219,8 @@ class UiAppShell extends LitBaseElement {
 
   connectedCallback() {
     super.connectedCallback();
-    installTransitionStyle();
-    restoreTransitionPreset();
-    // Expose the preset switcher on the global window.ui namespace so
-    // designers can iterate on animations from DevTools.
-    window.ui = Object.assign(window.ui || {}, {
-      setTransition: setTransitionPreset,
-    });
+    // Everything else (transition style, window.ui.setTransition, boot)
+    // is already set up at module load — see below the class definition.
     bootShell();
   }
 

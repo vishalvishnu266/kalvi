@@ -261,3 +261,22 @@ window.ui = Object.assign(window.ui || {}, {
   applyAll,
   registerSideEffect,
 });
+
+// ---------------------------------------------------------------------------
+// EAGER BOOT.
+//
+// The click/submit interceptor must be installed BEFORE the user can
+// click anything — waiting for `<ui-app-shell>` to upgrade in its
+// `connectedCallback` is too late (the element might still be an
+// un-upgraded HTMLElement when the first click fires, resulting in a
+// full-page reload).
+//
+// Booting at module load is safe: `installInterceptors()` only attaches
+// document-level listeners, doesn't touch any custom element, and
+// `bootShell()` is idempotent.
+// ---------------------------------------------------------------------------
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootShell, { once: true });
+} else {
+  bootShell();
+}
