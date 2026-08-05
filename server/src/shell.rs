@@ -38,6 +38,8 @@ fn topbar() -> impl Component {
                  <option value="slide-right">slide-right</option>
                  <option value="slide-up">slide-up</option>
                  <option value="scale">scale</option>
+                 <option value="flip-y">flip-y (card flip)</option>
+                 <option value="flip-x">flip-x (page flip)</option>
                  <option value="none">none (instant)</option>
                </select>
              </label>

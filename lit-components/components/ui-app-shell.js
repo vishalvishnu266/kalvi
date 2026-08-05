@@ -91,6 +91,26 @@ function installTransitionStyle() {
     @keyframes ui-slide-out-up  { to   { transform: translateY(-40px); opacity: 0; } }
     @keyframes ui-scale-in      { from { transform: scale(0.94); opacity: 0; } }
     @keyframes ui-scale-out     { to   { transform: scale(1.06); opacity: 0; } }
+    /* 3D flip needs perspective on the pseudo-element parent — set on
+       ::view-transition-group below. Old = front face rotating away,
+       new = back face rotating into view. Backface-visibility hides the
+       mirrored content mid-rotation. */
+    @keyframes ui-flip-out-y {
+      from { transform: rotateY(0deg);   opacity: 1; }
+      to   { transform: rotateY(-90deg); opacity: 0; }
+    }
+    @keyframes ui-flip-in-y {
+      from { transform: rotateY( 90deg); opacity: 0; }
+      to   { transform: rotateY(  0deg); opacity: 1; }
+    }
+    @keyframes ui-flip-out-x {
+      from { transform: rotateX(0deg);   opacity: 1; }
+      to   { transform: rotateX(-90deg); opacity: 0; }
+    }
+    @keyframes ui-flip-in-x {
+      from { transform: rotateX( 90deg); opacity: 0; }
+      to   { transform: rotateX(  0deg); opacity: 1; }
+    }
 
     /* ─── Preset: fade (default) ─── */
     html[data-ui-transition="fade"] ::view-transition-old(shell-main),
@@ -134,6 +154,41 @@ function installTransitionStyle() {
       animation: ui-scale-in var(--ui-t) ease-out both;
     }
 
+    /* ─── Preset: flip-y (horizontal card flip — feels like flipping to
+       the "back" of a card). Perspective is set on the group so both
+       the old and new snapshots share the same vanishing point. Both
+       animations run on top of each other in the same group by default;
+       we split the flip into two halves via animation-delay so the old
+       face rotates out before the new one rotates in. */
+    html[data-ui-transition="flip-y"] ::view-transition-group(shell-main) {
+      perspective: 1200px;
+      transform-style: preserve-3d;
+    }
+    html[data-ui-transition="flip-y"] ::view-transition-old(shell-main) {
+      animation: ui-flip-out-y calc(var(--ui-t) * 0.5) ease-in both;
+      backface-visibility: hidden;
+    }
+    html[data-ui-transition="flip-y"] ::view-transition-new(shell-main) {
+      animation: ui-flip-in-y calc(var(--ui-t) * 0.5) ease-out both;
+      animation-delay: calc(var(--ui-t) * 0.5);
+      backface-visibility: hidden;
+    }
+
+    /* ─── Preset: flip-x (vertical flip — like flipping a page top→bottom). */
+    html[data-ui-transition="flip-x"] ::view-transition-group(shell-main) {
+      perspective: 1200px;
+      transform-style: preserve-3d;
+    }
+    html[data-ui-transition="flip-x"] ::view-transition-old(shell-main) {
+      animation: ui-flip-out-x calc(var(--ui-t) * 0.5) ease-in both;
+      backface-visibility: hidden;
+    }
+    html[data-ui-transition="flip-x"] ::view-transition-new(shell-main) {
+      animation: ui-flip-in-x calc(var(--ui-t) * 0.5) ease-out both;
+      animation-delay: calc(var(--ui-t) * 0.5);
+      backface-visibility: hidden;
+    }
+
     /* ─── Preset: none (instant, no animation) ─── */
     html[data-ui-transition="none"] ::view-transition-old(shell-main),
     html[data-ui-transition="none"] ::view-transition-new(shell-main) {
@@ -151,7 +206,7 @@ function installTransitionStyle() {
  * can be flipped live from DevTools.
  */
 export function setTransitionPreset(name) {
-  const allowed = new Set(['fade', 'slide-left', 'slide-right', 'slide-up', 'scale', 'none']);
+  const allowed = new Set(['fade', 'slide-left', 'slide-right', 'slide-up', 'scale', 'flip-y', 'flip-x', 'none']);
   if (!allowed.has(name)) {
     console.warn('[shell] unknown transition preset:', name, '— allowed:', [...allowed]);
     return;
