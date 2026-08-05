@@ -96,17 +96,21 @@ export function applyAll(root) {
 /**
  * Run `mutator` inside a View Transition when the browser supports it,
  * so island swaps get a smooth crossfade (or a custom animation defined
- * in CSS via `::view-transition-*`). On unsupported browsers it degrades
- * to running the mutator directly — no animation, but no regression.
+ * in CSS via `::view-transition-*`). On unsupported browsers, or when
+ * transitions are disabled via `window.__ui_disable_transitions = true`,
+ * or under `prefers-reduced-motion`, it runs the mutator synchronously.
  *
- * The reduced-motion preference always short-circuits the animation.
+ * Kept as a single choke-point so we can benchmark & tune from one place.
  */
 function withTransition(mutator) {
-  const supports =
-    typeof document.startViewTransition === 'function' &&
-    !matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (!supports) { mutator(); return; }
-  document.startViewTransition(() => mutator());
+  const disabled =
+    window.__ui_disable_transitions === true ||
+    typeof document.startViewTransition !== 'function' ||
+    matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (disabled) { mutator(); return; }
+  // Wrap in requestAnimationFrame so the browser has already flushed any
+  // in-flight work before the snapshot — noticeably smoother on Chrome.
+  requestAnimationFrame(() => document.startViewTransition(() => mutator()));
 }
 
 /**

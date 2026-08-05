@@ -86,6 +86,10 @@ pub fn chrome(fragments_html: &str) -> String {
     page()
         .title("lit-ui framework")
         .assets_base("/lit-components")
+        // The shell's grid layout is stable pre-upgrade — no need for
+        // the FOUCE spinner, and turning it off saves ~50–200ms on first
+        // paint (and eliminates the 1.5s safety-net ceiling).
+        .no_fouce_gate()
         .add(shell)
         .render()
 }
