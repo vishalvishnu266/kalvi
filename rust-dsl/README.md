@@ -31,7 +31,7 @@ Produces (formatted for readability):
   proc-macro compile hit, readable error messages.
 * **No dependencies.** The crate is just data structures + a small HTML escaper.
 * **String rendering.** `Component::render()` returns an owned `String`. Plug
-  it into Axum handlers, Hotwire streams, whatever writes bytes.
+  it into Axum handlers, SSE streams, whatever writes bytes.
 * **Vaadin-style chaining.** Free function to construct, method chain for
   attributes, `.add(child)` / `.children(iter)` for children.
 * **Web-component parity.** Each Rust builder is a *typed view* over the exact

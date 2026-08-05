@@ -44,6 +44,30 @@ registerSideEffect('scroll', ({ selector = 'body', top = 0 } = {}) => {
   if (el) el.scrollTo({ top, behavior: 'smooth' });
 });
 
+// ---- View-transition keyframes --------------------------------------------
+// The `::view-transition-*` pseudo-elements live on the document root,
+// not inside our shadow tree, so we install a document-level <style> tag
+// once. This gives the `main` island a soft fade + tiny slide on every
+// island swap. Browsers without View Transitions ignore this entirely.
+let transitionStyleInstalled = false;
+function installTransitionStyle() {
+  if (transitionStyleInstalled) return;
+  transitionStyleInstalled = true;
+  const style = document.createElement('style');
+  style.dataset.uiShell = 'view-transitions';
+  style.textContent = `
+    @keyframes ui-fade-in  { from { opacity: 0; transform: translateY(4px); } }
+    @keyframes ui-fade-out { to   { opacity: 0; transform: translateY(-4px); } }
+    ::view-transition-old(shell-main) {
+      animation: ui-fade-out .18s ease-in both;
+    }
+    ::view-transition-new(shell-main) {
+      animation: ui-fade-in  .22s ease-out both;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
 class UiAppShell extends LitBaseElement {
   static styles = css`
     :host {
@@ -64,7 +88,7 @@ class UiAppShell extends LitBaseElement {
     .region { min-width: 0; min-height: 0; }
     .topbar   { grid-area: topbar;   border-bottom: 1px solid var(--color-border, #e5e7eb); }
     .sidebar  { grid-area: sidebar;  border-right:  1px solid var(--color-border, #e5e7eb); overflow: auto; }
-    .main     { grid-area: main;     overflow: auto; }
+    .main     { grid-area: main;     overflow: auto; view-transition-name: shell-main; }
     .copilot  { grid-area: copilot;  border-left:   1px solid var(--color-border, #e5e7eb); overflow: auto; }
     .toast    { grid-area: toast;    position: sticky; bottom: 0; pointer-events: none; }
     .modal    { grid-area: modal;    position: sticky; bottom: 0; z-index: 100; }
@@ -88,6 +112,7 @@ class UiAppShell extends LitBaseElement {
 
   connectedCallback() {
     super.connectedCallback();
+    installTransitionStyle();
     bootShell();
   }
 

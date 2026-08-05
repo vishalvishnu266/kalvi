@@ -528,9 +528,9 @@ document.getElementById('ack-fees-locked').openPanel();
 
 The `ack` event fires when the user clicks the button — hook it if you need to record the acknowledgment server-side.
 
-### 8.6 The canonical server-side pattern (Axum + Hotwire)
+### 8.6 The canonical server-side pattern (Axum + fragment protocol)
 
-Server is the source of truth. On validation failure, re-render the SAME form with errors annotated; return HTTP 422 so Turbo swaps the body.
+Server is the source of truth. On validation failure, re-render the SAME form with errors annotated; return HTTP 422 with the fresh HTML and let the shell's document-level submit interceptor swap the target region.
 
 **Recommended: use the `validator` crate + shared adapter in `src/validation.rs`.** Every rule lives on the struct once — no `if` branches in the handler.
 
@@ -630,7 +630,7 @@ form().action("/students").method("post")
     .save_cancel("Save")
 ```
 
-This works **without any client-side JS** — Turbo handles the swap. Hotwire Native gets the same behaviour inside its WebView for free.
+This works with only the thin shell runtime handling the swap. Wrapping the same app in a native WebView (Capacitor/Flutter) gets the same behaviour for free.
 
 ### 8.7 The five commandments
 

@@ -94,6 +94,22 @@ export function applyAll(root) {
 }
 
 /**
+ * Run `mutator` inside a View Transition when the browser supports it,
+ * so island swaps get a smooth crossfade (or a custom animation defined
+ * in CSS via `::view-transition-*`). On unsupported browsers it degrades
+ * to running the mutator directly — no animation, but no regression.
+ *
+ * The reduced-motion preference always short-circuits the animation.
+ */
+function withTransition(mutator) {
+  const supports =
+    typeof document.startViewTransition === 'function' &&
+    !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!supports) { mutator(); return; }
+  document.startViewTransition(() => mutator());
+}
+
+/**
  * Fetch a URL as a fragment response and apply the result.
  *
  * `opts.push` (default true) controls whether the URL bar is updated.
@@ -122,7 +138,11 @@ export async function navigate(url, opts = {}) {
   const html = await res.text();
   const tpl = document.createElement('template');
   tpl.innerHTML = html;
-  applyAll(tpl.content);
+
+  // Animate the swap. The View Transitions API snapshots the DOM before
+  // + after the mutation and interpolates between them — no per-island
+  // animation code required. Fine-tune via CSS `::view-transition-*`.
+  withTransition(() => applyAll(tpl.content));
 
   if (push && method === 'GET') {
     // Use the FINAL URL (post-redirect) so bookmarks / back button stay honest.

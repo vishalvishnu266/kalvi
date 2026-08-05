@@ -5,9 +5,10 @@ web-component shell; the backend authors every visible change and ships
 it as HTML fragments over normal requests or SSE. Same protocol for
 links, forms, and copilot commands.
 
-Inspired by Hotwire Turbo, HTMX, and Unpoly — squeezed onto a
-custom-element shell so it can be wrapped in Capacitor/Flutter later
-without changing the server.
+Server-rendered HTML fragments applied to named regions of a
+custom-element shell — no client-side templating, no client framework
+beyond Lit (only used to author the components themselves). Designed to
+be wrapped in Capacitor/Flutter later without changing the server.
 
 ---
 

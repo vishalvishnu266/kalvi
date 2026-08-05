@@ -80,7 +80,7 @@ function scan(root) {
 
 /**
  * Rescan the current document body for any lazy tags that appeared
- * (e.g. after a Turbo navigation). Returns a promise that resolves
+ * (e.g. after a client-side navigation). Returns a promise that resolves
  * once every needed lazy chunk has finished loading.
  *
  * Safe to call any number of times — already-loaded modules are
@@ -97,7 +97,7 @@ let observer = null;
  * resolves once the INITIAL scan (and its imports) have finished — the
  * FOUCE gate awaits this before revealing the page.
  *
- * Re-called safely on Turbo navigation; the observer is (re)attached to
+ * Re-called safely on client-side navigation; the observer is (re)attached to
  * the current `document.documentElement` so newly-swapped bodies are
  * covered too.
  */

@@ -44,15 +44,14 @@ function whenAllDefined() {
 /**
  * Build a fresh "page is ready" promise for the CURRENT document body.
  *
- * Call this on first load AND on every Turbo navigation. It:
+ * Call this on first load AND on every navigation. It:
  *   1. (Re)starts the lazy loader — re-attaches the MutationObserver to
  *      the (possibly new) document element.
  *   2. Waits for extras.js to finish loading (once, cached after).
  *   3. Waits for every custom-element tag on the new body to upgrade.
  *
- * Exposed as `window.__lit_ready_now` so the inline FOUCE gate and the
- * Turbo integration in page.rs can always get a FRESH promise instead of
- * the stale one-shot promise.
+ * Exposed as `window.__lit_ready_now` so the inline FOUCE gate in
+ * page.rs can always get a FRESH promise instead of the stale one-shot.
  */
 function pageReady() {
   return Promise.all([

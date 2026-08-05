@@ -113,7 +113,7 @@ follows these rules:
 | **Enums are string attributes** — e.g. `variant="primary"`. | One-to-one mapping to a Rust `enum` → `&str`. |
 | **Booleans are HTML boolean attributes** — e.g. `<ui-input required>`. | Rust bool → attribute-present. |
 | **Children are always slotted** (default slot + named slots). | Rust child nodes go straight into the template. |
-| **Custom events are `bubbles: true, composed: true`** with kebab-case names (`ui-click`, `ui-input`, `ui-change`). | A Rust/Hotwire adapter can listen once at document level. |
+| **Custom events are `bubbles: true, composed: true`** with kebab-case names (`ui-click`, `ui-input`, `ui-change`). | A single document-level listener can react to every component. |
 | **All reflected props use `reflect: true`** so `:host([variant="…"])` CSS keeps working. | The DSL doesn't need to know about internal state; CSS just sees the attribute. |
 | **Design tokens live in `:root`, inherited into every shadow root.** | Rust never has to inject styles per-component. |
 

@@ -319,16 +319,14 @@ class UIForm extends LitBaseElement {
     // `action` is set — that's the documented DSL contract.)
     this.emit('ui-submit', { values, valid: true, action: this.action, method: this.method });
 
-    // Perform an actual HTTP submission if an `action` was provided. We do
-    // this by synthesising a hidden native <form> so the browser (and Turbo
-    // Drive, if present) handles the request the same way a plain HTML
-    // form would — including body-swap on 4xx/2xx responses.
+    // Perform an actual HTTP submission if an `action` was provided. We
+    // synthesise a hidden native <form> so the browser handles the request
+    // the same way a plain HTML form would; the shell's document-level
+    // submit interceptor then swaps in whatever the server returns.
     if (this.action) {
       const nativeForm = document.createElement('form');
       nativeForm.action = this.action;
       nativeForm.method = (this.method || 'post').toLowerCase();
-      // Turbo Drive picks this up automatically; harmless otherwise.
-      nativeForm.setAttribute('data-turbo', 'true');
       nativeForm.style.display = 'none';
 
       const appendField = (name, val) => {

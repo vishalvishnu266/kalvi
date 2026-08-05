@@ -62,8 +62,8 @@ impl Page {
 
     /// Mount a `<ui-copilot>` floating chat button on this page.
     ///
-    /// The element sits OUTSIDE any Hotwire Turbo frame so it survives page
-    /// navigations without unmounting the current conversation.
+    /// Sits outside any island region so it survives fragment swaps
+    /// without unmounting the current conversation.
     pub fn with_copilot(mut self) -> Self { self.with_copilot = true; self }
 
     /// Override the Copilot agent endpoint base (default `/agent`).
@@ -116,10 +116,6 @@ impl Component for Page {
   <link rel="stylesheet" href="{base}/assets/global.css">
   <link rel="stylesheet" href="{base}/assets/layout.css">
   <link rel="modulepreload" href="{base}/components/index.js">
-  <!-- Hotwire Turbo Drive: required for Hotwire Native — turns page
-       navigations into HTML body swaps that the native shell can treat
-       as native screens. No custom lifecycle code needed. -->
-  <script type="module" src="https://cdn.jsdelivr.net/npm/@hotwired/turbo@8.0.4/dist/turbo.es2017-esm.min.js"></script>
   <style>
     /* Breathing room at the top/sides of every DSL page. Individual pages
        can override by wrapping content in their own container/layout. On

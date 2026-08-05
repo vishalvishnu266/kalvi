@@ -326,9 +326,9 @@ pub fn build() -> Page {
 \n    .save_cancel(\"Save\")\
 \n</code></pre>\
 \n<p style=\"margin:12px 0 0;color:var(--color-text-muted);font-size:var(--fs-sm)\">\
-\nHotwire Turbo swaps the &lt;body&gt; automatically on a 422 response, so the user \
-\nsees the same form with errors highlighted — zero client-side JS required. \
-\nWorks identically inside a Hotwire Native WebView.</p>",
+\nThe shell's submit interceptor swaps the target region on a 422 response, so the user \
+\nsees the same form with errors highlighted — zero per-page JS required. \
+\nWorks identically inside a native WebView (Capacitor/Flutter).</p>",
     )));
 
     page_of("Error UX · DSL handbook", body)

@@ -35,7 +35,7 @@ fn main() -> std::io::Result<()> {
             .add(Node::text(
                 "Everything on this page was built by chaining Rust methods. \
                  The output is plain HTML — no runtime, no framework hooks. \
-                 Perfect for Axum / Askama / Hotwire handlers."
+                 Perfect for Axum / Askama handlers."
             )))
 
         // Form card demonstrating .add()

@@ -21,7 +21,7 @@
 //! * **No macros** — everything is normal Rust code. That means great IDE
 //!   support, no `proc-macro` compile hit, and readable error messages.
 //! * **String rendering** — [`Component::render`] returns an owned `String`.
-//!   Perfect for Axum / Askama / minijinja handlers or Hotwire streams.
+//!   Perfect for Axum / Askama / minijinja handlers or SSE streams.
 //! * **Zero runtime dependencies** — the crate is just data structures + a
 //!   tiny HTML-escaper.
 //! * **Web-component parity** — every attribute maps 1:1 to an HTML attribute

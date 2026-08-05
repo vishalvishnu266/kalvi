@@ -5,8 +5,8 @@
 //!  * `GET  /dsl/errors/roundtrip` → renders the empty form.
 //!  * `POST /dsl/errors/roundtrip` → validates the submission and re-renders
 //!    the same form with errors annotated. Returns HTTP **422 Unprocessable
-//!    Entity** so Turbo Drive swaps the `<body>` automatically — no JS,
-//!    no client-side validation library, no XHR handler.
+//!    Entity**; the shell's document-level submit interceptor swaps the
+//!    target region — no per-page JS, no client-side validation library.
 //!
 //! Successful submits redirect to the same URL with `?ok=1` in the query
 //! string; the page then shows a green success banner so you can see the
@@ -186,8 +186,8 @@ pub fn build(input: &Input, validation: &Validation, saved: bool) -> Page {
          Fill the form and click Save — the browser POSTs to \
          <code>/dsl/errors/roundtrip</code>, Axum validates the input, and \
          returns HTTP <strong>422</strong> with a re-rendered version of \
-         this page (errors annotated). Hotwire Turbo swaps the <code>&lt;body&gt;</code> \
-         so you see the same URL with errors inline — no JS, no XHR handler.</p>\
+         this page (errors annotated). The shell's submit interceptor swaps the target region \
+         so you see the same URL with errors inline — no per-page JS, no XHR handler.</p>\
          <p style=\"margin:0;color:var(--color-text-muted);font-size:var(--fs-sm)\">\
          Try: leave fields empty → hard errors under each. \
          Enter the SAME email for student &amp; guardian → cross-field error + banner. \
@@ -220,10 +220,10 @@ pub fn build(input: &Input, validation: &Validation, saved: bool) -> Page {
 \n    let input = Input::from(body);\
 \n    let v     = errors_roundtrip::validate(&amp;input);\
 \n    if v.is_ok() {\
-\n        // Would persist here; then redirect (Turbo → GET 200).\
+\n        // Would persist here; then redirect (shell follows → GET 200).\
 \n        return Redirect::to(\"/dsl/errors/roundtrip?ok=1\").into_response();\
 \n    }\
-\n    // 422 + fresh HTML. Turbo swaps &lt;body&gt; and shows the errors.\
+\n    // 422 + fresh HTML. The shell swaps the target region and shows the errors.\
 \n    let page = errors_roundtrip::build(&amp;input, &amp;v, false);\
 \n    (StatusCode::UNPROCESSABLE_ENTITY, Html(page.render())).into_response()\
 \n}\

@@ -7,8 +7,9 @@
 //      purely as HTML strings and the browser will pick them up correctly.
 //   2. Enums are string attributes (variant="primary"), booleans are boolean
 //      attributes (<ui-input required>), children are always slotted.
-//   3. Events bubble & compose so a Rust Hotwire adapter can listen at any
-//      ancestor. Custom events use kebab-case names ("ui-change", "ui-click").
+//   3. Events bubble & compose so an ancestor (e.g. the app shell or a
+//      document-level listener) can react. Custom events use kebab-case
+//      names ("ui-change", "ui-click").
 //   4. Design tokens are inherited from `:root` — components do NOT re-import
 //      tokens.css inside their shadow root, which avoids FOUC.
 // -----------------------------------------------------------------------------
@@ -31,8 +32,7 @@ export { LitElement, html, css, nothing };
 export class LitBaseElement extends LitElement {
   /**
    * Emit a bubbling, composed CustomEvent so listeners on any ancestor
-   * (or the root host page) can react — including a future Rust/Hotwire
-   * event adapter that listens at document level.
+   * (or a document-level handler) can react.
    */
   emit(name, detail = {}) {
     this.dispatchEvent(
