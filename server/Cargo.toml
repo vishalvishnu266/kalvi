@@ -1,7 +1,27 @@
-[workspace]
-members = [
-    "crates/shared",
-    "crates/student",
-    "crates/server",
-]
-resolver = "2"
+[package]
+name = "server"
+version = "0.1.0"
+edition = "2021"
+description = "Minimal Axum test server that renders pages via the lit-ui Rust DSL."
+
+[[bin]]
+name = "server"
+path = "src/main.rs"
+
+[dependencies]
+# The Rust DSL — the whole point of this server is to exercise it.
+# Path-only dependency so any change in rust-dsl is picked up instantly.
+lit-ui = { path = "../rust-dsl" }
+
+# Web framework + async runtime.
+axum = "0.8"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal"] }
+
+# Static file serving for the Lit web components (JS + CSS) sitting in
+# ../lit-components/. We mount that directory at /lit-components/* so the
+# HTML produced by lit-ui can hydrate against the real custom elements.
+tower-http = { version = "0.6", features = ["fs", "trace"] }
+
+# Structured logging — helpful when debugging routes locally.
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }

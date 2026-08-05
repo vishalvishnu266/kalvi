@@ -56,6 +56,10 @@ class UICopilotV2 extends LitBaseElement {
     _mentionCursor: { state: true },
     // Streaming state during an SSE turn: {tool, step:{n,of,label}, bubbleId, aborter}
     _stream:      { state: true },
+    // Rolling audit log (persisted). Newest first. Each entry:
+    //   {ts, actor, action, target, detail}
+    _audit:       { state: true },
+    _auditOpen:   { state: true },
   };
 
   static styles = css`
@@ -205,11 +209,26 @@ class UICopilotV2 extends LitBaseElement {
       padding: 6px 10px; border-radius: 999px;
       cursor: pointer; font: inherit;
       transition: transform .1s;
+      display: inline-flex; align-items: center; gap: 4px;
     }
     .chip:hover {
       background: color-mix(in srgb, var(--cp-primary) 20%, transparent);
     }
     .chip:active { transform: scale(0.97); }
+    /* Chip-scoped cost badge — same colours as the autocomplete row badge
+       but smaller so it doesn't overwhelm the label. */
+    .chip .cost-badge {
+      margin-left: 4px; padding: 0 4px;
+      font-size: 9px;
+    }
+    /* Keyboard-shortcut hint (⌘1, ⌘2, …) on the first few pinned/recent chips */
+    .chip .kbd {
+      background: color-mix(in srgb, currentColor 15%, transparent);
+      color: inherit;
+      padding: 0 4px; border-radius: 3px;
+      font-size: 10px; font-family: ui-monospace, monospace;
+      margin-left: 4px;
+    }
 
     /* Messages (transcript) */
     .messages {
@@ -533,6 +552,50 @@ class UICopilotV2 extends LitBaseElement {
       70%     { box-shadow: 0 0 0 10px transparent; }
     }
 
+    /* Audit-log slide-over — small overlay inside the panel showing recent
+       mutations. Toggled from the header icon; persists across navigation. */
+    .audit-panel {
+      position: absolute;
+      top: 56px; left: 0; right: 0; bottom: 0;
+      background: var(--cp-bg);
+      color: var(--cp-text);
+      z-index: 12;
+      display: flex; flex-direction: column;
+      transform: translateY(-8px); opacity: 0;
+      pointer-events: none;
+      transition: transform .18s, opacity .18s;
+    }
+    .audit-panel.open { transform: translateY(0); opacity: 1; pointer-events: auto; }
+    .audit-panel header {
+      padding: 10px 14px; border-bottom: 1px solid var(--cp-border);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .audit-panel header h4 { margin: 0; font-size: 14px; flex: 1; }
+    .audit-panel .list {
+      flex: 1; overflow: auto; padding: 4px 0;
+    }
+    .audit-panel .empty-audit {
+      padding: 40px 20px; text-align: center; color: var(--cp-text-muted);
+      font-size: 13px;
+    }
+    .audit-row {
+      display: grid; grid-template-columns: 70px 1fr auto;
+      gap: 8px; padding: 8px 14px;
+      border-bottom: 1px solid var(--cp-border);
+      font-size: 13px;
+    }
+    .audit-row .when {
+      color: var(--cp-text-muted); font-size: 11px; font-family: ui-monospace, monospace;
+    }
+    .audit-row .what strong { color: var(--cp-text); }
+    .audit-row .what .target { color: var(--cp-text-muted); font-size: 12px; }
+    .audit-row .detail {
+      color: var(--cp-text-muted); font-size: 11px; align-self: center;
+      background: var(--cp-bg-alt); padding: 1px 6px; border-radius: 4px;
+    }
+    .audit-row.reverted .what strong { text-decoration: line-through;
+                                        color: var(--cp-text-muted); }
+
     /* Empty-state helper text */
     .empty {
       padding: 24px 16px; text-align: center; color: var(--cp-text-muted);
@@ -563,6 +626,8 @@ class UICopilotV2 extends LitBaseElement {
     // Recency / favorites tracking, persisted to localStorage.
     this._recent = [];       // most recent actions (max 6)
     this._favorites = [];    // pinned by user (max 6)
+    this._audit = [];        // audit log entries (max 40)
+    this._auditOpen = false;
     // Client-side UI tools invoked by "core.*" tool responses. Ported from
     // v1 so the assistant can drive the app (navigate, theme, toast).
     this._uiTools = {
@@ -584,10 +649,30 @@ class UICopilotV2 extends LitBaseElement {
   connectedCallback() {
     super.connectedCallback();
     this._kbd = (e) => {
-      // Ctrl/Cmd+J — global toggle, works on every page (ported from v1).
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'j') {
+      const mod = e.ctrlKey || e.metaKey;
+
+      // Ctrl/Cmd+J — global toggle, works on every page.
+      if (mod && e.key.toLowerCase() === 'j') {
         e.preventDefault(); this._toggle();
+        return;
       }
+
+      // Ctrl/Cmd+1..6 — invoke the first N pinned actions from ANYWHERE.
+      // Skip when the user is typing in an editable element to avoid
+      // hijacking browser tab-switching or in-page shortcuts.
+      if (mod && !e.shiftKey && !e.altKey && /^[1-6]$/.test(e.key)) {
+        if (this._isTypingInEditable(e.target)) return;
+        const idx = parseInt(e.key, 10) - 1;
+        const item = this._favorites[idx];
+        if (item) {
+          e.preventDefault();
+          // If the panel is closed, open it so the user sees the result.
+          if (!this.open) this._open();
+          this._runAction(item);
+        }
+        return;
+      }
+
       // Esc: cancel stream if running, else close panel.
       if (e.key === 'Escape' && this.open) {
         if (this._stream) { this._cancelStream(); e.preventDefault(); return; }
@@ -608,6 +693,17 @@ class UICopilotV2 extends LitBaseElement {
     try { this._stream?.aborter?.abort(); } catch (_) {}
   }
 
+  /// True when the keyboard event target is a real text-entry surface —
+  /// prevents Cmd+1..6 from stomping on user typing.
+  _isTypingInEditable(t) {
+    if (!t) return false;
+    if (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT') return true;
+    if (t.isContentEditable) return true;
+    // Walk composed path for shadow DOM elements (e.g. our own contenteditable).
+    if (t.tagName?.includes('-')) return true;
+    return false;
+  }
+
   // Legacy internal alias so the many `this._agentBase` reads in this file
   // continue to work while the public property is `agentBase`.
   get _agentBase() { return this.agentBase || '/agent'; }
@@ -623,6 +719,7 @@ class UICopilotV2 extends LitBaseElement {
       const messages = this._messages.filter(m => m.kind !== 'pending');
       const payload = {
         messages, recent: this._recent, favorites: this._favorites,
+        audit: this._audit.slice(0, 40),
         savedAt: Date.now(),
       };
       localStorage.setItem(this._storageKey, JSON.stringify(payload));
@@ -637,6 +734,7 @@ class UICopilotV2 extends LitBaseElement {
       if (Array.isArray(p.messages))  this._messages  = p.messages;
       if (Array.isArray(p.recent))    this._recent    = p.recent;
       if (Array.isArray(p.favorites)) this._favorites = p.favorites;
+      if (Array.isArray(p.audit))     this._audit     = p.audit;
     } catch (_) {}
   }
 
@@ -1210,6 +1308,22 @@ class UICopilotV2 extends LitBaseElement {
         <div class="grabber" @click=${() => this._close()}></div>
         <header>
           <div class="title"><span class="dot"></span>${this.label}</div>
+          <button class="iconbtn" title="Audit log (${this._audit.length})"
+                  @click=${() => this._auditOpen = !this._auditOpen}
+                  style=${this._audit.length ? 'position:relative' : ''}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+              <path d="M14 2v6h6"/>
+              <path d="M8 13h8M8 17h8M8 9h2"/>
+            </svg>
+            ${this._audit.length ? html`
+              <span style="position:absolute;top:2px;right:2px;min-width:14px;height:14px;
+                           background:var(--cp-primary);color:#fff;border-radius:999px;
+                           font-size:9px;font-weight:600;display:grid;place-items:center;
+                           padding:0 3px">${this._audit.length}</span>
+            ` : nothing}
+          </button>
           <button class="iconbtn" title="Clear" @click=${() => this._clear()}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1227,8 +1341,54 @@ class UICopilotV2 extends LitBaseElement {
         ${this._renderSuggestions()}
         ${this._renderMessages()}
         ${this._renderComposer()}
+        ${this._renderAuditPanel()}
       </aside>
     `;
+  }
+
+  _renderAuditPanel() {
+    return html`
+      <div class="audit-panel ${this._auditOpen ? 'open' : ''}">
+        <header>
+          <h4>📜 Audit log</h4>
+          <button class="iconbtn" title="Close audit log"
+                  style="width:28px;height:28px;color:var(--cp-text-muted)"
+                  @click=${() => this._auditOpen = false}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+          </button>
+        </header>
+        <div class="list">
+          ${this._audit.length === 0
+            ? html`<div class="empty-audit">No mutations yet. Every write operation
+                      you perform will appear here with a timestamp.</div>`
+            : this._audit.map(a => {
+                const reverted = a.action.endsWith('.undo');
+                return html`
+                  <div class="audit-row ${reverted ? 'reverted' : ''}">
+                    <span class="when">${this._fmtTime(a.ts)}</span>
+                    <span class="what">
+                      <strong>${a.action}</strong>
+                      ${a.target ? html`<div class="target">${a.target}</div>` : nothing}
+                    </span>
+                    ${a.detail ? html`<span class="detail">${a.detail}</span>` : nothing}
+                  </div>
+                `;
+              })}
+        </div>
+      </div>
+    `;
+  }
+
+  _fmtTime(ts) {
+    const d = new Date(ts);
+    const now = new Date();
+    const sameDay = d.toDateString() === now.toDateString();
+    return sameDay
+      ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      : d.toLocaleString([], { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
   }
 
   _renderSuggestions() {
@@ -1240,22 +1400,25 @@ class UICopilotV2 extends LitBaseElement {
     return html`
       <div class="suggestions">
         ${this._favorites.length ? html`
-          <div class="hint">⭐ Pinned</div>
-          ${this._favorites.map(f => html`
-            <button class="chip" title="Pinned — click to run"
+          <div class="hint">⭐ Pinned <span style="color:var(--cp-text-muted);font-weight:normal">— use ${this._modKey()}+1…${this._modKey()}+${Math.min(this._favorites.length, 6)} to run</span></div>
+          ${this._favorites.map((f, i) => html`
+            <button class="chip" title="Pinned — ${this._modKey()}+${i+1} · right-click to unpin"
                     @click=${() => this._runAction(f)}
                     @contextmenu=${(e) => { e.preventDefault(); this._toggleFavorite(f); }}>
               ${f.icon ?? ''} ${f.title}
+              ${this._costBadge(f.cost)}
+              ${i < 6 ? html`<span class="kbd">${this._modKey()}${i+1}</span>` : nothing}
             </button>
           `)}
         ` : nothing}
         ${this._recent.length ? html`
-          <div class="hint">🕘 Recent</div>
+          <div class="hint">🕘 Recent <span style="color:var(--cp-text-muted);font-weight:normal">— right-click to pin</span></div>
           ${this._recent.map(r => html`
             <button class="chip" title="Recent — right-click to pin"
                     @click=${() => this._runAction(r)}
                     @contextmenu=${(e) => { e.preventDefault(); this._toggleFavorite(r); }}>
               ${r.icon ?? ''} ${r.title}
+              ${this._costBadge(r.cost)}
             </button>
           `)}
         ` : nothing}
@@ -1266,11 +1429,17 @@ class UICopilotV2 extends LitBaseElement {
                     @click=${() => this._runAction(s)}
                     @contextmenu=${(e) => { e.preventDefault(); this._toggleFavorite(s); }}>
               ${s.icon ?? ''} ${s.title}
+              ${this._costBadge(s.cost)}
             </button>
           `)}
         ` : nothing}
       </div>
     `;
+  }
+
+  /// Returns "⌘" on macOS, "Ctrl" elsewhere — used to label keyboard hints.
+  _modKey() {
+    return /Mac|iPhone|iPad/i.test(navigator.platform) ? '⌘' : 'Ctrl';
   }
 
   _renderMessages() {
@@ -1371,7 +1540,10 @@ class UICopilotV2 extends LitBaseElement {
     return html`
       <div class="followups">
         ${followups.map(f => html`
-          <button class="chip" @click=${() => this._runAction(f)}>${f.title}</button>
+          <button class="chip" @click=${() => this._runAction(f)}>
+            ${f.icon ?? ''} ${f.title}
+            ${this._costBadge(f.cost)}
+          </button>
         `)}
       </div>
     `;
@@ -1529,11 +1701,14 @@ class UICopilotV2 extends LitBaseElement {
   }
 
   _clear() {
-    // Wipe transcript + persisted state, but preserve favorites (user pins).
+    // Wipe transcript + audit, but preserve favorites (user pins).
+    // Recent history is also cleared — users signaled they want a reset.
     this._messages = [];
     this._pendingForm = null;
     this._composerMentions = [];
     this._recent = [];
+    this._audit = [];
+    this._auditOpen = false;
     this._clearState();
     this._saveState();
   }
@@ -1553,12 +1728,27 @@ class UICopilotV2 extends LitBaseElement {
   _runSideEffect(eff) {
     if (!eff || !eff.kind) return;
     if (eff.kind === 'toast') {
-      this._uiTools.toast({ message: eff.message, tone: eff.tone || 'info' });
-      // If no ui-toast-host is on the page, fall back to a native cue so
-      // the demo still communicates the side effect visibly.
-      if (!document.querySelector('ui-toast-host')) {
+      // If the toast carries an `undo` block we render our own toast with
+      // an Undo button — the ui-toast-host contract doesn't include actions.
+      if (eff.undo) {
         this._flashInlineToast(eff);
+      } else {
+        this._uiTools.toast({ message: eff.message, tone: eff.tone || 'info' });
+        if (!document.querySelector('ui-toast-host')) {
+          this._flashInlineToast(eff);
+        }
       }
+    } else if (eff.kind === 'audit') {
+      // Prepend to the rolling audit log so newest is on top; cap at 40.
+      const entry = {
+        ts: Date.now(),
+        actor: eff.actor || 'system',
+        action: eff.action || '?',
+        target: eff.target || '',
+        detail: eff.detail || '',
+      };
+      this._audit = [entry, ...this._audit].slice(0, 40);
+      this._saveState();
     }
     // Extensibility hooks for future kinds:
     //   'download' → open URL
@@ -1567,10 +1757,12 @@ class UICopilotV2 extends LitBaseElement {
   }
 
   _flashInlineToast(eff) {
-    // Tiny in-panel fallback toast so the demo shows something even when
-    // <ui-toast-host> isn't mounted.
+    // Toast that can carry an "Undo" action button.
+    // When `eff.undo` is set we render a small pill with a Message + Undo
+    // link; clicking Undo invokes the paired rollback tool and dismisses
+    // the toast early. Kept in light-DOM so it's visible even when the
+    // Copilot panel is closed.
     const el = document.createElement('div');
-    el.textContent = eff.message || '';
     el.style.cssText = `
       position:fixed; left:50%; bottom:24px; transform:translateX(-50%);
       background: var(--color-surface, #fff); color: var(--color-text, #0f172a);
@@ -1579,17 +1771,46 @@ class UICopilotV2 extends LitBaseElement {
       box-shadow: 0 10px 30px rgba(0,0,0,.18);
       font: 500 13px/1.3 var(--font-sans, system-ui);
       z-index: 3000; opacity: 0;
+      display: flex; align-items: center; gap: 12px;
+      max-width: min(520px, 92vw);
       transition: opacity .2s, transform .2s;
     `;
+
+    const msg = document.createElement('span');
+    msg.textContent = eff.message || '';
+    el.appendChild(msg);
+
+    let dismissTimer = null;
+    const dismiss = () => {
+      if (dismissTimer) { clearTimeout(dismissTimer); dismissTimer = null; }
+      el.style.opacity = '0';
+      setTimeout(() => el.remove(), 250);
+    };
+
+    if (eff.undo) {
+      const btn = document.createElement('button');
+      btn.textContent = eff.undo.label || 'Undo';
+      btn.style.cssText = `
+        appearance:none; cursor:pointer; font: inherit;
+        background: var(--color-primary, #0a84ff); color: #fff;
+        border: 0; padding: 4px 10px; border-radius: 999px;
+        margin-left: auto;
+      `;
+      btn.onclick = async () => {
+        dismiss();
+        // Fire the undo tool; it also returns its own toast + audit entry.
+        this._invoke(eff.undo.tool, eff.undo.args || {});
+      };
+      el.appendChild(btn);
+    }
+
     document.body.appendChild(el);
     requestAnimationFrame(() => {
       el.style.opacity = '1';
       el.style.transform = 'translateX(-50%) translateY(-6px)';
     });
-    setTimeout(() => {
-      el.style.opacity = '0';
-      setTimeout(() => el.remove(), 250);
-    }, 2600);
+    // Give undo toasts more time to catch (~7s vs ~2.6s for regular).
+    dismissTimer = setTimeout(dismiss, eff.undo ? 7000 : 2600);
   }
 
   // Public API for host pages / tests. Kept stable across v1 → v2.

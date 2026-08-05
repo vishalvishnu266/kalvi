@@ -1,8 +1,0 @@
-[general]
-# Templates are resolved relative to CARGO_MANIFEST_DIR by default; this is
-# just to be explicit.
-dirs = ["templates"]
-
-[[escaper]]
-path = "askama::Html"
-extensions = ["html"]
