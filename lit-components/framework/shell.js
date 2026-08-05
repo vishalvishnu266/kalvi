@@ -188,13 +188,32 @@ function shouldInterceptClick(e, anchor) {
   return true;
 }
 
+/**
+ * Run `fn` with the given transition preset applied only for its
+ * duration. Used to honour a link's `data-transition="…"` attribute
+ * without disturbing the persisted global preset.
+ */
+async function withPreset(preset, fn) {
+  if (!preset) return fn();
+  const root = document.documentElement;
+  const prev = root.dataset.uiTransition;
+  root.dataset.uiTransition = preset;
+  try { await fn(); }
+  finally {
+    if (prev == null) delete root.dataset.uiTransition;
+    else root.dataset.uiTransition = prev;
+  }
+}
+
 function installInterceptors() {
   document.addEventListener('click', (e) => {
     const a = e.target instanceof Element ? e.target.closest('a[href]') : null;
     if (!a) return;
     if (!shouldInterceptClick(e, a)) return;
     e.preventDefault();
-    navigate(a.href);
+    // Per-link transition override: <a data-transition="slide-left" ...>
+    const preset = a.getAttribute('data-transition');
+    withPreset(preset, () => navigate(a.href));
   });
 
   document.addEventListener('submit', (e) => {

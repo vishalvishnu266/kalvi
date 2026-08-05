@@ -16,7 +16,39 @@ use lit_ui::prelude::*;
 /// Static topbar. Content is completely server-authored — swapping
 /// via a `topbar` fragment lets pages change breadcrumbs / actions
 /// without a full reload.
+///
+/// Includes a small transition picker on the right so you can try
+/// different island-swap animations without opening DevTools. The
+/// picker calls `window.ui.setTransition(...)` which is exposed by
+/// `ui-app-shell.js`; the choice is persisted in `localStorage`.
 fn topbar() -> impl Component {
+    // Inline <select> — no ceremony, gives us a real native picker on
+    // both desktop and mobile. `onchange` calls into the client runtime.
+    let transition_picker = Node::raw(
+        r#"<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;opacity:.8;">
+             transition
+             <select onchange="window.ui.setTransition(this.value)"
+                     style="font-size:12px;padding:4px 6px;border:1px solid var(--color-border,#e5e7eb);
+                            border-radius:6px;background:transparent;color:inherit;">
+               <option value="fade">fade (default)</option>
+               <option value="slide-left">slide-left</option>
+               <option value="slide-right">slide-right</option>
+               <option value="slide-up">slide-up</option>
+               <option value="scale">scale</option>
+               <option value="none">none (instant)</option>
+             </select>
+           </label>
+           <script>
+             // Sync the <select> to whatever is currently active (persisted
+             // from a previous session, or the default `fade`).
+             (function () {
+               var sel = document.currentScript.previousElementSibling.querySelector('select');
+               var cur = document.documentElement.dataset.uiTransition || 'fade';
+               if (sel) sel.value = cur;
+             })();
+           </script>"#,
+    );
+
     row()
         .align(Align::Center)
         .justify(Justify::Between)
@@ -24,9 +56,7 @@ fn topbar() -> impl Component {
         .add(Node::raw(
             r#"<strong style="font-size:16px;">🧩 lit-ui framework</strong>"#,
         ))
-        .add(Node::raw(
-            r#"<span style="opacity:.6;font-size:12px;">click a sidebar link → main swaps, URL updates, no reload</span>"#,
-        ))
+        .add(transition_picker)
 }
 
 /// Sidebar — the framework will intercept every `<a>` click and swap
