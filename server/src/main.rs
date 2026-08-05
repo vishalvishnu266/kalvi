@@ -1,42 +1,28 @@
-//! # server — minimal Axum test harness for the `lit-ui` Rust DSL
+//! # server — the demo entry point for the framework.
 //!
-//! This crate has exactly one job: prove that a page composed with
-//! [`lit_ui`] renders correctly in a real browser against the Lit
-//! web components living in `../lit-components/`.
+//! Boots Axum, registers page routes, and serves the `lit-components/`
+//! folder as static assets. All page rendering is delegated to
+//! [`crate::pages`]; layout chrome (topbar + sidebar + shell) lives in
+//! [`crate::shell`].
 //!
-//! ## Routes
-//!
-//! * `GET /`                    — a demo page built with the DSL.
-//! * `GET /health`              — liveness probe (returns `"ok"`).
-//! * `GET /lit-components/*`    — static files (CSS tokens + component JS).
-//!
-//! ## Design notes
-//!
-//! * The server does **not** import anything from the previous `school_erp`
-//!   codebase; it stands alone.
-//! * `rust-dsl` (`lit-ui`) is used as a plain library dependency — no
-//!   modifications were made to that crate.
-//! * Static file serving lets the DSL output actually run: the HTML uses
-//!   `<ui-*>` custom elements that are defined by JS modules in
-//!   `../lit-components/components/`.
+//! Every route is *content-negotiated*: if the client sends
+//! `Accept: text/vnd.ui-fragments+html` (which the JS runtime does on
+//! intercepted navigation) the handler returns fragments only;
+//! otherwise it returns a full HTML document.
 
-use axum::{
-    Router,
-    response::Html,
-    routing::get,
-};
-use lit_ui::prelude::*;
+mod pages;
+mod shell;
+
+use axum::{routing::get, Router};
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use tower_http::{services::ServeDir, trace::TraceLayer};
 
-/// Address the server binds to. Kept as a module-level constant so it is
-/// easy to spot and change during development.
+/// Address the server binds to. Kept as a constant so it's easy to spot.
 const BIND_ADDR: &str = "0.0.0.0:3000";
 
 #[tokio::main]
 async fn main() {
-    // Basic tracing subscriber; controlled by `RUST_LOG`.
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -44,22 +30,19 @@ async fn main() {
         )
         .init();
 
-    // Path to the sibling `lit-components/` directory, resolved relative
-    // to this crate's manifest so `cargo run -p server` works from any cwd.
+    // Resolve `../lit-components/` relative to the server crate so
+    // `cargo run -p server` works from any working directory.
     let lit_components_dir: PathBuf = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .parent()
-        .expect("server crate must have a parent (workspace root)")
+        .expect("server crate must have a workspace parent")
         .join("lit-components");
 
     let app = Router::new()
-        .route("/", get(index))
-        .route("/health", get(health))
-        // Serve the Lit component kit as static assets so the DSL's HTML
-        // output can load `./components/index.js`, tokens.css, etc.
-        .nest_service(
-            "/lit-components",
-            ServeDir::new(&lit_components_dir),
-        )
+        .route("/",          get(pages::landing::handler))
+        .route("/dashboard", get(pages::dashboard::handler))
+        .route("/admin",     get(pages::admin::handler))
+        .route("/users",     get(pages::users::handler))
+        .nest_service("/lit-components", ServeDir::new(&lit_components_dir))
         .layer(TraceLayer::new_for_http());
 
     let addr: SocketAddr = BIND_ADDR.parse().expect("valid bind address");
@@ -67,9 +50,9 @@ async fn main() {
         .await
         .expect("failed to bind TCP listener");
 
-    tracing::info!("🚀  server listening on http://{addr}");
-    tracing::info!("📄  demo page   → http://{addr}/");
-    tracing::info!("🧩  components  → http://{addr}/lit-components/components/index.js");
+    tracing::info!("🚀  http://{addr}/");
+    tracing::info!("     • island nav: click sidebar links");
+    tracing::info!("     • fragments : curl -H 'Accept: text/vnd.ui-fragments+html' http://{addr}/dashboard");
 
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
@@ -77,65 +60,7 @@ async fn main() {
         .expect("server error");
 }
 
-/// Simple liveness probe. Kept as plain text so `curl` output is readable.
-async fn health() -> &'static str {
-    "ok"
-}
-
-/// The demo page — built entirely with the `lit-ui` DSL and returned as
-/// HTML. Serves as the canonical smoke test that:
-///
-/// 1. The DSL compiles and links against this server.
-/// 2. The generated markup mounts correctly against the Lit components
-///    served from `/lit-components/`.
-async fn index() -> Html<String> {
-    // `page()` emits a full `<!doctype html>` document. It expects the
-    // component bundle to be reachable at a base URL — we point it at the
-    // `/lit-components/` route that ServeDir exposes above.
-    let html = page()
-        .title("lit-ui × Axum — DSL smoke test")
-        .assets_base("/lit-components")
-        .add(
-            card()
-                .title("It works 🎉")
-                .subtitle("Rendered by lit-ui, served by Axum")
-                .add(Node::text(
-                    "This page was composed in Rust with the macro-free \
-                     lit-ui DSL and served by a minimal Axum handler. \
-                     The interactive bits below are real Lit web components \
-                     loaded from /lit-components/.",
-                )),
-        )
-        .add(
-            card()
-                .title("Try the DSL")
-                .add(input()
-                    .label("Full name")
-                    .name("fullName")
-                    .placeholder("e.g. Aarav Kumar")
-                    .required())
-                .add(input()
-                    .label("Guardian email")
-                    .name("email")
-                    .kind(InputType::Email)
-                    .required())
-                .add(row_actions()
-                    .add(button()
-                        .label("Save")
-                        .variant(Variant::Primary)
-                        .icon(Icons::CHECK))
-                    .add(button()
-                        .label("Cancel")
-                        .variant(Variant::Secondary))),
-        )
-        .render();
-
-    Html(html)
-}
-
-/// Waits for Ctrl-C so `axum::serve(..).with_graceful_shutdown(..)` can
-/// drain in-flight requests instead of dropping them on the floor.
 async fn shutdown_signal() {
     let _ = tokio::signal::ctrl_c().await;
-    tracing::info!("shutdown signal received — draining connections");
+    tracing::info!("shutdown signal received");
 }

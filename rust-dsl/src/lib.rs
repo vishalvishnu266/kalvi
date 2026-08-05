@@ -135,4 +135,13 @@ pub mod prelude {
         step_bar, tool_card_call, tool_card_result, mention_popover,
         MentionEntity, StepBar, ToolCardCall, ToolCardResult, MentionPopover,
     };
+
+    // Framework primitives — see components/{app_shell,fragment}.rs.
+    // `Fragment` from ui-shell is a distinct HTTP-envelope type; the
+    // DSL Fragment here is aliased to avoid the name clash for callers
+    // who mix both crates.
+    pub use crate::components::app_shell::{app_shell, AppShell, Region};
+    pub use crate::components::fragment::{
+        fragment, Fragment as FragmentDsl, FragmentAction,
+    };
 }

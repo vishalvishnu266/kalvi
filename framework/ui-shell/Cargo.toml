@@ -1,0 +1,24 @@
+[package]
+name = "ui-shell"
+version = "0.1.0"
+edition = "2021"
+description = "Backend runtime for the ui-app-shell fragment protocol (island swaps over HTML/SSE)."
+license = "MIT OR Apache-2.0"
+
+[lib]
+name = "ui_shell"
+path = "src/lib.rs"
+
+[dependencies]
+# The DSL is what page/fragment bodies are actually built with. We keep
+# this dep so `Fragment::from_dsl(...)` can take any `Component` directly.
+lit-ui = { path = "../../rust-dsl" }
+
+# HTTP layer. Feature-scoped so this crate can, in principle, be used
+# from non-axum servers by turning axum off (future work; on by default).
+# axum default features are on so we get `Sse` (needed for the fragment
+# streaming helper) without cherry-picking undocumented sub-features.
+axum = "0.8"
+http = "1"
+futures-core = "0.3"
+futures-util = "0.3"

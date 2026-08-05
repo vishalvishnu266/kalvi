@@ -2,26 +2,28 @@
 name = "server"
 version = "0.1.0"
 edition = "2021"
-description = "Minimal Axum test server that renders pages via the lit-ui Rust DSL."
+description = "Backend-driven, AI-first web framework demo — Axum + ui-shell + lit-ui."
 
 [[bin]]
 name = "server"
 path = "src/main.rs"
 
 [dependencies]
-# The Rust DSL — the whole point of this server is to exercise it.
-# Path-only dependency so any change in rust-dsl is picked up instantly.
+# Framework crates (see /framework).
+ui-shell = { path = "../framework/ui-shell" }
+agent    = { path = "../framework/agent" }
+
+# The DSL used to build every page and every fragment body.
 lit-ui = { path = "../rust-dsl" }
 
-# Web framework + async runtime.
+# HTTP + async runtime.
 axum = "0.8"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal"] }
+http = "1"
 
-# Static file serving for the Lit web components (JS + CSS) sitting in
-# ../lit-components/. We mount that directory at /lit-components/* so the
-# HTML produced by lit-ui can hydrate against the real custom elements.
+# Static file serving for /lit-components/*.
 tower-http = { version = "0.6", features = ["fs", "trace"] }
 
-# Structured logging — helpful when debugging routes locally.
+# Logging.
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }

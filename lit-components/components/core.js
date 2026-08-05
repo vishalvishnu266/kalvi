@@ -15,7 +15,12 @@ import './ui-avatar.js';
 import './ui-breadcrumb.js';
 import './ui-skeleton.js';
 import './ui-toast.js';
-import './app-shell.js';
+
+// NOTE: the framework `ui-app-shell` and `ui-fragment` are imported here
+// so they are guaranteed to be defined before the first paint (they own
+// the layout + the fragment-application pipeline).
+import './ui-fragment.js';
+import './ui-app-shell.js';
 
 // ---- Restore saved theme + primary color BEFORE first paint ----
 // (Was in the old index.js; kept here because it must run in the critical

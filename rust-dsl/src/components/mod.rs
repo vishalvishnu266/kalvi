@@ -72,3 +72,14 @@ pub mod copilot;
 // Reusable primitives extracted from <ui-copilot> — step bars, tool cards,
 // mention popovers — so any page (not just Copilot) can drop them in.
 pub mod copilot_primitives;
+
+// ---------------------------------------------------------------------------
+// Framework primitives (added for the backend-driven fragment protocol).
+//
+// * `app_shell` — `<ui-app-shell>` with six named slots (islands).
+// * `fragment`  — `<ui-fragment target action>` envelope for island swaps.
+//
+// These are ADDITIVE — no existing component was changed to introduce them.
+// ---------------------------------------------------------------------------
+pub mod app_shell;
+pub mod fragment;
