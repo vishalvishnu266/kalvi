@@ -29,6 +29,9 @@
 //!   "add user", "show users", "enable dark mode"). Proves the pipeline.
 //! * **Later:** `LlmAgent` implementing the same trait — swap-in only.
 
+pub mod stub;
+pub use stub::StubAgent;
+
 use async_trait::async_trait;
 use futures_core::Stream;
 use serde::{Deserialize, Serialize};

@@ -93,25 +93,6 @@ export function applyAll(root) {
   root.querySelectorAll('ui-fragment').forEach(applyFragment);
 }
 
-/**
- * Run `mutator` inside a View Transition when the browser supports it,
- * so island swaps get a smooth crossfade (or a custom animation defined
- * in CSS via `::view-transition-*`). On unsupported browsers, or when
- * transitions are disabled via `window.__ui_disable_transitions = true`,
- * or under `prefers-reduced-motion`, it runs the mutator synchronously.
- *
- * Kept as a single choke-point so we can benchmark & tune from one place.
- */
-function withTransition(mutator) {
-  const disabled =
-    window.__ui_disable_transitions === true ||
-    typeof document.startViewTransition !== 'function' ||
-    matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (disabled) { mutator(); return; }
-  // Wrap in requestAnimationFrame so the browser has already flushed any
-  // in-flight work before the snapshot — noticeably smoother on Chrome.
-  requestAnimationFrame(() => document.startViewTransition(() => mutator()));
-}
 
 /**
  * Fetch a URL as a fragment response and apply the result.
@@ -143,10 +124,10 @@ export async function navigate(url, opts = {}) {
   const tpl = document.createElement('template');
   tpl.innerHTML = html;
 
-  // Animate the swap. The View Transitions API snapshots the DOM before
-  // + after the mutation and interpolates between them — no per-island
-  // animation code required. Fine-tune via CSS `::view-transition-*`.
-  withTransition(() => applyAll(tpl.content));
+  // Straight synchronous apply — no animation layer. The intent is a
+  // snappy, native-feeling swap. Reintroduce a transition helper here
+  // later if mobile / Capacitor needs it.
+  applyAll(tpl.content);
 
   if (push && method === 'GET') {
     // Use the FINAL URL (post-redirect) so bookmarks / back button stay honest.
@@ -188,32 +169,13 @@ function shouldInterceptClick(e, anchor) {
   return true;
 }
 
-/**
- * Run `fn` with the given transition preset applied only for its
- * duration. Used to honour a link's `data-transition="…"` attribute
- * without disturbing the persisted global preset.
- */
-async function withPreset(preset, fn) {
-  if (!preset) return fn();
-  const root = document.documentElement;
-  const prev = root.dataset.uiTransition;
-  root.dataset.uiTransition = preset;
-  try { await fn(); }
-  finally {
-    if (prev == null) delete root.dataset.uiTransition;
-    else root.dataset.uiTransition = prev;
-  }
-}
-
 function installInterceptors() {
   document.addEventListener('click', (e) => {
     const a = e.target instanceof Element ? e.target.closest('a[href]') : null;
     if (!a) return;
     if (!shouldInterceptClick(e, a)) return;
     e.preventDefault();
-    // Per-link transition override: <a data-transition="slide-left" ...>
-    const preset = a.getAttribute('data-transition');
-    withPreset(preset, () => navigate(a.href));
+    navigate(a.href);
   });
 
   document.addEventListener('submit', (e) => {

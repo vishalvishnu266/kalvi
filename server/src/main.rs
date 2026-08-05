@@ -10,13 +10,18 @@
 //! intercepted navigation) the handler returns fragments only;
 //! otherwise it returns a full HTML document.
 
+mod agent_route;
 mod pages;
 mod shell;
 
-use axum::{routing::get, Router};
+use axum::{routing::{get, post}, Router};
 use std::net::SocketAddr;
 use std::path::PathBuf;
+use std::sync::Arc;
 use tower_http::{services::ServeDir, trace::TraceLayer};
+
+use agent::StubAgent;
+use crate::agent_route::AgentState;
 
 /// Address the server binds to. Kept as a constant so it's easy to spot.
 const BIND_ADDR: &str = "0.0.0.0:3000";
@@ -37,11 +42,16 @@ async fn main() {
         .expect("server crate must have a workspace parent")
         .join("lit-components");
 
+    // The copilot's brain. Rule-based today; swap in an LlmAgent later
+    // without touching the route or the client.
+    let agent_state = AgentState { agent: Arc::new(StubAgent::new()) };
+
     let app = Router::new()
         .route("/",          get(pages::landing::handler))
         .route("/dashboard", get(pages::dashboard::handler))
         .route("/admin",     get(pages::admin::handler))
         .route("/users",     get(pages::users::handler))
+        .route("/agent",     post(agent_route::handler).with_state(agent_state))
         .nest_service("/lit-components", ServeDir::new(&lit_components_dir))
         .layer(TraceLayer::new_for_http());
 
