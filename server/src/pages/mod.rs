@@ -13,4 +13,6 @@
 pub mod admin;
 pub mod dashboard;
 pub mod landing;
+pub mod reports;
+pub mod settings;
 pub mod users;

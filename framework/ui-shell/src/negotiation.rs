@@ -28,11 +28,16 @@ use crate::fragment::{Fragments, Render};
 pub const FRAGMENTS_MIME: &str = "text/vnd.ui-fragments+html";
 
 /// Signature of the "chrome" function: given the pre-rendered fragment
-/// batch (already HTML), return a full `<!doctype html>…</html>` document.
+/// batch (already HTML) plus the current request URI path, return a
+/// full `<!doctype html>…</html>` document.
+///
+/// The path enables the chrome to render context-aware regions — most
+/// commonly, highlighting the active app in an activity bar / tab bar
+/// via `aria-current="page"`.
 ///
 /// Typical implementations build a `lit_ui::components::app_shell::AppShell`
 /// with slotted children and let the DSL render it.
-pub type ChromeFn = fn(fragments_html: &str) -> String;
+pub type ChromeFn = fn(fragments_html: &str, current_path: &str) -> String;
 
 /// Choose the response shape based on the request's `Accept` header.
 ///
@@ -40,8 +45,13 @@ pub type ChromeFn = fn(fragments_html: &str) -> String;
 ///   [`FRAGMENTS_MIME`].
 /// - Otherwise wraps the fragments in the caller-supplied chrome and
 ///   returns a full HTML document (200 OK, `text/html; charset=utf-8`).
+///
+/// Pass the current URI path so the chrome can render active-state
+/// hints (e.g. `aria-current="page"` on the matching activity-bar
+/// entry). If your chrome doesn't care about it, pass any `&str`.
 pub fn negotiate(
     headers: &HeaderMap,
+    current_path: &str,
     fragments: Fragments,
     chrome: ChromeFn,
 ) -> Response<Body> {
@@ -50,7 +60,7 @@ pub fn negotiate(
     }
 
     let inner = fragments.render_string();
-    let html = chrome(&inner);
+    let html = chrome(&inner, current_path);
     let mut resp = Response::new(Body::from(html));
     *resp.status_mut() = StatusCode::OK;
     resp.headers_mut().insert(

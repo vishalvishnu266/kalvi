@@ -26,5 +26,5 @@ pub async fn handler(headers: HeaderMap) -> Response {
         ));
 
     let frags = Fragments::new().push(Fragment::replace(Target::Main, body));
-    negotiate(&headers, frags, chrome)
+    negotiate(&headers, "/users", frags, chrome)
 }

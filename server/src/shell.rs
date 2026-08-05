@@ -29,24 +29,67 @@ fn topbar() -> impl Component {
         ))
 }
 
-/// Sidebar — the framework will intercept every `<a>` click and swap
-/// only the `main` island. Deep-loads (typing /admin in the URL bar)
-/// hit the full-page path and see the same chrome.
-fn sidebar() -> impl Component {
-    let link = |href: &str, label: &str| {
-        Node::raw(format!(
-            r#"<a href="{href}" style="display:block;padding:10px 14px;color:inherit;text-decoration:none;border-radius:8px;">{label}</a>"#,
-            href  = href,
-            label = label,
-        ))
-    };
-    column()
-        .gap(Gap::Xs)
-        .add(Node::raw(r#"<div style="padding:12px 14px;font-size:11px;opacity:.6;text-transform:uppercase;letter-spacing:.08em;">Navigate</div>"#))
-        .add(link("/",          "Home"))
-        .add(link("/dashboard", "Dashboard"))
-        .add(link("/admin",     "Admin"))
-        .add(link("/users",     "Users"))
+/// Activity bar (desktop). Vertical 56px strip of icon buttons — one
+/// per registered [`crate::apps::App`]. Content is 100% server-authored;
+/// clicks are intercepted by the shell runtime and turned into island
+/// swaps + URL updates.
+///
+/// The `aria-current="page"` attribute is added on the entry whose
+/// route matches `current_path`, so the active state is a plain CSS
+/// selector (`[aria-current="page"]`) — no JS.
+fn activity_bar(current_path: &str) -> impl Component {
+    let mut html = String::from(
+        r#"<nav class="ui-activity-bar" aria-label="Apps">"#,
+    );
+    for app in crate::apps::all() {
+        let active = if app.route == current_path {
+            r#" aria-current="page""#
+        } else {
+            ""
+        };
+        html.push_str(&format!(
+            r#"<a class="ui-activity-item" href="{route}" title="{label}" data-app-id="{id}"{active}>
+                 <ui-icon name="{icon}" size="22"></ui-icon>
+                 <span class="ui-activity-label">{label}</span>
+               </a>"#,
+            route  = app.route,
+            label  = app.label,
+            id     = app.id,
+            icon   = app.icon,
+            active = active,
+        ));
+    }
+    html.push_str("</nav>");
+    Node::raw(html)
+}
+
+/// Mobile bottom tab bar. Shown only on narrow viewports (CSS in
+/// `ui-app-shell.js`). Same wire pattern as the activity bar — icons
+/// are `<a>` tags that the shell runtime intercepts.
+fn bottom_tab_bar(current_path: &str) -> impl Component {
+    let mut html = String::from(
+        r#"<nav class="ui-tab-bar" aria-label="Apps">"#,
+    );
+    for app in crate::apps::mobile_primary() {
+        let active = if app.route == current_path {
+            r#" aria-current="page""#
+        } else {
+            ""
+        };
+        html.push_str(&format!(
+            r#"<a class="ui-tab-item" href="{route}" data-app-id="{id}"{active}>
+                 <ui-icon name="{icon}" size="22"></ui-icon>
+                 <span class="ui-tab-label">{label}</span>
+               </a>"#,
+            route  = app.route,
+            id     = app.id,
+            icon   = app.icon,
+            label  = app.label,
+            active = active,
+        ));
+    }
+    html.push_str("</nav>");
+    Node::raw(html)
 }
 
 /// The copilot pane. `<ui-copilot>` boots itself on connect: POSTs to
@@ -72,16 +115,74 @@ fn copilot_pane() -> impl Component {
 /// practice (children are re-parented into their own slot host), and it
 /// means the exact same code path handles both first paint and
 /// subsequent navigations.
-pub fn chrome(fragments_html: &str) -> String {
+pub fn chrome(fragments_html: &str, current_path: &str) -> String {
     // Wrap the pre-rendered fragment string in a raw node so it's not
     // re-escaped. The `Node::raw` contract is "this is trusted HTML".
     let main_slot = Node::raw(fragments_html.to_string());
 
+    // Activity bar (desktop) and bottom tab bar (mobile) render the
+    // SAME app list from crate::apps — one source of truth for both.
     let shell = app_shell()
         .topbar(topbar())
-        .sidebar(sidebar())
+        .sidebar(activity_bar(current_path))
         .main(main_slot)
-        .copilot(copilot_pane());
+        .copilot(copilot_pane())
+        .slot(Region::Custom("bottombar".into()), bottom_tab_bar(current_path));
+
+    // A tiny sheet of CSS specific to the activity bar + tab bar. Kept
+    // inline (rather than in a static file) so a change here doesn't
+    // need a browser cache-bust. Small; not worth splitting out.
+    let nav_css = Node::raw(r#"<style>
+        /* ─── Desktop activity bar ─── */
+        .ui-activity-bar {
+          display: flex; flex-direction: column;
+          align-items: stretch; gap: 2px;
+          padding: 8px 6px;
+          height: 100%;
+        }
+        .ui-activity-item {
+          display: flex; flex-direction: column; align-items: center; gap: 2px;
+          padding: 8px 4px;
+          color: inherit; text-decoration: none;
+          border-radius: 8px;
+          opacity: .7;
+          transition: opacity .12s, background .12s;
+        }
+        .ui-activity-item:hover { opacity: 1; background: var(--color-surface-2, #f5f5f7); }
+        .ui-activity-item[aria-current="page"] {
+          opacity: 1;
+          background: var(--color-surface-2, #f5f5f7);
+          box-shadow: inset 3px 0 0 var(--color-primary, #4f46e5);
+        }
+        .ui-activity-label {
+          font-size: 10px; letter-spacing: .02em;
+          text-align: center; line-height: 1.1;
+        }
+
+        /* ─── Mobile bottom tab bar ─── */
+        .ui-tab-bar {
+          display: none;
+          justify-content: space-around; align-items: stretch;
+          padding: 4px 0 max(4px, env(safe-area-inset-bottom));
+          background: var(--color-bg, #fff);
+          border-top: 1px solid var(--color-border, #e5e7eb);
+        }
+        .ui-tab-item {
+          flex: 1;
+          display: flex; flex-direction: column; align-items: center; gap: 2px;
+          padding: 6px 4px;
+          color: inherit; text-decoration: none;
+          opacity: .55;
+        }
+        .ui-tab-item[aria-current="page"] {
+          opacity: 1; color: var(--color-primary, #4f46e5);
+        }
+        .ui-tab-label { font-size: 10px; letter-spacing: .01em; }
+
+        @media (max-width: 768px) {
+          .ui-tab-bar { display: flex; }
+        }
+    </style>"#);
 
     page()
         .title("lit-ui framework")
@@ -90,6 +191,7 @@ pub fn chrome(fragments_html: &str) -> String {
         // the FOUCE spinner, and turning it off saves ~50–200ms on first
         // paint (and eliminates the 1.5s safety-net ceiling).
         .no_fouce_gate()
+        .add(nav_css)
         .add(shell)
         .render()
 }

@@ -22,5 +22,5 @@ pub async fn handler(headers: HeaderMap) -> Response {
             .add(button().label("Open admin").variant(Variant::Secondary)));
 
     let frags = Fragments::new().push(Fragment::replace(Target::Main, body));
-    negotiate(&headers, frags, chrome)
+    negotiate(&headers, "/", frags, chrome)
 }

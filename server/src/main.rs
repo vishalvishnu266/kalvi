@@ -11,6 +11,7 @@
 //! otherwise it returns a full HTML document.
 
 mod agent_route;
+mod apps;
 mod pages;
 mod shell;
 
@@ -51,6 +52,8 @@ async fn main() {
         .route("/dashboard", get(pages::dashboard::handler))
         .route("/admin",     get(pages::admin::handler))
         .route("/users",     get(pages::users::handler))
+        .route("/reports",   get(pages::reports::handler))
+        .route("/settings",  get(pages::settings::handler))
         .route("/agent",     post(agent_route::handler).with_state(agent_state))
         .nest_service("/lit-components", ServeDir::new(&lit_components_dir))
         .layer(TraceLayer::new_for_http());

@@ -53,12 +53,14 @@ class UiAppShell extends LitBaseElement {
     :host {
       display: grid;
       grid-template-areas:
-        "topbar  topbar   topbar"
-        "sidebar main     copilot"
-        "toast   toast    toast"
-        "modal   modal    modal";
-      grid-template-columns: var(--shell-sidebar, 240px) 1fr var(--shell-copilot, 360px);
-      grid-template-rows: auto 1fr auto auto;
+        "topbar   topbar    topbar"
+        "sidebar  main      copilot"
+        "toast    toast     toast"
+        "modal    modal     modal"
+        "bottombar bottombar bottombar";
+      /* Desktop: 56px activity bar (icons only), fluid main, sized copilot. */
+      grid-template-columns: var(--shell-sidebar, 56px) 1fr var(--shell-copilot, 360px);
+      grid-template-rows: auto 1fr auto auto auto;
       min-height: 100dvh;
       background: var(--color-bg, #fff);
       color: var(--color-fg, #111);
@@ -66,26 +68,38 @@ class UiAppShell extends LitBaseElement {
     /* Each named slot lives inside a positioned box so we can add
        overflow rules per region without leaking to others. */
     .region { min-width: 0; min-height: 0; }
-    .topbar   { grid-area: topbar;   border-bottom: 1px solid var(--color-border, #e5e7eb); }
-    .sidebar  { grid-area: sidebar;  border-right:  1px solid var(--color-border, #e5e7eb); overflow: auto; }
-    .main     { grid-area: main;     overflow: auto; }
-    .copilot  { grid-area: copilot;  border-left:   1px solid var(--color-border, #e5e7eb); overflow: auto; }
-    .toast    { grid-area: toast;    position: sticky; bottom: 0; pointer-events: none; }
-    .modal    { grid-area: modal;    position: sticky; bottom: 0; z-index: 100; }
+    .topbar    { grid-area: topbar;    border-bottom: 1px solid var(--color-border, #e5e7eb); padding: 8px 14px; }
+    .sidebar   { grid-area: sidebar;   border-right:  1px solid var(--color-border, #e5e7eb); overflow: auto; }
+    .main      { grid-area: main;      overflow: auto; }
+    .copilot   { grid-area: copilot;   border-left:   1px solid var(--color-border, #e5e7eb); overflow: auto; }
+    .toast     { grid-area: toast;     position: sticky; bottom: 0; pointer-events: none; }
+    .modal     { grid-area: modal;     position: sticky; bottom: 0; z-index: 100; }
+    /* Bottom bar hidden on desktop (mobile tab bar is a mobile-only
+       navigation surface). The nested .ui-tab-bar CSS in shell.rs
+       drives visibility via a media query. */
+    .bottombar { grid-area: bottombar; }
     .toast > ::slotted(*), .modal > ::slotted(*) { pointer-events: auto; }
 
-    /* Mobile layout: single column, sidebar hidden, copilot becomes
-       a bottom sheet driven by the open attribute on ui-copilot. */
+    /* Mobile layout: single column, activity bar hidden, bottom tab
+       bar visible, copilot becomes a bottom sheet driven by the open
+       attribute on ui-copilot. */
     @media (max-width: 768px) {
       :host {
         grid-template-areas:
           "topbar"
           "main"
           "toast"
-          "modal";
+          "modal"
+          "bottombar";
         grid-template-columns: 1fr;
       }
       .sidebar { display: none; }
+      /* Bottom tab bar sticks to the bottom viewport. */
+      .bottombar {
+        position: sticky; bottom: 0;
+        background: var(--color-bg, #fff);
+        z-index: 80;
+      }
       .copilot {
         position: fixed;
         left: 0; right: 0; bottom: 0;
@@ -132,6 +146,7 @@ class UiAppShell extends LitBaseElement {
       <div class="region copilot"><slot name="copilot"></slot></div>
       <div class="region toast"><slot name="toast"></slot></div>
       <div class="region modal"><slot name="modal"></slot></div>
+      <div class="region bottombar"><slot name="bottombar"></slot></div>
     `;
   }
 }

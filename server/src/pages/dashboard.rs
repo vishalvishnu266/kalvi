@@ -23,5 +23,5 @@ pub async fn handler(headers: HeaderMap) -> Response {
             .add(Node::text("A rich page composed entirely with rust-dsl.")));
 
     let frags = Fragments::new().push(Fragment::replace(Target::Main, body));
-    negotiate(&headers, frags, chrome)
+    negotiate(&headers, "/dashboard", frags, chrome)
 }
