@@ -22,29 +22,48 @@ use lit_ui::prelude::*;
 /// picker calls `window.ui.setTransition(...)` which is exposed by
 /// `ui-app-shell.js`; the choice is persisted in `localStorage`.
 fn topbar() -> impl Component {
-    // Inline <select> — no ceremony, gives us a real native picker on
-    // both desktop and mobile. `onchange` calls into the client runtime.
+    // Inline picker: preset + speed slider. Both call into the client
+    // runtime (`window.ui.setTransition` / `window.ui.slow`) so a change
+    // takes effect on the very next navigation with no reload.
     let transition_picker = Node::raw(
-        r#"<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;opacity:.8;">
-             transition
-             <select onchange="window.ui.setTransition(this.value)"
-                     style="font-size:12px;padding:4px 6px;border:1px solid var(--color-border,#e5e7eb);
-                            border-radius:6px;background:transparent;color:inherit;">
-               <option value="fade">fade (default)</option>
-               <option value="slide-left">slide-left</option>
-               <option value="slide-right">slide-right</option>
-               <option value="slide-up">slide-up</option>
-               <option value="scale">scale</option>
-               <option value="none">none (instant)</option>
-             </select>
-           </label>
+        r#"<div style="display:inline-flex;align-items:center;gap:14px;font-size:12px;opacity:.9;">
+             <label style="display:inline-flex;align-items:center;gap:6px;">
+               transition
+               <select id="ui-transition-select"
+                       onchange="window.ui.setTransition(this.value)"
+                       style="font-size:12px;padding:4px 6px;border:1px solid var(--color-border,#e5e7eb);
+                              border-radius:6px;background:transparent;color:inherit;">
+                 <option value="fade">fade (default)</option>
+                 <option value="slide-left">slide-left</option>
+                 <option value="slide-right">slide-right</option>
+                 <option value="slide-up">slide-up</option>
+                 <option value="scale">scale</option>
+                 <option value="none">none (instant)</option>
+               </select>
+             </label>
+             <label style="display:inline-flex;align-items:center;gap:6px;">
+               speed
+               <input id="ui-transition-speed" type="range"
+                      min="0" max="2000" step="100" value="220"
+                      oninput="window.ui.slow(+this.value); document.getElementById('ui-transition-speed-val').textContent = this.value + 'ms'"
+                      style="width:120px;">
+               <span id="ui-transition-speed-val" style="opacity:.7;min-width:52px;">220ms</span>
+             </label>
+           </div>
            <script>
-             // Sync the <select> to whatever is currently active (persisted
-             // from a previous session, or the default `fade`).
+             // Sync both controls to whatever is persisted (or defaults).
              (function () {
-               var sel = document.currentScript.previousElementSibling.querySelector('select');
-               var cur = document.documentElement.dataset.uiTransition || 'fade';
-               if (sel) sel.value = cur;
+               try {
+                 var sel = document.getElementById('ui-transition-select');
+                 var cur = document.documentElement.dataset.uiTransition || 'fade';
+                 if (sel) sel.value = cur;
+
+                 var range = document.getElementById('ui-transition-speed');
+                 var lab   = document.getElementById('ui-transition-speed-val');
+                 var saved = parseInt(localStorage.getItem('erp.transition.speed') || '220', 10);
+                 if (range) range.value = String(saved);
+                 if (lab)   lab.textContent = saved + 'ms';
+               } catch (_) {}
              })();
            </script>"#,
     );

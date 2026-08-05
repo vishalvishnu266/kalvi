@@ -70,61 +70,68 @@ function installTransitionStyle() {
   transitionStyleInstalled = true;
   const style = document.createElement('style');
   style.dataset.uiShell = 'view-transitions';
+  // Durations are driven by a CSS custom property so we can slow the
+  // whole system down for demoing / debugging (e.g.
+  // `document.documentElement.style.setProperty('--ui-t', '2s')` or
+  // `window.ui.slow(2000)`). The exit uses ~75% of the enter duration
+  // so the two animations don't stack visibly.
   style.textContent = `
+    :root { --ui-t: 220ms; --ui-t-out: 160ms; }
+
     /* ─── Shared keyframes ─── */
     @keyframes ui-fade-in       { from { opacity: 0; } }
     @keyframes ui-fade-out      { to   { opacity: 0; } }
-    @keyframes ui-drift-in      { from { opacity: 0; transform: translateY(4px);  } }
-    @keyframes ui-drift-out     { to   { opacity: 0; transform: translateY(-4px); } }
-    @keyframes ui-slide-in-r    { from { transform: translateX( 24px); opacity: 0; } }
-    @keyframes ui-slide-out-l   { to   { transform: translateX(-24px); opacity: 0; } }
-    @keyframes ui-slide-in-l    { from { transform: translateX(-24px); opacity: 0; } }
-    @keyframes ui-slide-out-r   { to   { transform: translateX( 24px); opacity: 0; } }
-    @keyframes ui-slide-in-up   { from { transform: translateY( 20px); opacity: 0; } }
-    @keyframes ui-slide-out-up  { to   { transform: translateY(-20px); opacity: 0; } }
-    @keyframes ui-scale-in      { from { transform: scale(0.98); opacity: 0; } }
-    @keyframes ui-scale-out     { to   { transform: scale(1.02); opacity: 0; } }
+    @keyframes ui-drift-in      { from { opacity: 0; transform: translateY(8px);  } }
+    @keyframes ui-drift-out     { to   { opacity: 0; transform: translateY(-8px); } }
+    @keyframes ui-slide-in-r    { from { transform: translateX( 40px); opacity: 0; } }
+    @keyframes ui-slide-out-l   { to   { transform: translateX(-40px); opacity: 0; } }
+    @keyframes ui-slide-in-l    { from { transform: translateX(-40px); opacity: 0; } }
+    @keyframes ui-slide-out-r   { to   { transform: translateX( 40px); opacity: 0; } }
+    @keyframes ui-slide-in-up   { from { transform: translateY( 40px); opacity: 0; } }
+    @keyframes ui-slide-out-up  { to   { transform: translateY(-40px); opacity: 0; } }
+    @keyframes ui-scale-in      { from { transform: scale(0.94); opacity: 0; } }
+    @keyframes ui-scale-out     { to   { transform: scale(1.06); opacity: 0; } }
 
     /* ─── Preset: fade (default) ─── */
     html[data-ui-transition="fade"] ::view-transition-old(shell-main),
     html:not([data-ui-transition]) ::view-transition-old(shell-main) {
-      animation: ui-drift-out .16s ease-in both;
+      animation: ui-drift-out var(--ui-t-out) ease-in both;
     }
     html[data-ui-transition="fade"] ::view-transition-new(shell-main),
     html:not([data-ui-transition]) ::view-transition-new(shell-main) {
-      animation: ui-drift-in  .22s ease-out both;
+      animation: ui-drift-in var(--ui-t) ease-out both;
     }
 
     /* ─── Preset: slide-left (forward nav feel) ─── */
     html[data-ui-transition="slide-left"] ::view-transition-old(shell-main) {
-      animation: ui-slide-out-l .20s ease-in both;
+      animation: ui-slide-out-l var(--ui-t-out) ease-in both;
     }
     html[data-ui-transition="slide-left"] ::view-transition-new(shell-main) {
-      animation: ui-slide-in-r  .26s cubic-bezier(.2,.8,.2,1) both;
+      animation: ui-slide-in-r var(--ui-t) cubic-bezier(.2,.8,.2,1) both;
     }
 
     /* ─── Preset: slide-right (back nav feel) ─── */
     html[data-ui-transition="slide-right"] ::view-transition-old(shell-main) {
-      animation: ui-slide-out-r .20s ease-in both;
+      animation: ui-slide-out-r var(--ui-t-out) ease-in both;
     }
     html[data-ui-transition="slide-right"] ::view-transition-new(shell-main) {
-      animation: ui-slide-in-l  .26s cubic-bezier(.2,.8,.2,1) both;
+      animation: ui-slide-in-l var(--ui-t) cubic-bezier(.2,.8,.2,1) both;
     }
 
     /* ─── Preset: slide-up (bottom-sheet feel) ─── */
     html[data-ui-transition="slide-up"] ::view-transition-old(shell-main) {
-      animation: ui-slide-out-up .18s ease-in both;
+      animation: ui-slide-out-up var(--ui-t-out) ease-in both;
     }
     html[data-ui-transition="slide-up"] ::view-transition-new(shell-main) {
-      animation: ui-slide-in-up  .26s cubic-bezier(.2,.8,.2,1) both;
+      animation: ui-slide-in-up var(--ui-t) cubic-bezier(.2,.8,.2,1) both;
     }
 
     /* ─── Preset: scale (subtle zoom) ─── */
     html[data-ui-transition="scale"] ::view-transition-old(shell-main) {
-      animation: ui-scale-out .16s ease-in both;
+      animation: ui-scale-out var(--ui-t-out) ease-in both;
     }
     html[data-ui-transition="scale"] ::view-transition-new(shell-main) {
-      animation: ui-scale-in  .22s ease-out both;
+      animation: ui-scale-in var(--ui-t) ease-out both;
     }
 
     /* ─── Preset: none (instant, no animation) ─── */
@@ -158,7 +165,29 @@ function restoreTransitionPreset() {
   try {
     const saved = localStorage.getItem('erp.transition');
     if (saved) document.documentElement.dataset.uiTransition = saved;
+    const savedSpeed = localStorage.getItem('erp.transition.speed');
+    if (savedSpeed) applyTransitionSpeed(parseInt(savedSpeed, 10));
   } catch { /* ignore */ }
+}
+
+/**
+ * Slow-motion mode. `ms` is the ENTER duration; the EXIT is set to 75%.
+ * Persisted so it survives a reload — call `slow(0)` to reset.
+ *
+ * Exposed as `window.ui.slow(ms)` (see below) so you can eyeball a
+ * preset at 2000ms, then dial it back to production speed.
+ */
+export function applyTransitionSpeed(ms) {
+  const root = document.documentElement;
+  if (!ms || ms <= 0) {
+    root.style.removeProperty('--ui-t');
+    root.style.removeProperty('--ui-t-out');
+    try { localStorage.removeItem('erp.transition.speed'); } catch { /* ignore */ }
+    return;
+  }
+  root.style.setProperty('--ui-t', ms + 'ms');
+  root.style.setProperty('--ui-t-out', Math.round(ms * 0.75) + 'ms');
+  try { localStorage.setItem('erp.transition.speed', String(ms)); } catch { /* ignore */ }
 }
 
 // ---- Eager module-load setup ---------------------------------------------
@@ -173,6 +202,10 @@ installTransitionStyle();
 restoreTransitionPreset();
 window.ui = Object.assign(window.ui || {}, {
   setTransition: setTransitionPreset,
+  // Slow-mo helper for demoing / debugging transitions.
+  //   window.ui.slow(2000) → 2s per swap
+  //   window.ui.slow(0)    → back to default
+  slow: applyTransitionSpeed,
 });
 
 class UiAppShell extends LitBaseElement {
