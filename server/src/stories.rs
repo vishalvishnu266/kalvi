@@ -1,10 +1,9 @@
-//! Storybook content — every story is a `Box<dyn Component>` built from
-//! the `lit_ui` DSL. No raw HTML anywhere: even section titles/labels
-//! are composed as primitives (button labels, badge text, etc.).
+//! Storybook content. Every story is a `Box<dyn Component>` built from
+//! the `lit_ui` DSL and nothing else — no local wrapper types, no
+//! `format!()` HTML strings, no `Node::raw`.
 //!
-//! Add a new story by pushing another `story(name, component)` entry
-//! into the appropriate section in [`all_sections`]. That's it — the
-//! main route picks it up automatically.
+//! Add a story: push another `story(name, component)` into any section.
+//! The `/` route picks it up automatically.
 
 use lit_ui::core::Component;
 use lit_ui::prelude::*;
@@ -18,7 +17,7 @@ pub struct Section {
     pub stories: Vec<Story>,
 }
 
-/// The complete storybook. Sections render in this order, top to bottom.
+/// The complete storybook. Sections render in this order.
 pub fn all_sections() -> Vec<Section> {
     vec![
         Section { title: "Button",       stories: button_stories()       },
@@ -38,97 +37,58 @@ pub fn all_sections() -> Vec<Section> {
         Section { title: "Progress",     stories: progress_stories()     },
         Section { title: "Color swatch", stories: color_swatch_stories() },
         Section { title: "Theme toggle", stories: theme_toggle_stories() },
+        Section { title: "Heading",      stories: heading_stories()      },
         Section { title: "Layout",       stories: layout_stories()       },
     ]
 }
 
 // ── helpers ─────────────────────────────────────────────────────────────
 
-/// Tiny helper so each story reads as one line: `story("name", widget)`.
-fn story<C: Component + 'static>(name: &'static str, c: C) -> Story {
-    (name, Box::new(c))
-}
-
-/// Wrap a set of primitives in a `ui-cluster` — the go-to "row of same-
-/// height things" layout. Handy for "show all variants side-by-side".
-fn row<I, C>(children: I) -> impl Component
-where
-    I: IntoIterator<Item = C>,
-    C: Component + 'static,
-{
-    // The `ui-cluster` primitive already handles gap + wrap + alignment;
-    // we just push children into it.
-    let mut c = raw_cluster();
-    for child in children { c = c.push_boxed(Box::new(child)); }
-    c
-}
-
-/// A minimal `ui-cluster` wrapper built as its own tiny component so we
-/// can put `Box<dyn Component>` children into it (the derived cluster's
-/// `.add()` takes generics, which don't compose over trait objects).
-struct RawCluster { children: Vec<Box<dyn Component>>, gap: &'static str }
-fn raw_cluster() -> RawCluster { RawCluster { children: Vec::new(), gap: "sm" } }
-impl RawCluster {
-    fn push_boxed(mut self, c: Box<dyn Component>) -> Self { self.children.push(c); self }
-    #[allow(dead_code)]
-    fn gap(mut self, g: &'static str) -> Self { self.gap = g; self }
-}
-impl Component for RawCluster {
-    fn render(&self) -> String {
-        let mut body = String::new();
-        for c in &self.children { body.push_str(&c.render()); }
-        format!(r#"<ui-cluster gap="{}">{}</ui-cluster>"#, self.gap, body)
-    }
-}
+fn story<C: Component + 'static>(name: &'static str, c: C) -> Story { (name, Box::new(c)) }
 
 // ── sections ────────────────────────────────────────────────────────────
 
 fn button_stories() -> Vec<Story> {
     vec![
-        story("default",  button().label("Save")),
-        story("variants", row([
-            button().label("Primary"),
-            button().label("Secondary").variant(Variant::Secondary),
-            button().label("Ghost").variant(Variant::Ghost),
-            button().label("Danger").variant(Variant::Danger),
-        ])),
-        story("sizes", row([
-            button().label("Small").size(Size::Sm),
-            button().label("Medium").size(Size::Md),
-            button().label("Large").size(Size::Lg),
-        ])),
-        story("with icon", row([
-            button().label("Save").icon(Icons::CHECK),
-            button().label("Delete").icon(Icons::DELETE).variant(Variant::Danger),
-            button().label("Upload").icon(Icons::UPLOAD).variant(Variant::Secondary),
-        ])),
-        story("states", row([
-            button().label("Normal"),
-            button().label("Disabled").disabled(),
-            button().label("Full width").full(),
-        ])),
-        story("submit / reset", row([
-            button().label("Submit").submit(),
-            button().label("Reset").reset().variant(Variant::Ghost),
-        ])),
+        story("default", button().label("Save")),
+        story("variants", cluster_row()
+            .add(button().label("Primary"))
+            .add(button().label("Secondary").variant(Variant::Secondary))
+            .add(button().label("Ghost").variant(Variant::Ghost))
+            .add(button().label("Danger").variant(Variant::Danger))),
+        story("sizes", cluster_row()
+            .add(button().label("Small").size(Size::Sm))
+            .add(button().label("Medium").size(Size::Md))
+            .add(button().label("Large").size(Size::Lg))),
+        story("with icon", cluster_row()
+            .add(button().label("Save").icon(Icons::CHECK))
+            .add(button().label("Delete").icon(Icons::DELETE).variant(Variant::Danger))
+            .add(button().label("Upload").icon(Icons::UPLOAD).variant(Variant::Secondary))),
+        story("states", cluster_row()
+            .add(button().label("Normal"))
+            .add(button().label("Disabled").disabled())
+            .add(button().label("Full width").full())),
+        story("submit / reset", cluster_row()
+            .add(button().label("Submit").submit())
+            .add(button().label("Reset").reset().variant(Variant::Ghost))),
     ]
 }
 
 fn input_stories() -> Vec<Story> {
     vec![
-        story("default",   input().label("Full name").placeholder("Aarav")),
-        story("required",  input().label("Email").kind(InputType::Email).required()),
-        story("password",  input().label("Password").kind(InputType::Password)),
-        story("with hint", input().label("Handle").hint("3–20 chars, a–z 0–9 _")),
+        story("default",    input().label("Full name").placeholder("Aarav")),
+        story("required",   input().label("Email").kind(InputType::Email).required()),
+        story("password",   input().label("Password").kind(InputType::Password)),
+        story("with hint",  input().label("Handle").hint("3–20 chars, a–z 0–9 _")),
         story("with error", input().label("Handle").error("Required")),
-        story("with icons", input().label("Search").icon_leading(Icons::SEARCH).icon_trailing(Icons::X)),
+        story("with icons", input().label("Search")
+            .icon_leading(Icons::SEARCH).icon_trailing(Icons::X)),
     ]
 }
 
 fn select_stories() -> Vec<Story> {
     vec![
-        story("default", select()
-            .label("Fruit")
+        story("default", select().label("Fruit")
             .option(SelectOption::new("a", "Apples"))
             .option(SelectOption::new("b", "Bananas"))
             .option(SelectOption::new("c", "Cherries"))),
@@ -139,8 +99,7 @@ fn select_stories() -> Vec<Story> {
             .option(SelectOption::new("uk", "United Kingdom"))),
         story("multi + allow-new", select()
             .label("Tags").placeholder("Type to add").multiple().allow_new()),
-        story("with error", select()
-            .label("Priority").error("Please pick one")
+        story("with error", select().label("Priority").error("Please pick one")
             .option(SelectOption::new("hi", "High"))
             .option(SelectOption::new("lo", "Low"))),
     ]
@@ -183,89 +142,80 @@ fn switch_stories() -> Vec<Story> {
 
 fn datepicker_stories() -> Vec<Story> {
     vec![
-        story("default",     datepicker().label("Date of birth")),
-        story("prefilled",   datepicker().label("Joined").value("2024-01-15")),
-        story("with error",  datepicker().label("Start").error("Required")),
+        story("default",    datepicker().label("Date of birth")),
+        story("prefilled",  datepicker().label("Joined").value("2024-01-15")),
+        story("with error", datepicker().label("Start").error("Required")),
     ]
 }
 
 fn daterange_stories() -> Vec<Story> {
     vec![
-        story("default",   date_range().label("Report period")),
-        story("filled",    date_range().label("Q1").from("2024-01-01").to("2024-03-31")),
+        story("default", date_range().label("Report period")),
+        story("filled",  date_range().label("Q1").from("2024-01-01").to("2024-03-31")),
     ]
 }
 
 fn icon_stories() -> Vec<Story> {
     vec![
-        story("common actions", row([
-            icon(Icons::CHECK), icon(Icons::X), icon(Icons::PLUS),
-            icon(Icons::EDIT), icon(Icons::DELETE), icon(Icons::SEARCH),
-            icon(Icons::FILTER), icon(Icons::SETTINGS), icon(Icons::REFRESH),
-        ])),
-        story("navigation", row([
-            icon(Icons::HOME), icon(Icons::CHEVRON_LEFT), icon(Icons::CHEVRON_RIGHT),
-            icon(Icons::ARROW_UP), icon(Icons::ARROW_DOWN),
-        ])),
-        story("sizes", row([
-            icon(Icons::STAR).size(12),
-            icon(Icons::STAR).size(18),
-            icon(Icons::STAR).size(24),
-            icon(Icons::STAR).size(36),
-        ])),
+        story("common actions", cluster_row()
+            .add(icon(Icons::CHECK)).add(icon(Icons::X)).add(icon(Icons::PLUS))
+            .add(icon(Icons::EDIT)).add(icon(Icons::DELETE)).add(icon(Icons::SEARCH))
+            .add(icon(Icons::FILTER)).add(icon(Icons::SETTINGS)).add(icon(Icons::REFRESH))),
+        story("navigation", cluster_row()
+            .add(icon(Icons::HOME)).add(icon(Icons::CHEVRON_LEFT))
+            .add(icon(Icons::CHEVRON_RIGHT)).add(icon(Icons::ARROW_UP))
+            .add(icon(Icons::ARROW_DOWN))),
+        story("sizes", cluster_row()
+            .add(icon(Icons::STAR).size(12)).add(icon(Icons::STAR).size(18))
+            .add(icon(Icons::STAR).size(24)).add(icon(Icons::STAR).size(36))),
     ]
 }
 
 fn badge_stories() -> Vec<Story> {
     vec![
-        story("tones", row([
-            badge("Neutral"),
-            badge("Brand").tone(Tone::Brand),
-            badge("Success").tone(Tone::Success),
-            badge("Warning").tone(Tone::Warning),
-            badge("Danger").tone(Tone::Danger),
-            badge("Info").tone(Tone::Info),
-        ])),
-        story("with dot", row([
-            badge("Live").tone(Tone::Success).dot(),
-            badge("Draft").dot(),
-            badge("Overdue").tone(Tone::Danger).dot(),
-        ])),
+        story("tones", cluster_row()
+            .add(badge("Neutral"))
+            .add(badge("Brand").tone(Tone::Brand))
+            .add(badge("Success").tone(Tone::Success))
+            .add(badge("Warning").tone(Tone::Warning))
+            .add(badge("Danger").tone(Tone::Danger))
+            .add(badge("Info").tone(Tone::Info))),
+        story("with dot", cluster_row()
+            .add(badge("Live").tone(Tone::Success).dot())
+            .add(badge("Draft").dot())
+            .add(badge("Overdue").tone(Tone::Danger).dot())),
     ]
 }
 
 fn avatar_stories() -> Vec<Story> {
     vec![
-        story("sizes", row([
-            avatar("Ada Lovelace").size(AvatarSize::Sm),
-            avatar("Ada Lovelace").size(AvatarSize::Md),
-            avatar("Ada Lovelace").size(AvatarSize::Lg),
-            avatar("Ada Lovelace").size(AvatarSize::Xl),
-        ])),
-        story("initials from name", row([
-            avatar("Grace Hopper"),
-            avatar("Alan Turing"),
-            avatar("Kernighan"),
-        ])),
+        story("sizes", cluster_row()
+            .add(avatar("Ada Lovelace").size(AvatarSize::Sm))
+            .add(avatar("Ada Lovelace").size(AvatarSize::Md))
+            .add(avatar("Ada Lovelace").size(AvatarSize::Lg))
+            .add(avatar("Ada Lovelace").size(AvatarSize::Xl))),
+        story("initials from name", cluster_row()
+            .add(avatar("Grace Hopper"))
+            .add(avatar("Alan Turing"))
+            .add(avatar("Kernighan"))),
     ]
 }
 
 fn tooltip_stories() -> Vec<Story> {
     vec![
-        story("placements", row([
-            tooltip("Top").add(button().label("Top")),
-            tooltip("Bottom").placement(Placement::Bottom).add(button().label("Bottom")),
-            tooltip("Left").placement(Placement::Left).add(button().label("Left")),
-            tooltip("Right").placement(Placement::Right).add(button().label("Right")),
-        ])),
+        story("placements", cluster_row()
+            .add(tooltip("Top").add(button().label("Top")))
+            .add(tooltip("Bottom").placement(Placement::Bottom).add(button().label("Bottom")))
+            .add(tooltip("Left").placement(Placement::Left).add(button().label("Left")))
+            .add(tooltip("Right").placement(Placement::Right).add(button().label("Right")))),
     ]
 }
 
 fn skeleton_stories() -> Vec<Story> {
     vec![
-        story("line",    skeleton().width("240px")),
-        story("rect",    skeleton().shape(SkeletonShape::Rect).width("240px").height("120px")),
-        story("circle",  skeleton().shape(SkeletonShape::Circle).width("48px").height("48px")),
+        story("line",       skeleton().width("240px")),
+        story("rect",       skeleton().shape(SkeletonShape::Rect).width("240px").height("120px")),
+        story("circle",     skeleton().shape(SkeletonShape::Circle).width("48px").height("48px")),
         story("multi-line", skeleton().lines(3).width("360px")),
     ]
 }
@@ -280,35 +230,32 @@ fn slider_stories() -> Vec<Story> {
 
 fn progress_stories() -> Vec<Story> {
     vec![
-        story("tones", row([
-            progress().value(25),
-            progress().value(50).tone(ProgressTone::Brand),
-            progress().value(75).tone(ProgressTone::Success),
-            progress().value(60).tone(ProgressTone::Warning),
-            progress().value(80).tone(ProgressTone::Danger),
-        ])),
-        story("with label", progress().value(65).tone(ProgressTone::Brand).label("Uploading photo")),
+        story("tones", stack().gap(Gap::Sm)
+            .add(progress().value(25))
+            .add(progress().value(50).tone(ProgressTone::Brand))
+            .add(progress().value(75).tone(ProgressTone::Success))
+            .add(progress().value(60).tone(ProgressTone::Warning))
+            .add(progress().value(80).tone(ProgressTone::Danger))),
+        story("with label",    progress().value(65).tone(ProgressTone::Brand).label("Uploading photo")),
         story("indeterminate", progress().indeterminate().tone(ProgressTone::Brand)),
     ]
 }
 
 fn color_swatch_stories() -> Vec<Story> {
     vec![
-        story("palette", row([
-            color_swatch("#ef4444"), color_swatch("#f97316"), color_swatch("#eab308"),
-            color_swatch("#22c55e"), color_swatch("#06b6d4"), color_swatch("#3b82f6"),
-            color_swatch("#8b5cf6"), color_swatch("#ec4899"),
-        ])),
-        story("sizes", row([
-            color_swatch("#4f46e5").size(SwatchSize::Sm),
-            color_swatch("#4f46e5").size(SwatchSize::Md),
-            color_swatch("#4f46e5").size(SwatchSize::Lg),
-        ])),
-        story("selectable + selected", row([
-            color_swatch("#ef4444").selectable(),
-            color_swatch("#22c55e").selectable().selected(),
-            color_swatch("#3b82f6").selectable(),
-        ])),
+        story("palette", cluster_row()
+            .add(color_swatch("#ef4444")).add(color_swatch("#f97316"))
+            .add(color_swatch("#eab308")).add(color_swatch("#22c55e"))
+            .add(color_swatch("#06b6d4")).add(color_swatch("#3b82f6"))
+            .add(color_swatch("#8b5cf6")).add(color_swatch("#ec4899"))),
+        story("sizes", cluster_row()
+            .add(color_swatch("#4f46e5").size(SwatchSize::Sm))
+            .add(color_swatch("#4f46e5").size(SwatchSize::Md))
+            .add(color_swatch("#4f46e5").size(SwatchSize::Lg))),
+        story("selectable + selected", cluster_row()
+            .add(color_swatch("#ef4444").selectable())
+            .add(color_swatch("#22c55e").selectable().selected())
+            .add(color_swatch("#3b82f6").selectable())),
     ]
 }
 
@@ -318,91 +265,38 @@ fn theme_toggle_stories() -> Vec<Story> {
     ]
 }
 
-// ── Layout stories ──
-// The layout primitives are web components but they don't have Rust
-// builders (yet). We wrap them in small local structs so the storybook
-// composes end-to-end via the DSL — no raw HTML string in the route.
-
-fn layout_stories() -> Vec<Story> {
+fn heading_stories() -> Vec<Story> {
     vec![
-        story("columns 1:2:1", Columns::ratios("1 2 1").with_cells(3)),
-        story("columns 4 equal", Columns::cols(4).with_cells(4)),
-        story("stack (vertical)", Stack::default().with_cells(3)),
-        story("grid auto-fit min 180", Grid::auto(180).with_cells(6)),
-        story("sidebar 200px", Sidebar::default().with_cells(3)),
+        story("levels", stack().gap(Gap::Sm)
+            .add(heading("H1 – page title").h1())
+            .add(heading("H2 – section title").h2())
+            .add(heading("H3 – subheading").h3())
+            .add(heading("H4 – EYEBROW").h4())),
+        story("tones", stack().gap(Gap::Sm)
+            .add(heading("Default").h3())
+            .add(heading("Brand").h3().tone(HeadingTone::Brand))
+            .add(heading("Muted").h3().tone(HeadingTone::Muted))
+            .add(heading("Success").h3().tone(HeadingTone::Success))
+            .add(heading("Warning").h3().tone(HeadingTone::Warning))
+            .add(heading("Danger").h3().tone(HeadingTone::Danger))),
     ]
 }
 
-// A generic filler cell used by the layout stories so the shape is
-// obvious. Uses `<ui-badge>` under the hood so it's a real primitive.
-fn cells(n: usize) -> Vec<Box<dyn Component>> {
-    (1..=n)
-        .map(|i| Box::new(badge(format!("{i}")).tone(Tone::Brand)) as Box<dyn Component>)
-        .collect()
-}
-
-// Minimal DSL wrappers around the layout web components. Each is a
-// standalone Component so it plugs into `story(...)` cleanly.
-struct Columns { ratios: Option<String>, cols: Option<u32>, children: Vec<Box<dyn Component>> }
-impl Columns {
-    fn ratios(s: impl Into<String>) -> Self { Self { ratios: Some(s.into()), cols: None, children: Vec::new() } }
-    fn cols(n: u32) -> Self { Self { ratios: None, cols: Some(n), children: Vec::new() } }
-    fn with_cells(mut self, n: usize) -> Self { self.children = cells(n); self }
-}
-impl Component for Columns {
-    fn render(&self) -> String {
-        let attr = match (&self.ratios, self.cols) {
-            (Some(r), _)   => format!(r#"ratios="{}""#, r),
-            (None, Some(c)) => format!(r#"cols="{}""#, c),
-            _ => String::new(),
-        };
-        let body: String = self.children.iter().map(|c| c.render()).collect();
-        format!(r#"<ui-columns {attr} gap="sm">{body}</ui-columns>"#)
-    }
-}
-
-struct Stack { gap: &'static str, children: Vec<Box<dyn Component>> }
-impl Default for Stack { fn default() -> Self { Self { gap: "sm", children: Vec::new() } } }
-impl Stack { fn with_cells(mut self, n: usize) -> Self { self.children = cells(n); self } }
-impl Component for Stack {
-    fn render(&self) -> String {
-        let body: String = self.children.iter().map(|c| c.render()).collect();
-        format!(r#"<ui-stack gap="{}">{}</ui-stack>"#, self.gap, body)
-    }
-}
-
-struct Grid { min_col: u32, children: Vec<Box<dyn Component>> }
-impl Grid {
-    fn auto(min: u32) -> Self { Self { min_col: min, children: Vec::new() } }
-    fn with_cells(mut self, n: usize) -> Self { self.children = cells(n); self }
-}
-impl Component for Grid {
-    fn render(&self) -> String {
-        let body: String = self.children.iter().map(|c| c.render()).collect();
-        format!(r#"<ui-grid min-col="{}" gap="sm">{}</ui-grid>"#, self.min_col, body)
-    }
-}
-
-struct Sidebar { width: &'static str, side_children: Vec<Box<dyn Component>>, main_children: Vec<Box<dyn Component>> }
-impl Default for Sidebar { fn default() -> Self { Self { width: "200px", side_children: Vec::new(), main_children: Vec::new() } } }
-impl Sidebar {
-    fn with_cells(mut self, n: usize) -> Self {
-        // Half the cells go into the sidebar, half into main.
-        let mid = n / 2 + 1;
-        self.side_children = cells(mid);
-        self.main_children = cells(n - mid + 2);
-        self
-    }
-}
-impl Component for Sidebar {
-    fn render(&self) -> String {
-        // Wrap each side/main child stack in a `<ui-stack>` so the demo
-        // reads clearly, then slot into `<ui-sidebar>`.
-        let side: String = self.side_children.iter().map(|c| c.render()).collect();
-        let main: String = self.main_children.iter().map(|c| c.render()).collect();
-        format!(
-            r#"<ui-sidebar width="{w}" collapse-at="0"><ui-stack slot="side" gap="xs">{side}</ui-stack><ui-stack gap="xs">{main}</ui-stack></ui-sidebar>"#,
-            w = self.width, side = side, main = main,
-        )
-    }
+fn layout_stories() -> Vec<Story> {
+    // Small helper closure so each layout story reads clearly.
+    let cell = |n: u32| badge(format!("{n}")).tone(Tone::Brand);
+    vec![
+        story("columns 1:2:1", columns().ratios("1 2 1").gap(Gap::Sm)
+            .add(cell(1)).add(cell(2)).add(cell(3))),
+        story("columns 4 equal", columns().cols(4).gap(Gap::Sm)
+            .add(cell(1)).add(cell(2)).add(cell(3)).add(cell(4))),
+        story("stack (vertical)", stack().gap(Gap::Sm)
+            .add(cell(1)).add(cell(2)).add(cell(3))),
+        story("grid auto-fit min 180", grid().set_min_col(180).gap(Gap::Sm)
+            .add(cell(1)).add(cell(2)).add(cell(3))
+            .add(cell(4)).add(cell(5)).add(cell(6))),
+        story("cluster (wraps)", cluster_row()
+            .add(cell(1)).add(cell(2)).add(cell(3))
+            .add(cell(4)).add(cell(5)).add(cell(6))),
+    ]
 }

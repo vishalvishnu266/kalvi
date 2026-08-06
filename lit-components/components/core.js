@@ -25,6 +25,7 @@ import './primitives/ui-slider.js';
 import './primitives/ui-progress.js';
 import './primitives/ui-color-swatch.js';
 import './primitives/ui-theme-toggle.js';
+import './primitives/ui-heading.js';
 
 // Layout primitives — must be defined before first paint so children
 // don't reflow when the tag upgrades (avoids CLS). Compose these to build

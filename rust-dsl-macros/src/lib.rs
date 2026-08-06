@@ -455,14 +455,21 @@ pub fn derive_ui_component(input: TokenStream) -> TokenStream {
             render_body.push(quote! {
                 for c in &self.#fname { body.push_str(&c.render()); }
             });
-            // Also auto-implement .add() / .children() on the struct.
+            // Also auto-implement .add() / .add_boxed() / .children() on
+            // the struct so callers can push both typed and boxed children.
             container_impl = Some(quote! {
                 impl #name {
-                    /// Push a single child into this container.
+                    /// Push a single typed child into this container.
                     pub fn add(mut self, child: impl ::lit_ui::core::Component + 'static) -> Self {
                         self.#fname.push(::std::boxed::Box::new(child)); self
                     }
-                    /// Push many children in one call.
+                    /// Push an already-boxed child. Useful when the child's
+                    /// concrete type isn't known at compile time (e.g. a
+                    /// `Box<dyn Component>` coming out of a `Vec`).
+                    pub fn add_boxed(mut self, child: ::std::boxed::Box<dyn ::lit_ui::core::Component>) -> Self {
+                        self.#fname.push(child); self
+                    }
+                    /// Push many typed children in one call.
                     pub fn children<I, C>(mut self, iter: I) -> Self
                     where
                         I: ::core::iter::IntoIterator<Item = C>,

@@ -71,6 +71,7 @@ pub mod prelude {
     pub use crate::components::avatar::{avatar, Avatar, AvatarSize};
     pub use crate::components::tooltip::{tooltip, Tooltip, Placement};
     pub use crate::components::skeleton::{skeleton, Skeleton, Shape as SkeletonShape};
+    pub use crate::components::heading::{heading, Heading, HeadingLevel, HeadingTone};
 
     // Utility / feedback primitives
     pub use crate::components::slider::{slider, Slider};
@@ -80,4 +81,16 @@ pub mod prelude {
 
     // Top-level document envelope.
     pub use crate::components::page::{page, Page};
+
+    // Layout primitives (mirror the <ui-columns> / -stack / -cluster /
+    // -grid / -sidebar / -center web components).
+    pub use crate::components::layout::{
+        columns, Columns,
+        stack,   Stack,
+        cluster_row, Cluster,
+        grid,    Grid,
+        sidebar, Sidebar,
+        center,  Center,
+        Gap, Align, Distribute, Justify, Side,
+    };
 }
