@@ -2,3 +2,4 @@
 /.junie/
 .DS_Store
 /target/
+/rust-dsl/target/
