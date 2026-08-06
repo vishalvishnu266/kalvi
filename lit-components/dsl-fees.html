@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Fees · ERP demo</title>
+  <link rel="stylesheet" href="/lit-components/assets/tokens.css">
+  <link rel="stylesheet" href="/lit-components/assets/global.css">
+  <link rel="stylesheet" href="/lit-components/assets/layout.css">
+  <link rel="modulepreload" href="/lit-components/components/index.js">
+  <!-- Hotwire Turbo Drive: required for Hotwire Native — turns page
+       navigations into HTML body swaps that the native shell can treat
+       as native screens. No custom lifecycle code needed. -->
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@hotwired/turbo@8.0.4/dist/turbo.es2017-esm.min.js"></script>
+  <style>
+    /* Hide the app until custom elements are defined, but show a spinner. */
+    body:not(.ce-ready) > *:not(#app-loading) { visibility: hidden; }
+    #app-loading {
+      position: fixed; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--color-bg, #fff);
+      z-index: 9999;
+      transition: opacity .2s ease;
+    }
+    #app-loading.hidden { opacity: 0; pointer-events: none; }
+    #app-loading .spinner {
+      width: 36px; height: 36px; border-radius: 50%;
+      border: 3px solid var(--color-border, #e5e7eb);
+      border-top-color: var(--color-primary, #4f46e5);
+      animation: ce-spin .8s linear infinite;
+    }
+    @keyframes ce-spin { to { transform: rotate(360deg); } }
+  </style>
+  <script type="module" src="/lit-components/components/index.js"></script>
+</head>
+<body>
+  <div id="app-loading" aria-live="polite" aria-busy="true">
+    <div class="spinner" role="status" aria-label="Loading"></div>
+  </div>
+<div class="lu-container lu-container-lg"><div class="lu-col lu-gap-lg lu-align-stretch lu-justify-start"><div class="lu-row lu-gap-md lu-align-center lu-justify-start lu-stack-m"><ui-breadcrumb separator="/"><a href="#/">Home</a><span>Fees</span></ui-breadcrumb><div class="lu-spacer"></div><ui-button variant="secondary" size="md" type="button" icon="upload">Export</ui-button><ui-button variant="primary" size="md" type="button" icon="plus">New invoice</ui-button></div><section class="lu-section"><header class="lu-section-header"><h2>This month</h2><span class="lu-section-subtitle">August 2026</span></header><div class="lu-grid lu-grid-fit-220 lu-gap-md"><ui-stat label="Collected" value="₹15,000" trend="up" icon="check" delta="+5.6%"></ui-stat><ui-stat label="Pending" value="₹9,500" trend="flat" icon="bell"></ui-stat><ui-stat label="Overdue" value="₹10,000" trend="down" icon="x" delta="-2.4%"></ui-stat><ui-stat label="Overdue count" value="2" trend="flat" icon="clipboard"></ui-stat></div></section><div class="lu-row lu-gap-lg lu-align-start lu-justify-start lu-stack-m"><div class="lu-col lu-gap-md lu-align-stretch lu-justify-start lu-flex-3 lu-min-w-320"><section class="lu-section"><header class="lu-section-header"><h2>Invoices</h2><span class="lu-section-subtitle">All statuses</span><div class="lu-section-actions"><ui-button variant="ghost" size="sm" type="button" icon="filter">Filters</ui-button></div></header><ui-card padded><ui-data-table id="fees-table" searchable per-page="6"></ui-data-table><script>(function(){
+  var t = document.getElementById("fees-table");
+  if (!t) return;
+  t.columns = [{ key: "number", label: "Invoice", sortable: true },{ key: "student", label: "Student", sortable: true },{ key: "amount", label: "Amount", sortable: true, align: "right", render: (v)=>`<span style="font-variant-numeric:tabular-nums">₹${Number(v).toLocaleString('en-IN')}</span>` },{ key: "due", label: "Due date", sortable: true },{ key: "status", label: "Status", sortable: true, render: (v)=>{ const t = v==='paid'?'success':v==='pending'?'warning':v==='overdue'?'danger':'brand'; return `<ui-badge tone="${t}" dot>${v}</ui-badge>`; } }];
+  t.rows    = [{ "amount": "4500", "due": "2026-08-15", "number": "INV-1042", "status": "paid", "student": "Aarav Kumar" },{ "amount": "4500", "due": "2026-08-15", "number": "INV-1043", "status": "pending", "student": "Meera Sharma" },{ "amount": "4500", "due": "2026-08-10", "number": "INV-1044", "status": "overdue", "student": "Rohan Patel" },{ "amount": "5000", "due": "2026-08-20", "number": "INV-1045", "status": "paid", "student": "Diya Verma" },{ "amount": "5000", "due": "2026-08-20", "number": "INV-1046", "status": "pending", "student": "Ishaan Thakur" },{ "amount": "5500", "due": "2026-08-05", "number": "INV-1047", "status": "overdue", "student": "Kavya Nair" },{ "amount": "5500", "due": "2026-08-25", "number": "INV-1048", "status": "paid", "student": "Priya Mehta" },{ "amount": "6000", "due": "2026-08-01", "number": "INV-1049", "status": "waived", "student": "Aryan Iyer" }];
+})();</script></ui-card></section></div><div class="lu-col lu-gap-md lu-align-stretch lu-justify-start lu-flex-1 lu-min-w-280"><section class="lu-section"><header class="lu-section-header"><h2>Quick create</h2></header><ui-card padded><ui-form method="post" action="/fees"><ui-select label="Student" name="student" placeholder="Search students…" searchable><option value="aarav">Aarav Kumar</option><option value="meera">Meera Sharma</option><option value="rohan">Rohan Patel</option><option value="diya">Diya Verma</option></ui-select><ui-input type="number" label="Amount (₹)" name="amount" required></ui-input><ui-datepicker label="Due date" name="due"></ui-datepicker><ui-select label="Category" name="category" required><option value="tuition">Tuition</option><option value="transport">Transport</option><option value="meals">Meals</option><option value="misc">Miscellaneous</option></ui-select><ui-input type="textarea" label="Notes" name="notes" hint="Optional"></ui-input><span slot="actions"><ui-button variant="secondary" size="md" type="button">Cancel</ui-button></span><span slot="actions"><ui-button variant="primary" size="md" type="submit" icon="check">Create invoice</ui-button></span></ui-form></ui-card></section></div></div></div></div>
+  <script>
+    (function () {
+      var TIMEOUT_MS = 1500;
+      function reveal() {
+        if (document.body.classList.contains('ce-ready')) return;
+        document.body.classList.add('ce-ready');
+        var loader = document.getElementById('app-loading');
+        if (loader) {
+          loader.classList.add('hidden');
+          setTimeout(function () { loader.remove(); }, 220);
+        }
+      }
+      // Prefer the loader's aggregate promise (waits for core + extras
+      // + any lazy chunks the current page needs). Falls back to a plain
+      // whenDefined scan if index.js hasn't set __lit_ready yet.
+      function whenLoaderReady() {
+        if (window.__lit_ready && typeof window.__lit_ready.then === 'function') {
+          return window.__lit_ready;
+        }
+        var tags = new Set();
+        document.querySelectorAll('*').forEach(function (el) {
+          var t = el.tagName.toLowerCase();
+          if (t.indexOf('-') !== -1) tags.add(t);
+        });
+        if (!tags.size || !window.customElements) return Promise.resolve();
+        return Promise.all(
+          Array.from(tags).map(function (t) { return customElements.whenDefined(t); })
+        );
+      }
+      // Poll briefly for __lit_ready — the module script may not have
+      // executed by the time this inline script runs.
+      var waited = 0;
+      (function tick() {
+        if (window.__lit_ready || waited >= 200) {
+          whenLoaderReady().then(reveal).catch(reveal);
+          return;
+        }
+        waited += 20;
+        setTimeout(tick, 20);
+      })();
+      // Safety net: never leave the page hidden.
+      setTimeout(function () {
+        // Diagnostic — if we hit the safety net it means some custom
+        // element failed to upgrade in time. Log the offenders so the
+        // occasional "page didn't render" bug is debuggable instead of
+        // silent. Only fires if we're forced to reveal via the timeout.
+        if (!document.body.classList.contains('ce-ready')) {
+          try {
+            var missing = [];
+            document.querySelectorAll('*').forEach(function (el) {
+              var t = el.tagName.toLowerCase();
+              if (t.indexOf('-') !== -1 && !customElements.get(t)) {
+                missing.push(t);
+              }
+            });
+            if (missing.length) {
+              console.warn('[lit-ui] FOUCE safety-net fired — un-upgraded custom elements:',
+                Array.from(new Set(missing)).sort());
+            }
+          } catch (_) {}
+        }
+        reveal();
+      }, TIMEOUT_MS);
+    })();
+  </script>
+</body>
+</html>

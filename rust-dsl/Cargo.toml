@@ -10,28 +10,6 @@ license = "MIT OR Apache-2.0"
 name = "lit_ui"
 path = "src/lib.rs"
 
-# Example binary that prints a full HTML page to stdout.
-# Run with:  cargo run --example demo > demo.html
-[[example]]
-name = "demo"
-path = "examples/demo.rs"
-
-# ERP page examples — each writes its HTML into ../lit-components/dsl-<name>.html.
-[[example]]
-name = "students"
-path = "examples/students.rs"
-
-[[example]]
-name = "fees"
-path = "examples/fees.rs"
-
-[[example]]
-name = "attendance"
-path = "examples/attendance.rs"
-
-[[example]]
-name = "dashboard"
-path = "examples/dashboard.rs"
 
 [dependencies]
 # The only dependency: our sibling proc-macro crate that generates setters,

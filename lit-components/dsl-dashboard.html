@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Dashboard · ERP demo</title>
+  <link rel="stylesheet" href="/lit-components/assets/tokens.css">
+  <link rel="stylesheet" href="/lit-components/assets/global.css">
+  <link rel="stylesheet" href="/lit-components/assets/layout.css">
+  <link rel="modulepreload" href="/lit-components/components/index.js">
+  <!-- Hotwire Turbo Drive: required for Hotwire Native — turns page
+       navigations into HTML body swaps that the native shell can treat
+       as native screens. No custom lifecycle code needed. -->
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@hotwired/turbo@8.0.4/dist/turbo.es2017-esm.min.js"></script>
+  <style>
+    /* Hide the app until custom elements are defined, but show a spinner. */
+    body:not(.ce-ready) > *:not(#app-loading) { visibility: hidden; }
+    #app-loading {
+      position: fixed; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--color-bg, #fff);
+      z-index: 9999;
+      transition: opacity .2s ease;
+    }
+    #app-loading.hidden { opacity: 0; pointer-events: none; }
+    #app-loading .spinner {
+      width: 36px; height: 36px; border-radius: 50%;
+      border: 3px solid var(--color-border, #e5e7eb);
+      border-top-color: var(--color-primary, #4f46e5);
+      animation: ce-spin .8s linear infinite;
+    }
+    @keyframes ce-spin { to { transform: rotate(360deg); } }
+  </style>
+  <script type="module" src="/lit-components/components/index.js"></script>
+</head>
+<body>
+  <div id="app-loading" aria-live="polite" aria-busy="true">
+    <div class="spinner" role="status" aria-label="Loading"></div>
+  </div>
+<div class="lu-container lu-container-lg"><div class="lu-col lu-gap-lg lu-align-stretch lu-justify-start">
+        <nav class="lu-demo-nav">
+          <strong>DSL demos:</strong>
+          <a href="/dsl/dashboard">Dashboard</a>
+          <a href="/dsl/students">Students</a>
+          <a href="/dsl/fees">Fees</a>
+          <a href="/dsl/attendance">Attendance</a>
+          <a href="/dsl/icons">Icons</a>
+          <a href="/dsl/layouts">Layouts</a>
+          <a href="/dsl/components">Components</a>
+          <a href="/dsl/errors">Errors</a>
+          <a href="/dsl" class="lu-demo-nav-end">Index</a>
+        </nav>
+    <div class="lu-row lu-gap-md lu-align-center lu-justify-start lu-stack-m"><ui-breadcrumb separator="/"><span>Dashboard</span></ui-breadcrumb><div class="lu-spacer"></div><ui-dropdown-menu align="end"><div slot="trigger" style="display:contents;"><ui-button variant="secondary" size="md" type="button" icon="more">Actions</ui-button></div><button>New announcement</button><a href="/dsl/students">Add student</a><a href="/dsl/fees">New invoice</a><hr><button>Export dashboard PDF</button></ui-dropdown-menu><ui-button variant="primary" size="md" type="button" icon="bell">New announcement</ui-button></div><div class="lu-grid lu-grid-fit-220 lu-gap-md"><ui-stat label="Total students" value="1,248" trend="up" icon="users" delta="+2.1%"></ui-stat><ui-stat label="Present today" value="1,102" trend="up" icon="check" delta="+3.2%"></ui-stat><ui-stat label="Fee collection" value="82%" trend="up" icon="card" delta="+5.6%"></ui-stat><ui-stat label="Pending admissions" value="17" trend="down" icon="clipboard" delta="-3"></ui-stat></div><section class="lu-section"><header class="lu-section-header"><h2>This term</h2><span class="lu-section-subtitle">Aug 2026</span></header><div class="lu-grid lu-grid-fit-320 lu-gap-md"><ui-card padded><ui-progress value="72" max="100" shape="linear" size="56" tone="success" label="Syllabus (Grade 5)" show-value></ui-progress></ui-card><ui-card padded><ui-progress value="45" max="100" shape="linear" size="56" tone="warning" label="Warning zone" show-value></ui-progress></ui-card><ui-card padded><ui-progress value="90" max="100" shape="linear" size="56" tone="info" label="Attendance" show-value></ui-progress></ui-card></div></section><section class="lu-section"><ui-card padded><ui-kanban><ui-kanban-column title="Applied"><ui-kanban-card id="k1">Aarav Kumar · Grade 5</ui-kanban-card><ui-kanban-card id="k2">Meera Sharma · Grade 6</ui-kanban-card><ui-kanban-card id="k3">Rohan Patel · Grade 4</ui-kanban-card></ui-kanban-column><ui-kanban-column title="Interview"><ui-kanban-card id="k4">Diya Verma · Aug 8, 10:30 AM</ui-kanban-card></ui-kanban-column><ui-kanban-column title="Offer"><ui-kanban-card id="k5">Ishaan Thakur · Awaiting response</ui-kanban-card></ui-kanban-column><ui-kanban-column title="Enrolled"><ui-kanban-card id="k6">Kavya Nair · Joined Jul 15</ui-kanban-card></ui-kanban-column></ui-kanban></ui-card></section><div class="lu-grid lu-grid-fit-320 lu-gap-md"><ui-card title="1" subtitle="1" padded></ui-card><ui-card title="2" subtitle="2" padded></ui-card><ui-card title="3" subtitle="3" padded></ui-card><ui-card title="4" subtitle="4" padded></ui-card><ui-card title="5" subtitle="5" padded></ui-card><ui-card title="6" subtitle="6" padded></ui-card><ui-card title="7" subtitle="7" padded></ui-card><ui-card title="8" subtitle="8" padded></ui-card><ui-card title="9" subtitle="9" padded></ui-card><ui-card title="10" subtitle="10" padded></ui-card><ui-card title="11" subtitle="11" padded></ui-card><ui-card title="12" subtitle="12" padded></ui-card><ui-card title="13" subtitle="13" padded></ui-card><ui-card title="14" subtitle="14" padded></ui-card><ui-card title="15" subtitle="15" padded></ui-card><ui-card title="16" subtitle="16" padded></ui-card><ui-card title="17" subtitle="17" padded></ui-card><ui-card title="18" subtitle="18" padded></ui-card><ui-card title="19" subtitle="19" padded></ui-card><ui-card title="20" subtitle="20" padded></ui-card><ui-card title="21" subtitle="21" padded></ui-card><ui-card title="22" subtitle="22" padded></ui-card><ui-card title="23" subtitle="23" padded></ui-card><ui-card title="24" subtitle="24" padded></ui-card><ui-card title="25" subtitle="25" padded></ui-card><ui-card title="26" subtitle="26" padded></ui-card><ui-card title="27" subtitle="27" padded></ui-card><ui-card title="28" subtitle="28" padded></ui-card><ui-card title="29" subtitle="29" padded></ui-card><ui-card title="30" subtitle="30" padded></ui-card><ui-card title="31" subtitle="31" padded></ui-card><ui-card title="32" subtitle="32" padded></ui-card><ui-card title="33" subtitle="33" padded></ui-card><ui-card title="34" subtitle="34" padded></ui-card><ui-card title="35" subtitle="35" padded></ui-card><ui-card title="36" subtitle="36" padded></ui-card><ui-card title="37" subtitle="37" padded></ui-card><ui-card title="38" subtitle="38" padded></ui-card><ui-card title="39" subtitle="39" padded></ui-card><ui-card title="40" subtitle="40" padded></ui-card><ui-card title="41" subtitle="41" padded></ui-card><ui-card title="42" subtitle="42" padded></ui-card><ui-card title="43" subtitle="43" padded></ui-card><ui-card title="44" subtitle="44" padded></ui-card><ui-card title="45" subtitle="45" padded></ui-card><ui-card title="46" subtitle="46" padded></ui-card><ui-card title="47" subtitle="47" padded></ui-card><ui-card title="48" subtitle="48" padded></ui-card><ui-card title="49" subtitle="49" padded></ui-card><ui-card title="50" subtitle="50" padded></ui-card><ui-card title="51" subtitle="51" padded></ui-card><ui-card title="52" subtitle="52" padded></ui-card><ui-card title="53" subtitle="53" padded></ui-card><ui-card title="54" subtitle="54" padded></ui-card><ui-card title="55" subtitle="55" padded></ui-card><ui-card title="56" subtitle="56" padded></ui-card><ui-card title="57" subtitle="57" padded></ui-card><ui-card title="58" subtitle="58" padded></ui-card><ui-card title="59" subtitle="59" padded></ui-card><ui-card title="60" subtitle="60" padded></ui-card><ui-card title="61" subtitle="61" padded></ui-card><ui-card title="62" subtitle="62" padded></ui-card><ui-card title="63" subtitle="63" padded></ui-card><ui-card title="64" subtitle="64" padded></ui-card><ui-card title="65" subtitle="65" padded></ui-card><ui-card title="66" subtitle="66" padded></ui-card><ui-card title="67" subtitle="67" padded></ui-card><ui-card title="68" subtitle="68" padded></ui-card><ui-card title="69" subtitle="69" padded></ui-card><ui-card title="70" subtitle="70" padded></ui-card><ui-card title="71" subtitle="71" padded></ui-card><ui-card title="72" subtitle="72" padded></ui-card><ui-card title="73" subtitle="73" padded></ui-card><ui-card title="74" subtitle="74" padded></ui-card><ui-card title="75" subtitle="75" padded></ui-card><ui-card title="76" subtitle="76" padded></ui-card><ui-card title="77" subtitle="77" padded></ui-card><ui-card title="78" subtitle="78" padded></ui-card><ui-card title="79" subtitle="79" padded></ui-card><ui-card title="80" subtitle="80" padded></ui-card><ui-card title="81" subtitle="81" padded></ui-card><ui-card title="82" subtitle="82" padded></ui-card><ui-card title="83" subtitle="83" padded></ui-card><ui-card title="84" subtitle="84" padded></ui-card><ui-card title="85" subtitle="85" padded></ui-card><ui-card title="86" subtitle="86" padded></ui-card><ui-card title="87" subtitle="87" padded></ui-card><ui-card title="88" subtitle="88" padded></ui-card><ui-card title="89" subtitle="89" padded></ui-card><ui-card title="90" subtitle="90" padded></ui-card><ui-card title="91" subtitle="91" padded></ui-card><ui-card title="92" subtitle="92" padded></ui-card><ui-card title="93" subtitle="93" padded></ui-card><ui-card title="94" subtitle="94" padded></ui-card><ui-card title="95" subtitle="95" padded></ui-card><ui-card title="96" subtitle="96" padded></ui-card><ui-card title="97" subtitle="97" padded></ui-card><ui-card title="98" subtitle="98" padded></ui-card><ui-card title="99" subtitle="99" padded></ui-card><ui-card title="100" subtitle="100" padded></ui-card></div><ui-card padded><ui-form method="post"><ui-input type="text" label="test" hint="must be present" invalid></ui-input><div class="lu-grid lu-grid-fit-220 lu-gap-md"><ui-input type="text" label="user"></ui-input><ui-input type="text" label="name"></ui-input></div><div class="lu-grid lu-grid-fit-220 lu-gap-md"><ui-input type="text" label="age"></ui-input><ui-input type="email" label="email" placeholder="a@gmail.com" hint="enter your email"></ui-input><ui-input type="text" label="phone"></ui-input></div><ui-input type="text" label="title"></ui-input></ui-form></ui-card><section class="lu-section"><header class="lu-section-header"><h2>Recent Activity</h2><span class="lu-section-subtitle">activity</span></header><ui-timeline><ui-timeline-item icon="check" tone="success" time="10:24 AM"><strong>Fees paid</strong><div class="lu-text-muted">Invoice #INV-1042 · ₹4,500</div></ui-timeline-item><ui-timeline-item icon="edit" tone="info" time="Yesterday"><strong>Profile updated</strong><div class="lu-text-muted">Guardian phone changed</div></ui-timeline-item><ui-timeline-item icon="bell" tone="warning" time="Aug 10"><strong>Late arrival flagged</strong><div class="lu-text-muted">Third late day this month</div></ui-timeline-item><ui-timeline-item icon="plus" tone="muted" time="Jul 15"><strong>Admitted</strong><div class="lu-text-muted">Grade 5-B</div></ui-timeline-item></ui-timeline></section><ui-toast-host></ui-toast-host></div></div>
+  <script>
+    (function () {
+      var TIMEOUT_MS = 1500;
+      function reveal() {
+        if (document.body.classList.contains('ce-ready')) return;
+        document.body.classList.add('ce-ready');
+        var loader = document.getElementById('app-loading');
+        if (loader) {
+          loader.classList.add('hidden');
+          setTimeout(function () { loader.remove(); }, 220);
+        }
+      }
+      // Prefer the loader's aggregate promise (waits for core + extras
+      // + any lazy chunks the current page needs). Falls back to a plain
+      // whenDefined scan if index.js hasn't set __lit_ready yet.
+      function whenLoaderReady() {
+        if (window.__lit_ready && typeof window.__lit_ready.then === 'function') {
+          return window.__lit_ready;
+        }
+        var tags = new Set();
+        document.querySelectorAll('*').forEach(function (el) {
+          var t = el.tagName.toLowerCase();
+          if (t.indexOf('-') !== -1) tags.add(t);
+        });
+        if (!tags.size || !window.customElements) return Promise.resolve();
+        return Promise.all(
+          Array.from(tags).map(function (t) { return customElements.whenDefined(t); })
+        );
+      }
+      // Poll briefly for __lit_ready — the module script may not have
+      // executed by the time this inline script runs.
+      var waited = 0;
+      (function tick() {
+        if (window.__lit_ready || waited >= 200) {
+          whenLoaderReady().then(reveal).catch(reveal);
+          return;
+        }
+        waited += 20;
+        setTimeout(tick, 20);
+      })();
+      // Safety net: never leave the page hidden.
+      setTimeout(function () {
+        // Diagnostic — if we hit the safety net it means some custom
+        // element failed to upgrade in time. Log the offenders so the
+        // occasional "page didn't render" bug is debuggable instead of
+        // silent. Only fires if we're forced to reveal via the timeout.
+        if (!document.body.classList.contains('ce-ready')) {
+          try {
+            var missing = [];
+            document.querySelectorAll('*').forEach(function (el) {
+              var t = el.tagName.toLowerCase();
+              if (t.indexOf('-') !== -1 && !customElements.get(t)) {
+                missing.push(t);
+              }
+            });
+            if (missing.length) {
+              console.warn('[lit-ui] FOUCE safety-net fired — un-upgraded custom elements:',
+                Array.from(new Set(missing)).sort());
+            }
+          } catch (_) {}
+        }
+        reveal();
+      }, TIMEOUT_MS);
+    })();
+  </script>
+</body>
+</html>

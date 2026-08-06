@@ -1,0 +1,85 @@
+➜  kalvi git:(ai) ✗ cargo check -p lit-ui
+    Blocking waiting for file lock on build directory
+   Compiling syn v2.0.119
+   Compiling lit-ui-macros v0.1.0 (/Users/macbook/vishal/kalvi/rust-dsl-macros)
+warning: unused import: `ToTokens`
+  --> rust-dsl-macros/src/lib.rs:42:34
+   |
+42 | use quote::{format_ident, quote, ToTokens};
+   |                                  ^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `lit-ui-macros` (lib) generated 1 warning (run `cargo fix --lib -p lit-ui-macros` to apply 1 suggestion)
+    Checking lit-ui v0.1.0 (/Users/macbook/vishal/kalvi/rust-dsl)
+error[E0433]: cannot find `lit_ui` in the crate root
+  --> rust-dsl/src/components/badge.rs:41:10
+   |
+41 | #[derive(UiComponent)]
+   |          ^^^^^^^^^^^ could not find `lit_ui` in the list of imported crates
+   |
+   = note: this error originates in the derive macro `UiComponent` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: consider importing this module
+   |
+16 + use crate::core;
+   |
+
+error[E0433]: cannot find `lit_ui` in the crate root
+  --> rust-dsl/src/components/badge.rs:41:10
+   |
+41 | #[derive(UiComponent)]
+   |          ^^^^^^^^^^^ could not find `lit_ui` in the list of imported crates
+   |
+   = note: this error originates in the derive macro `UiComponent` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: consider importing this enum
+   |
+16 + use crate::core::Attr;
+   |
+
+error[E0433]: cannot find `lit_ui` in the crate root
+  --> rust-dsl/src/components/skeleton.rs:20:10
+   |
+20 | #[derive(UiComponent)]
+   |          ^^^^^^^^^^^ could not find `lit_ui` in the list of imported crates
+   |
+   = note: this error originates in the derive macro `UiComponent` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: consider importing this module
+   |
+10 + use crate::core;
+   |
+
+error[E0433]: cannot find `lit_ui` in the crate root
+  --> rust-dsl/src/components/skeleton.rs:20:10
+   |
+20 | #[derive(UiComponent)]
+   |          ^^^^^^^^^^^ could not find `lit_ui` in the list of imported crates
+   |
+   = note: this error originates in the derive macro `UiComponent` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: consider importing this enum
+   |
+10 + use crate::core::Attr;
+   |
+
+warning: unused import: `crate::core::Component`
+  --> rust-dsl/src/components/badge.rs:16:5
+   |
+16 | use crate::core::Component;
+   |     ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `crate::core::Component`
+  --> rust-dsl/src/components/skeleton.rs:10:5
+   |
+10 | use crate::core::Component;
+   |     ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::any::Any`
+  --> rust-dsl/src/pages/errors_validator.rs:17:5
+   |
+17 | use std::any::Any;
+   |     ^^^^^^^^^^^^^
+
+For more information about this error, try `rustc --explain E0433`.
+warning: `lit-ui` (lib) generated 3 warnings
+error: could not compile `lit-ui` (lib) due to 4 previous errors; 3 warnings emitted
