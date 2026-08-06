@@ -39,7 +39,7 @@
 //! This trio collapses ~120 lines of ceremony per primitive into ~20.
 
 use proc_macro::TokenStream;
-use quote::{format_ident, quote, ToTokens};
+use quote::{format_ident, quote};
 use syn::{
     parse_macro_input, Attribute, Data, DeriveInput, Expr, Fields, GenericArgument, Ident, Lit,
     Meta, PathArguments, Type,

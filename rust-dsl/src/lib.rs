@@ -38,6 +38,12 @@
 //! Children are stored as `Box<dyn Component>`, so you can freely mix
 //! different component types.
 
+// Make `::lit_ui::…` resolve inside this crate itself. Our derive macros
+// emit absolute paths like `::lit_ui::core::Attr`, which normally only
+// downstream crates can see. This alias lets the same generated code
+// compile both here and in consumer crates without special-casing.
+extern crate self as lit_ui;
+
 pub mod core;
 pub mod layout;
 pub mod components;

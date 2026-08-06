@@ -13,6 +13,11 @@
 //! `skip_if = "self.tone == Tone::Neutral"` reproduces the original
 //! "don't emit `tone` when it's the default" behaviour byte-for-byte.
 
+// `Component` is required in scope for the tests below (they call
+// `.render()` on the derived impl). Kept behind `#[allow(unused_imports)]`
+// because non-test builds don't reference it directly — the derive macro
+// emits the impl via absolute paths.
+#[allow(unused_imports)]
 use crate::core::Component;
 use lit_ui_macros::{AttrEnum, UiComponent};
 

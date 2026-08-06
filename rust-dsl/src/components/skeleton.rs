@@ -7,6 +7,7 @@
 //!   `skip_if = "self.lines == 1"` expresses that in one line.
 //! * `Shape` uses `AttrEnum` and picks `Line` as the default variant.
 
+#[allow(unused_imports)]
 use crate::core::Component;
 use lit_ui_macros::{AttrEnum, UiComponent};
 
