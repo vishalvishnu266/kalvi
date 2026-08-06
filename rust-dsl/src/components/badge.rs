@@ -1,35 +1,86 @@
-//! `<ui-badge>` typed builder.
+//! `<ui-badge>` typed builder — refactored to use `#[derive(UiComponent)]`
+//! and `#[derive(AttrEnum)]`. Compare with the pre-refactor `checkbox.rs`
+//! to see how much ceremony these two derives eliminate.
+//!
+//! The `AttrEnum` derive turns `#[attr("...")]` on each variant into a
+//! `Tone::as_str(self) -> &'static str` method. The `UiComponent` derive
+//! reads `#[ui(...)]` on each field and generates:
+//! * the setter (`.tone(t)`, `.dot()`),
+//! * `Default` (via per-field `default = "..."` or the type's `Default`),
+//! * a free constructor (`badge()` → `Badge::default()`),
+//! * `impl Component` — i.e. the whole `render()` body.
+//!
+//! `skip_if = "self.tone == Tone::Neutral"` reproduces the original
+//! "don't emit `tone` when it's the default" behaviour byte-for-byte.
 
-use crate::core::{escape_html, wrap, Attr, Component};
+use crate::core::Component;
+use lit_ui_macros::{AttrEnum, UiComponent};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Tone { Neutral, Brand, Success, Warning, Danger, Info }
-impl Tone {
-    fn as_str(self) -> &'static str {
-        match self {
-            Tone::Neutral => "neutral",
-            Tone::Brand   => "brand",
-            Tone::Success => "success",
-            Tone::Warning => "warning",
-            Tone::Danger  => "danger",
-            Tone::Info    => "info",
-        }
-    }
+#[derive(AttrEnum, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Tone {
+    #[attr("neutral")] #[attr_enum(default)] Neutral,
+    #[attr("brand")]   Brand,
+    #[attr("success")] Success,
+    #[attr("warning")] Warning,
+    #[attr("danger")]  Danger,
+    #[attr("info")]    Info,
 }
 
-pub struct Badge { label: String, tone: Tone, dot: bool }
+/// The label is a required constructor arg in the old API, so we keep a
+/// convenience free function that takes it. The derive still generates a
+/// `badge()` no-arg constructor, but downstream code should prefer the
+/// `badge(label)` form for readability.
 pub fn badge(label: impl Into<String>) -> Badge {
-    Badge { label: label.into(), tone: Tone::Neutral, dot: false }
+    let mut b = <Badge as Default>::default();
+    b.label = label.into();
+    b
 }
-impl Badge {
-    pub fn tone(mut self, t: Tone) -> Self { self.tone = t; self }
-    pub fn dot(mut self)           -> Self { self.dot = true; self }
+
+// `#[ui(no_ctor)]` because the module supplies a custom `badge(label)`
+// constructor above that takes the required label directly.
+#[derive(UiComponent)]
+#[ui(tag = "ui-badge", no_ctor)]
+pub struct Badge {
+    #[ui(slot)]                                                                 pub label: String,
+    #[ui(enum_attr = "tone", skip_if = "self.tone == Tone::Neutral")]           pub tone: Tone,
+    #[ui(flag = "dot")]                                                         pub dot: bool,
 }
-impl Component for Badge {
-    fn render(&self) -> String {
-        let mut attrs = Vec::new();
-        if self.tone != Tone::Neutral { attrs.push(Attr::kv("tone", self.tone.as_str())); }
-        if self.dot                   { attrs.push(Attr::flag("dot")); }
-        wrap("ui-badge", &attrs, &escape_html(&self.label))
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Golden-file snapshots. These match the byte-exact output of the
+    // pre-refactor `impl Component` so any regression is caught immediately.
+
+    #[test]
+    fn default_neutral_no_dot() {
+        // Old render: no `tone`, no `dot`, escaped label.
+        let html = badge("Live").render();
+        assert_eq!(html, r#"<ui-badge>Live</ui-badge>"#);
+    }
+
+    #[test]
+    fn brand_tone_reflected() {
+        let html = badge("New").tone(Tone::Brand).render();
+        assert_eq!(html, r#"<ui-badge tone="brand">New</ui-badge>"#);
+    }
+
+    #[test]
+    fn dot_flag_reflected() {
+        let html = badge("Alerts").dot().render();
+        assert_eq!(html, r#"<ui-badge dot>Alerts</ui-badge>"#);
+    }
+
+    #[test]
+    fn tone_and_dot_together() {
+        let html = badge("Errors").tone(Tone::Danger).dot().render();
+        assert_eq!(html, r#"<ui-badge tone="danger" dot>Errors</ui-badge>"#);
+    }
+
+    #[test]
+    fn label_is_html_escaped() {
+        let html = badge("<b>x</b>").render();
+        assert_eq!(html, r#"<ui-badge>&lt;b&gt;x&lt;/b&gt;</ui-badge>"#);
     }
 }

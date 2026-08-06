@@ -1,4 +1,4 @@
-import { LitBaseElement, html, css, nothing } from './base.js';
+import { LitBaseElement, html, css, nothing } from '../base.js';
 
 /**
  * <ui-button variant="primary|secondary|ghost|danger" size="sm|md|lg" icon="plus" full>

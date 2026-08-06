@@ -1,4 +1,4 @@
-﻿import { LitBaseElement, html, css, nothing } from './base.js';
+﻿import { LitBaseElement, html, css, nothing } from '../base.js';
 
 /**
  * <ui-icon name="home" size="20"></ui-icon>

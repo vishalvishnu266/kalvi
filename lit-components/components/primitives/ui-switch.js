@@ -1,4 +1,4 @@
-import { LitBaseElement, html, css, nothing } from './base.js';
+import { LitBaseElement, html, css, nothing } from '../base.js';
 
 /**
  * <ui-switch checked>Enable notifications</ui-switch>

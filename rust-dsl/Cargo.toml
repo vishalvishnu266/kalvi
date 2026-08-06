@@ -34,4 +34,7 @@ name = "dashboard"
 path = "examples/dashboard.rs"
 
 [dependencies]
-# Intentionally none — the DSL is dependency-free.
+# The only dependency: our sibling proc-macro crate that generates setters,
+# Default, and Component::render() for primitive components. Zero runtime
+# cost — everything is compile-time codegen.
+lit-ui-macros = { path = "../rust-dsl-macros", version = "0.1.0" }

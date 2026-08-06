@@ -42,6 +42,13 @@ pub mod core;
 pub mod layout;
 pub mod components;
 
+// Re-export the derive macros so consumers write
+//     use lit_ui::{UiComponent, AttrEnum};
+// without needing a direct dependency on the `lit-ui-macros` crate.
+// The macros collapse setter + Default + Component boilerplate to zero;
+// see `lit-ui-macros/src/lib.rs` for the field-level `#[ui(...)]` grammar.
+pub use lit_ui_macros::{AttrEnum, UiComponent};
+
 /// Reusable full-page builders (Students, Fees, Attendance, Dashboard).
 /// Framework-agnostic: each returns a [`crate::components::page::Page`] that
 /// the caller can `.render()` to HTML.

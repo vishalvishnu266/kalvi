@@ -1,4 +1,4 @@
-import { LitBaseElement, html, css, nothing } from './base.js';
+import { LitBaseElement, html, css, nothing } from '../base.js';
 
 /**
  * <ui-badge tone="success|warning|danger|info|brand|neutral" dot>Paid</ui-badge>

@@ -1,4 +1,4 @@
-import { LitBaseElement, html, css, nothing } from './base.js';
+import { LitBaseElement, html, css, nothing } from '../base.js';
 
 /**
  * <ui-input label="Full name" placeholder="e.g. Aarav" name="fullName" required></ui-input>

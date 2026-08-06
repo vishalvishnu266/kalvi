@@ -38,6 +38,8 @@ const COMPONENTS = [
   ['ui-kanban',        'kanban.html'],
   ['ui-command',       'command.html'],
   ['ui-data-table',    'data-table.html'],
+  ['ui-columns',       'columns.html'],
+  ['layout kit',       'layout.html'],
   ['app-shell',        'app-shell.html'],
 ];
 

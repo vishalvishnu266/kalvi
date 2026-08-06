@@ -1,4 +1,4 @@
-import { LitBaseElement, html, css, nothing } from './base.js';
+import { LitBaseElement, html, css, nothing } from '../base.js';
 
 /**
  * <ui-avatar name="Aarav K." src="…" size="sm|md|lg|xl"></ui-avatar>

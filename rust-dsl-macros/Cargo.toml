@@ -1,0 +1,15 @@
+[package]
+name = "lit-ui-macros"
+version = "0.1.0"
+edition = "2021"
+description = "Derive macros for the lit-ui DSL. Generates setters, Default, and Component render() from a single struct declaration."
+license = "MIT OR Apache-2.0"
+
+[lib]
+name = "lit_ui_macros"
+proc-macro = true
+
+[dependencies]
+syn        = { version = "2", features = ["full", "extra-traits"] }
+quote      = "1"
+proc-macro2 = "1"

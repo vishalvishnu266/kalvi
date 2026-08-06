@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>layout primitives · demo</title>
+  <link rel="stylesheet" href="../assets/tokens.css">
+  <link rel="stylesheet" href="../assets/global.css">
+  <link rel="stylesheet" href="./_page.css">
+  <script type="module" src="../components/index.js"></script>
+  <script type="module" src="./_shell.js"></script>
+  <style>
+    .box {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--space-3);
+      min-height: 48px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--color-text-muted);
+      font-size: var(--fs-sm);
+    }
+    .topbar {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--space-3) var(--space-4);
+    }
+    .sidebar-nav .box { justify-content: flex-start; }
+    .article {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--space-6);
+    }
+    .article h3 { margin-top: 0; }
+  </style>
+</head>
+<body>
+  <header class="demo-header">
+    <a class="brand" href="./index.html">← Lit playground</a>
+    <h1>layout primitives</h1>
+    <button id="demo-theme">Toggle theme</button>
+  </header>
+  <nav id="demo-nav"></nav>
+
+  <main class="demo">
+    <section>
+      <h2>ui-stack — vertical rhythm</h2>
+      <ui-stack gap="md">
+        <div class="box">form field 1</div>
+        <div class="box">form field 2</div>
+        <div class="box">form field 3</div>
+      </ui-stack>
+    </section>
+
+    <section>
+      <h2>ui-cluster — wrapping inline row</h2>
+      <ui-cluster gap="sm">
+        <ui-badge>alpha</ui-badge>
+        <ui-badge tone="success">beta</ui-badge>
+        <ui-badge tone="brand">gamma</ui-badge>
+        <ui-badge tone="warn">delta</ui-badge>
+        <ui-badge>epsilon</ui-badge>
+        <ui-badge tone="danger">zeta</ui-badge>
+      </ui-cluster>
+    </section>
+
+    <section>
+      <h2>ui-grid — auto-fit responsive tiles</h2>
+      <p class="muted">Resize to see tracks wrap. <code>min-col="200"</code> means every tile ≥ 200px.</p>
+      <ui-grid min-col="200" gap="md">
+        <div class="box">tile 1</div>
+        <div class="box">tile 2</div>
+        <div class="box">tile 3</div>
+        <div class="box">tile 4</div>
+        <div class="box">tile 5</div>
+        <div class="box">tile 6</div>
+      </ui-grid>
+    </section>
+
+    <section>
+      <h2>ui-grid — fixed 12-col mode</h2>
+      <ui-grid cols="12" gap="sm">
+        <div class="box" style="grid-column: span 6">span 6</div>
+        <div class="box" style="grid-column: span 3">span 3</div>
+        <div class="box" style="grid-column: span 3">span 3</div>
+        <div class="box" style="grid-column: span 4">span 4</div>
+        <div class="box" style="grid-column: span 8">span 8</div>
+      </ui-grid>
+    </section>
+
+    <section>
+      <h2>ui-columns — explicit N-column with ratios</h2>
+      <ui-columns ratios="1 2 1" gap="md">
+        <div class="box">1fr</div>
+        <div class="box">2fr</div>
+        <div class="box">1fr</div>
+      </ui-columns>
+    </section>
+
+    <section>
+      <h2>ui-sidebar — fixed sidebar + fluid main</h2>
+      <p class="muted">Below 768px viewport, the sidebar stacks on top of the main content.</p>
+      <ui-sidebar width="220px" collapse-at="768">
+        <ui-stack slot="side" class="sidebar-nav" gap="xs">
+          <div class="box">Dashboard</div>
+          <div class="box">Students</div>
+          <div class="box">Fees</div>
+          <div class="box">Reports</div>
+        </ui-stack>
+        <div class="box" style="min-height: 200px">main content area</div>
+      </ui-sidebar>
+    </section>
+
+    <section>
+      <h2>ui-center — centered readable column</h2>
+      <ui-center max-w="60ch" padded>
+        <article class="article">
+          <h3>Article title</h3>
+          <p class="muted">
+            The container caps its own width at 60ch and centers itself in
+            whatever parent gives it space. Add <code>padded</code> for a
+            side gutter, or <code>intrinsic</code> to also center children
+            on the cross axis.
+          </p>
+        </article>
+      </ui-center>
+    </section>
+
+    <section>
+      <h2>Composition — an app body</h2>
+      <p class="muted">Top-bar with logo + actions, sidebar + main, cluster of actions in the footer.</p>
+      <ui-stack gap="md">
+        <!-- Top bar: brand on left, actions cluster on right. -->
+        <ui-cluster gap="sm" justify="between" class="topbar">
+          <strong>Brand</strong>
+          <ui-cluster gap="sm">
+            <ui-badge>v1</ui-badge>
+            <ui-badge tone="success">live</ui-badge>
+            <ui-icon name="user"></ui-icon>
+          </ui-cluster>
+        </ui-cluster>
+
+        <!-- Body: sidebar + main. -->
+        <ui-sidebar width="200px" collapse-at="768">
+          <ui-stack slot="side" gap="xs">
+            <div class="box">Home</div>
+            <div class="box">Inbox</div>
+            <div class="box">Settings</div>
+          </ui-stack>
+          <ui-stack gap="md">
+            <ui-grid min-col="180" gap="sm">
+              <div class="box">stat 1</div>
+              <div class="box">stat 2</div>
+              <div class="box">stat 3</div>
+              <div class="box">stat 4</div>
+            </ui-grid>
+            <div class="box" style="min-height: 160px">chart placeholder</div>
+          </ui-stack>
+        </ui-sidebar>
+      </ui-stack>
+    </section>
+
+    <section>
+      <h2>Usage cheatsheet</h2>
+<pre class="code">&lt;!-- Vertical rhythm --&gt;
+&lt;ui-stack gap="md"&gt; … &lt;/ui-stack&gt;
+
+&lt;!-- Wrapping inline row (chips, meta, action bars) --&gt;
+&lt;ui-cluster gap="sm" justify="between"&gt; … &lt;/ui-cluster&gt;
+
+&lt;!-- Auto-fit responsive tiles --&gt;
+&lt;ui-grid min-col="240" gap="md"&gt; … &lt;/ui-grid&gt;
+
+&lt;!-- Fixed cols --&gt;
+&lt;ui-grid cols="12" gap="sm"&gt; … &lt;/ui-grid&gt;
+
+&lt;!-- N-column with ratios --&gt;
+&lt;ui-columns ratios="1 2 1" gap="md"&gt; … &lt;/ui-columns&gt;
+
+&lt;!-- Sidebar + main (mobile-stacks) --&gt;
+&lt;ui-sidebar width="240px" collapse-at="768"&gt;
+  &lt;nav slot="side"&gt; … &lt;/nav&gt;
+  &lt;main&gt; … &lt;/main&gt;
+&lt;/ui-sidebar&gt;
+
+&lt;!-- Centered readable column --&gt;
+&lt;ui-center max-w="72ch" padded&gt; &lt;article&gt; … &lt;/article&gt; &lt;/ui-center&gt;</pre>
+    </section>
+  </main>
+</body>
+</html>

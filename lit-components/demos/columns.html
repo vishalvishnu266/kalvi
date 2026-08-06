@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ui-columns · demo</title>
+  <link rel="stylesheet" href="../assets/tokens.css">
+  <link rel="stylesheet" href="../assets/global.css">
+  <link rel="stylesheet" href="./_page.css">
+  <script type="module" src="../components/index.js"></script>
+  <script type="module" src="./_shell.js"></script>
+  <style>
+    /* Visual filler so the layout is easy to see. */
+    .cell {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--space-4);
+      min-height: 64px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--color-text-muted);
+      font-size: var(--fs-sm);
+    }
+    .cell strong { color: var(--color-text); }
+  </style>
+</head>
+<body>
+  <header class="demo-header">
+    <a class="brand" href="./index.html">← Lit playground</a>
+    <h1>ui-columns</h1>
+    <button id="demo-theme">Toggle theme</button>
+  </header>
+  <nav id="demo-nav"></nav>
+
+  <main class="demo">
+    <section>
+      <h2>Two equal columns</h2>
+      <ui-columns cols="2">
+        <div class="cell"><strong>1</strong></div>
+        <div class="cell"><strong>2</strong></div>
+      </ui-columns>
+    </section>
+
+    <section>
+      <h2>Three equal columns</h2>
+      <ui-columns cols="3">
+        <div class="cell"><strong>1</strong></div>
+        <div class="cell"><strong>2</strong></div>
+        <div class="cell"><strong>3</strong></div>
+      </ui-columns>
+    </section>
+
+    <section>
+      <h2>Four equal columns</h2>
+      <ui-columns cols="4" gap="sm">
+        <div class="cell"><strong>1</strong></div>
+        <div class="cell"><strong>2</strong></div>
+        <div class="cell"><strong>3</strong></div>
+        <div class="cell"><strong>4</strong></div>
+      </ui-columns>
+    </section>
+
+    <section>
+      <h2>Two columns with 1:2 ratio</h2>
+      <ui-columns ratios="1 2">
+        <div class="cell"><strong>1fr</strong></div>
+        <div class="cell"><strong>2fr</strong></div>
+      </ui-columns>
+    </section>
+
+    <section>
+      <h2>Three columns with 1:2:1 ratio</h2>
+      <ui-columns ratios="1 2 1">
+        <div class="cell"><strong>1fr</strong> sidebar</div>
+        <div class="cell"><strong>2fr</strong> main content</div>
+        <div class="cell"><strong>1fr</strong> aside</div>
+      </ui-columns>
+    </section>
+
+    <section>
+      <h2>Four columns with 2:3:4:3 ratio</h2>
+      <ui-columns ratios="2 3 4 3" gap="lg">
+        <div class="cell"><strong>2fr</strong></div>
+        <div class="cell"><strong>3fr</strong></div>
+        <div class="cell"><strong>4fr</strong></div>
+        <div class="cell"><strong>3fr</strong></div>
+      </ui-columns>
+    </section>
+
+    <section>
+      <h2>Gap presets</h2>
+      <p class="muted">none · xs · sm · md · lg · xl</p>
+      <ui-columns cols="3" gap="none"><div class="cell">none</div><div class="cell">none</div><div class="cell">none</div></ui-columns>
+      <br>
+      <ui-columns cols="3" gap="xs"><div class="cell">xs</div><div class="cell">xs</div><div class="cell">xs</div></ui-columns>
+      <br>
+      <ui-columns cols="3" gap="xl"><div class="cell">xl</div><div class="cell">xl</div><div class="cell">xl</div></ui-columns>
+    </section>
+
+    <section>
+      <h2>Mobile-first collapse</h2>
+      <p class="muted">
+        Resize the viewport below <strong>768px</strong> — the columns stack.
+        Set <code>collapse-at="0"</code> to disable.
+      </p>
+      <ui-columns ratios="1 2 1" collapse-at="768">
+        <div class="cell">sidebar</div>
+        <div class="cell">main</div>
+        <div class="cell">aside</div>
+      </ui-columns>
+    </section>
+
+    <section>
+      <h2>Usage</h2>
+<pre class="code">&lt;!-- Equal columns --&gt;
+&lt;ui-columns cols="3" gap="md"&gt; … &lt;/ui-columns&gt;
+
+&lt;!-- Ratio-driven --&gt;
+&lt;ui-columns ratios="1 2 1" gap="lg"&gt; … &lt;/ui-columns&gt;
+
+&lt;!-- Disable mobile stacking --&gt;
+&lt;ui-columns cols="4" collapse-at="0"&gt; … &lt;/ui-columns&gt;</pre>
+    </section>
+  </main>
+</body>
+</html>

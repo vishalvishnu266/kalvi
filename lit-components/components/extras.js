@@ -7,19 +7,22 @@
 // If a component here starts causing measurable layout shift, promote it
 // to `core.js`. If it becomes rarely-used, demote it to `heavy.js`.
 
-import './ui-input.js';
-import './ui-select.js';
-import './ui-checkbox.js';
-import './ui-radio.js';
-import './ui-switch.js';
+// Primitives that are common but not first-paint critical.
+import './primitives/ui-input.js';
+import './primitives/ui-select.js';
+import './primitives/ui-checkbox.js';
+import './primitives/ui-radio.js';
+import './primitives/ui-switch.js';
+import './primitives/ui-tooltip.js';
+import './primitives/ui-datepicker.js';
+import './primitives/ui-daterange.js';
+
+// Non-primitive extras.
 import './ui-form.js';
 import './ui-list-item.js';
 import './ui-tab-bar.js';
 import './ui-segmented.js';
-import './ui-tooltip.js';
 import './ui-avatar-group.js';
 import './ui-empty-state.js';
 import './ui-pagination.js';
 import './ui-modal.js';
-import './ui-datepicker.js';
-import './ui-daterange.js';

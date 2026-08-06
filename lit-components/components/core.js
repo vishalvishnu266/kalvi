@@ -6,14 +6,30 @@
 //
 // Import-only side effects: each module calls customElements.define().
 
-import './ui-icon.js';
-import './ui-button.js';
+// Primitives (see ./primitives/ — atomic building blocks: form inputs +
+// small display atoms). Kept in the critical bundle because they appear on
+// every first-paint page.
+import './primitives/ui-icon.js';
+import './primitives/ui-button.js';
+import './primitives/ui-badge.js';
+import './primitives/ui-avatar.js';
+import './primitives/ui-skeleton.js';
+
+// Layout primitives (see ./layout/) — must be defined before first paint
+// so children don't reflow when the tag upgrades (avoids CLS).
+// Compose these to build every page skeleton — body, top-bar, split
+// panels, cards grid, etc. — without writing bespoke CSS.
+import './layout/ui-columns.js';
+import './layout/ui-stack.js';
+import './layout/ui-cluster.js';
+import './layout/ui-grid.js';
+import './layout/ui-sidebar.js';
+import './layout/ui-center.js';
+
+// Non-primitive critical components.
 import './ui-card.js';
-import './ui-badge.js';
 import './ui-stat.js';
-import './ui-avatar.js';
 import './ui-breadcrumb.js';
-import './ui-skeleton.js';
 import './ui-toast.js';
 
 // NOTE: the framework `ui-app-shell`, `ui-fragment`, `ui-copilot`, and
