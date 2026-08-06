@@ -1,46 +1,26 @@
 // Small shared header + nav for the per-component demo pages.
 // Injected by each demo/*.html page via a <script type="module"> at the top.
 
+// Nav for the demo pages. After the non-primitive purge, the surface is
+// 13 primitives + 6 layout primitives (all rolled into `layout kit`).
 const COMPONENTS = [
+  // ── Primitives ──
   ['ui-icon',        'icons.html'],
   ['ui-button',      'buttons.html'],
   ['ui-badge',       'badges.html'],
-  ['ui-input',       'inputs.html'],
-  ['ui-card',        'cards.html'],
-  ['ui-stat',        'stats.html'],
   ['ui-avatar',      'avatars.html'],
-  ['ui-list-item',   'list-items.html'],
-  ['ui-table',       'tables.html'],
-  ['ui-tab-bar',     'tab-bars.html'],
-  ['ui-segmented',   'segmented.html'],
-  ['ui-modal',       'modals.html'],
+  ['ui-skeleton',    'skeleton.html'],
+  ['ui-input',       'inputs.html'],
   ['ui-select',      'selects.html'],
-  ['ui-datepicker',  'datepicker.html'],
-  ['ui-daterange',   'daterange.html'],
-  ['ui-toast',       'toasts.html'],
   ['ui-checkbox',    'checkboxes.html'],
   ['ui-radio',       'radios.html'],
   ['ui-switch',      'switches.html'],
-  ['ui-form',        'forms.html'],
-  ['ui-pagination',  'pagination.html'],
-  ['ui-empty-state', 'empty-state.html'],
-  ['ui-skeleton',    'skeleton.html'],
-  ['ui-tooltip',       'tooltips.html'],
-  ['ui-avatar-group',  'avatar-groups.html'],
-  ['ui-breadcrumb',    'breadcrumbs.html'],
-  ['ui-drawer',        'drawers.html'],
-  ['ui-dropdown-menu', 'dropdowns.html'],
-  ['ui-file-upload',   'file-upload.html'],
-  ['ui-progress',      'progress.html'],
-  ['ui-stepper',       'stepper.html'],
-  ['ui-inline-edit',   'inline-edit.html'],
-  ['ui-timeline',      'timeline.html'],
-  ['ui-kanban',        'kanban.html'],
-  ['ui-command',       'command.html'],
-  ['ui-data-table',    'data-table.html'],
-  ['ui-columns',       'columns.html'],
-  ['layout kit',       'layout.html'],
-  ['app-shell',        'app-shell.html'],
+  ['ui-tooltip',     'tooltips.html'],
+  ['ui-datepicker',  'datepicker.html'],
+  ['ui-daterange',   'daterange.html'],
+  // ── Layout primitives ──
+  ['ui-columns',     'columns.html'],
+  ['layout kit',     'layout.html'],
 ];
 
 function mount() {

@@ -2,32 +2,20 @@
 name = "server"
 version = "0.1.0"
 edition = "2021"
-description = "Backend-driven, AI-first web framework demo — Axum + ui-shell + lit-ui."
+description = "Minimal static-file server for the Lit component library and its demos."
 
 [[bin]]
 name = "server"
 path = "src/main.rs"
 
 [dependencies]
-# Framework crates (see /framework).
-ui-shell = { path = "../framework/ui-shell" }
-agent    = { path = "../framework/agent" }
-
-# The DSL used to build every page and every fragment body.
-lit-ui = { path = "../rust-dsl" }
-
 # HTTP + async runtime.
-axum = "0.8"
+axum  = "0.8"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal"] }
-http = "1"
 
 # Static file serving for /lit-components/*.
 tower-http = { version = "0.6", features = ["fs", "trace"] }
 
 # Logging.
-tracing = "0.1"
+tracing            = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
-
-# Query-string deserialisation for the launcher endpoint.
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"

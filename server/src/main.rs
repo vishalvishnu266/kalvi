@@ -1,32 +1,22 @@
-//! # server — the demo entry point for the framework.
+//! # server — minimal static-file server for the Lit component library.
 //!
-//! Boots Axum, registers page routes, and serves the `lit-components/`
-//! folder as static assets. All page rendering is delegated to
-//! [`crate::pages`]; layout chrome (topbar + sidebar + shell) lives in
-//! [`crate::shell`].
+//! After the non-primitive purge, the server no longer owns page
+//! rendering, chrome, launcher, commands, or the agent bridge — those all
+//! composed higher-level components that no longer exist in `lit-ui`.
 //!
-//! Every route is *content-negotiated*: if the client sends
-//! `Accept: text/vnd.ui-fragments+html` (which the JS runtime does on
-//! intercepted navigation) the handler returns fragments only;
-//! otherwise it returns a full HTML document.
+//! What it does now:
+//! * Serves the `lit-components/` folder at `/` so you can open the
+//!   demos (`lit-components/demos/*.html`) directly in a browser.
+//! * That's it.
+//!
+//! Reintroduce page routes here (or in a new crate) when you start
+//! building on top of the primitives + JS layout kit again.
 
-mod agent_route;
-mod apps;
-mod commands;
-mod launcher;
-mod pages;
-mod shell;
-
-use axum::{routing::{get, post}, Router};
+use axum::Router;
 use std::net::SocketAddr;
 use std::path::PathBuf;
-use std::sync::Arc;
 use tower_http::{services::ServeDir, trace::TraceLayer};
 
-use agent::StubAgent;
-use crate::agent_route::AgentState;
-
-/// Address the server binds to. Kept as a constant so it's easy to spot.
 const BIND_ADDR: &str = "0.0.0.0:3000";
 
 #[tokio::main]
@@ -45,26 +35,10 @@ async fn main() {
         .expect("server crate must have a workspace parent")
         .join("lit-components");
 
-    // The shared command registry — one source of truth for both the
-    // copilot and the launcher.
-    let registry = Arc::new(commands::build());
-
-    // The copilot's brain. Rule-based today; swap in an LlmAgent later
-    // without touching the route or the client.
-    let agent_state    = AgentState    { agent:    Arc::new(StubAgent::new())    };
-    let launcher_state = launcher::LauncherState { registry: registry.clone()   };
-
+    // Single route: serve the whole lit-components tree at `/`.
+    // The demo pages live at /demos/*.html.
     let app = Router::new()
-        .route("/",          get(pages::landing::handler))
-        .route("/apps",      get(pages::apps::handler))
-        .route("/dashboard", get(pages::dashboard::handler))
-        .route("/admin",     get(pages::admin::handler))
-        .route("/users",     get(pages::users::handler))
-        .route("/reports",   get(pages::reports::handler))
-        .route("/settings",  get(pages::settings::handler))
-        .route("/agent",             post(agent_route::handler).with_state(agent_state))
-        .route("/launcher/search",   get(launcher::handler).with_state(launcher_state))
-        .nest_service("/lit-components", ServeDir::new(&lit_components_dir))
+        .nest_service("/", ServeDir::new(&lit_components_dir))
         .layer(TraceLayer::new_for_http());
 
     let addr: SocketAddr = BIND_ADDR.parse().expect("valid bind address");
@@ -72,9 +46,7 @@ async fn main() {
         .await
         .expect("failed to bind TCP listener");
 
-    tracing::info!("🚀  http://{addr}/");
-    tracing::info!("     • island nav: click sidebar links");
-    tracing::info!("     • fragments : curl -H 'Accept: text/vnd.ui-fragments+html' http://{addr}/dashboard");
+    tracing::info!("🚀  http://{addr}/demos/index.html");
 
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
