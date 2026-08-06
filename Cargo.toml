@@ -3,8 +3,6 @@ resolver = "2"
 members = [
     "rust-dsl",
     "rust-dsl-macros",
-    "framework/ui-shell",
-    "framework/agent",
     "server",
 ]
 

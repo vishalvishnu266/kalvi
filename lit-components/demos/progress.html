@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ui-progress · demo</title>
+  <link rel="stylesheet" href="../assets/tokens.css">
+  <link rel="stylesheet" href="../assets/global.css">
+  <link rel="stylesheet" href="./_page.css">
+  <script type="module" src="../components/index.js"></script>
+  <script type="module" src="./_shell.js"></script>
+  <style>ui-progress { max-width: 480px; }</style>
+</head>
+<body>
+  <header class="demo-header">
+    <a class="brand" href="./index.html">← Lit playground</a>
+    <h1>ui-progress</h1>
+    <button id="demo-theme">Toggle theme</button>
+  </header>
+  <nav id="demo-nav"></nav>
+
+  <main class="demo">
+    <section>
+      <h2>Determinate</h2>
+      <ui-progress value="25"></ui-progress>
+      <br>
+      <ui-progress value="65" tone="brand" label="Uploading photo"></ui-progress>
+      <br>
+      <ui-progress value="90" tone="success" label="Almost done"></ui-progress>
+      <br>
+      <ui-progress value="40" tone="warning" label="Storage 40 / 100 GB"></ui-progress>
+      <br>
+      <ui-progress value="80" tone="danger"  label="Quota exceeded"></ui-progress>
+    </section>
+
+    <section>
+      <h2>Indeterminate</h2>
+      <ui-progress indeterminate label="Working…"></ui-progress>
+      <br>
+      <ui-progress indeterminate tone="brand"></ui-progress>
+    </section>
+
+    <section>
+      <h2>Live update</h2>
+      <ui-progress id="p" value="0" tone="brand" label="0%"></ui-progress>
+      <script type="module">
+        const p = document.getElementById('p');
+        let v = 0;
+        setInterval(() => {
+          v = (v + 3) % 101;
+          p.value = v;
+          p.label = `${v}%`;
+        }, 200);
+      </script>
+    </section>
+  </main>
+</body>
+</html>

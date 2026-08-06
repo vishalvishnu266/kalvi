@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ui-theme-toggle · demo</title>
+  <link rel="stylesheet" href="../assets/tokens.css">
+  <link rel="stylesheet" href="../assets/global.css">
+  <link rel="stylesheet" href="./_page.css">
+  <script type="module" src="../components/index.js"></script>
+  <script type="module" src="./_shell.js"></script>
+</head>
+<body>
+  <header class="demo-header">
+    <a class="brand" href="./index.html">← Lit playground</a>
+    <h1>ui-theme-toggle</h1>
+    <!-- The header's own theme toggle in _shell.js is a plain button;
+         you can replace it with <ui-theme-toggle> anywhere. -->
+    <ui-theme-toggle></ui-theme-toggle>
+  </header>
+  <nav id="demo-nav"></nav>
+
+  <main class="demo">
+    <section>
+      <h2>Click the icon</h2>
+      <p class="muted">
+        The <code>&lt;html&gt;</code> element's <code>data-theme</code> attribute
+        flips between <code>light</code> and <code>dark</code>. The choice is
+        persisted in <code>localStorage['erp.theme']</code> — the same key
+        <code>core.js</code> reads before first paint, so a hard refresh keeps it.
+      </p>
+      <ui-cluster gap="md" align="center">
+        <ui-theme-toggle></ui-theme-toggle>
+        <span class="muted" id="curr">current: light</span>
+      </ui-cluster>
+      <script type="module">
+        const label = document.getElementById('curr');
+        function sync() { label.textContent = `current: ${document.documentElement.dataset.theme || 'light'}`; }
+        sync();
+        document.querySelectorAll('ui-theme-toggle').forEach((t) => {
+          t.addEventListener('ui-theme-change', (e) => {
+            sync();
+            console.log('ui-theme-change →', e.detail);
+          });
+        });
+      </script>
+    </section>
+
+    <section>
+      <h2>Composition</h2>
+      <p class="muted">
+        Drop it into a header cluster next to other icon controls — same
+        size, same hover treatment.
+      </p>
+      <ui-cluster gap="sm" align="center">
+        <ui-icon name="settings"></ui-icon>
+        <ui-icon name="bell"></ui-icon>
+        <ui-theme-toggle></ui-theme-toggle>
+        <ui-avatar name="Ada"></ui-avatar>
+      </ui-cluster>
+    </section>
+  </main>
+</body>
+</html>

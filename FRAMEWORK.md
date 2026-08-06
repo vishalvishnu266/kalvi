@@ -1,165 +1,133 @@
-# The `lit-ui` framework
+# lit-ui — a typed primitives kit
 
-A **backend-driven, AI-first web framework**. The browser hosts a thin
-web-component shell; the backend authors every visible change and ships
-it as HTML fragments over normal requests or SSE. Same protocol for
-links, forms, and copilot commands.
+A small, focused UI library made of two halves:
 
-Server-rendered HTML fragments applied to named regions of a
-custom-element shell — no client-side templating, no client framework
-beyond Lit (only used to author the components themselves). Designed to
-be wrapped in Capacitor/Flutter later without changing the server.
+1. **Web components** — thin custom elements written in Lit that render
+   themselves in the browser. All primitive (buttons, inputs, icons…)
+   plus layout primitives (columns, stack, grid, sidebar, center,
+   cluster).
+2. **A Rust DSL** that generates HTML strings targeting those web
+   components, using `#[derive(UiComponent)]` so component definitions
+   read as *intent* (fields + attributes) with zero setter/render
+   boilerplate.
 
----
-
-## The mental model in one paragraph
-
-Everything the user sees is either the **shell** (`<ui-app-shell>` with
-6 named "islands": `topbar`, `sidebar`, `main`, `copilot`, `toast`,
-`modal`) or a **page** inside the `main` island. When the user clicks a
-link, submits a form, or asks the copilot to do something, the client
-fetches (or streams) `<ui-fragment target="…" action="…">…</ui-fragment>`
-envelopes from the server and applies them to the matching island. The
-URL bar is kept in sync with `pushState`. **The browser never invents
-UI** — every visible pixel came from a server response.
-
----
-
-## Wire format
-
-```html
-<ui-fragment target="main" action="replace">
-  <!-- any HTML — normally produced by the rust-dsl -->
-</ui-fragment>
-```
-
-**Actions**
-
-| action    | semantics                                           |
-|-----------|-----------------------------------------------------|
-| `replace` | (default) swap the target's children                |
-| `append`  | append body as last children                        |
-| `prepend` | prepend body as first children                      |
-| `remove`  | clear the target's children (body is ignored)       |
-| `update`  | set `innerHTML` directly (preserves target element) |
-
-Multiple envelopes may appear in a single response body. SSE sends the
-same envelopes, one per `event: fragment`.
-
-**Content negotiation**
-
-- `Accept: text/vnd.ui-fragments+html` → server returns fragments only.
-- Anything else → server returns a full HTML document (shell + fragments
-  inlined into their slots). Deep-linking to any URL Just Works.
-
-The JS runtime automatically sets the fragment MIME on intercepted
-navigation, so this is invisible to page authors.
+Compose primitives + layout primitives to build any page. There is no
+router, no chrome, no fragment protocol, no server integration in this
+repo — those live wherever you want to put them.
 
 ---
 
 ## Repo layout
 
 ```
-rust-dsl/              # the DSL — dependency-free, framework-agnostic
-framework/
-├── ui-shell/          # server runtime: Fragment, negotiate, SSE
-└── agent/             # Agent trait + AgentEvent (LLM lands later)
+rust-dsl/                             # typed builders for every <ui-*> primitive
+├── src/components/                   # 13 primitives — one file each, all derive-driven
+│   ├── button.rs / input.rs / select.rs / checkbox.rs / radio.rs
+│   ├── switch.rs / datepicker.rs / daterange.rs
+│   ├── icon.rs / badge.rs / avatar.rs / tooltip.rs / skeleton.rs
+│   └── mod.rs
+└── src/core.rs                        # tiny render/attr helpers used by the derive
+
+rust-dsl-macros/                      # #[derive(UiComponent)] + #[derive(AttrEnum)]
+                                      # collapses setter/Default/render boilerplate to zero
+
 lit-components/
-├── components/        # web components (ui-button, ui-card, …)
-│   ├── ui-app-shell.js     # the 6-slot shell
-│   └── ui-fragment.js      # self-applying <ui-fragment>
-└── framework/
-    └── shell.js       # click/submit interceptor + history API
-server/                # Axum demo — routes wired end-to-end
+├── components/
+│   ├── base.js                       # LitBaseElement + shared prop helpers
+│   ├── core.js                       # imports every primitive + layout (single bundle)
+│   ├── index.js                      # single-line entry: `import './core.js'`
+│   ├── primitives/                   # 13 web components — one per primitive
+│   └── layout/                       # ui-columns / -stack / -cluster / -grid / -sidebar / -center
+├── demos/                            # per-primitive playground pages + layout demo
+├── assets/                           # tokens.css / global.css / layout.css
+└── vendor/                           # lit-all.min.js (vendored, no CDN)
+
+server/                               # tiny Axum static-file server for lit-components/
 ```
+
+Nothing else. If it isn't a primitive, a layout primitive, the derive
+macro that generates them, or the demo static-file server, it isn't in
+this repo.
 
 ---
 
-## Add a new page in ~10 lines
+## The two rules the library enforces
 
+### 1. All configuration flows through HTML attributes
+Every web component takes only string/boolean HTML attributes — never
+JS-only object props. This is why the Rust DSL can compose components as
+plain HTML strings and the browser picks them up correctly.
+
+### 2. The Rust side generates that HTML from typed structs
 ```rust
-// server/src/pages/reports.rs
-use axum::{http::HeaderMap, response::Response};
 use lit_ui::prelude::*;
-use ui_shell::{Fragment, Fragments, Target, negotiate};
-use crate::shell::chrome;
 
-pub async fn handler(headers: HeaderMap) -> Response {
-    let body = card().title("Reports").add(list_item().title("Q1"));
-    let frags = Fragments::new().push(Fragment::replace(Target::Main, body));
-    negotiate(&headers, frags, chrome)
-}
+let html = button()
+    .label("Save")
+    .variant(Variant::Primary)
+    .icon(Icons::CHECK)
+    .render();
+// → <ui-button variant="primary" size="md" type="button" icon="check">Save</ui-button>
 ```
-
-Register it in `server/src/main.rs`:
-
-```rust
-.route("/reports", get(pages::reports::handler))
-```
-
-Add a link somewhere in the sidebar (`server/src/shell.rs`) and you're
-done. The link click will swap `main`, update the URL, and the direct
-URL is still fully loadable.
+`Button` is a `#[derive(UiComponent)]` struct: fields declare which HTML
+attribute they map to, and the derive generates the setter methods,
+`Default`, and `impl Component` (i.e. `render()`). The whole struct is
+~15 lines — no hand-written boilerplate.
 
 ---
 
-## The six islands
+## Add a new primitive
 
-| target    | typical use                                              |
-|-----------|----------------------------------------------------------|
-| `main`    | the current page — swapped on every navigation           |
-| `copilot` | agent chat pane (rebuilt in milestone 8)                 |
-| `topbar`  | breadcrumbs, actions, theme toggle                       |
-| `sidebar` | primary nav                                              |
-| `toast`   | transient toasts — usually `append`                      |
-| `modal`   | dialogs — `replace` to open, `remove` to close           |
+1. **Web component** — create `lit-components/components/primitives/ui-thing.js`,
+   extend `LitBaseElement`, declare attribute-typed properties, add it
+   to `core.js`.
+2. **Rust builder** — add `rust-dsl/src/components/thing.rs`:
+   ```rust
+   use lit_ui_macros::UiComponent;
 
-The Rust `Target` enum, the DSL `Region` enum, and the client's slot
-names all use the same strings. Change one, sweep all three.
+   #[derive(UiComponent)]
+   #[ui(tag = "ui-thing")]
+   pub struct Thing {
+       #[ui(attr = "label")]      pub label: Option<String>,
+       #[ui(flag = "disabled")]   pub disabled: bool,
+   }
+   ```
+3. **Re-export** it in `rust-dsl/src/components/mod.rs` and `prelude`.
+4. **Snapshot test** — one `#[test]` per notable state, `assert_eq!` the
+   exact HTML output.
 
----
-
-## Side effects
-
-Client-only actions (dark mode, focus, scroll) piggy-back on the
-fragment protocol via a special `__side_effect__` target:
-
-```html
-<ui-fragment target="__side_effect__" kind="theme">{"theme":"dark"}</ui-fragment>
-```
-
-Handlers are registered once in `lit-components/components/ui-app-shell.js`.
-Built-ins today: `theme`, `focus`, `scroll`. Add more by calling
-`registerSideEffect('kind', handler)` from any component module.
+That's the whole contract.
 
 ---
 
-## What's implemented (milestones 1–6) vs coming next
+## The derive macro at a glance
 
-**Done**
+Struct-level:
+- `#[ui(tag = "ui-thing")]` — required, sets the HTML tag
+- `#[ui(no_ctor)]` — skip the free `pub fn thing()` (use when you have a custom constructor)
+- `#[ui(no_component)]` — skip `impl Component` (use when you hand-write render)
 
-- Fragment envelope + wire format
-- Content negotiation (full page vs fragments)
-- Client interception of `<a>` and `<form>`
-- History API sync (`pushState`, `popstate`)
-- 6-slot `<ui-app-shell>` + `<ui-fragment>` custom elements
-- DSL wrappers (`app_shell`, `fragment`, `Region`)
-- Demo pages: `/`, `/dashboard`, `/admin`, `/users`
-- SSE helper (`ui_shell::fragments_sse`) ready for the copilot
+Per-field:
+- `#[ui(attr = "wire-name")]` — render as key/value HTML attribute
+- `#[ui(enum_attr = "wire-name")]` — same, but calls `.as_str()` on the value (pairs with `#[derive(AttrEnum)]`)
+- `#[ui(flag = "wire-name")]` — bool field → HTML boolean attribute
+- `#[ui(slot)]` — string field → escaped default-slot text
+- `#[ui(children)]` — `Vec<Child>` → rendered children + auto `.add()` / `.children()`
+- `#[ui(default = "...")]` — expression used in Default and constructor
+- `#[ui(skip)]` — internal field, not rendered, no setter
+- `#[ui(skip_if = "...")]` — skip rendering when the expression is true
+- `#[ui(no_setter)]` — render the field but skip generating a setter (used when a custom setter mutates multiple fields, e.g. `.error()` which sets both `error` and `invalid`)
 
-**Coming (milestones 7–10)**
-
-- `agent` crate: `StubAgent` with a rule-based command table
-- New lean `<ui-copilot>` that POSTs to `/agent` and applies streamed fragments
-- Mobile polish: bottom-sheet copilot, `view-transition` API animations
-- LLM-backed `LlmAgent` behind the same trait
+`Option<T>` fields are automatically omitted when `None`.
 
 ---
 
-## Non-goals (kept out on purpose)
+## Non-goals
 
-- **No client-side templating.** Fragments are pre-rendered HTML.
-- **No custom router in the browser.** `pushState` + fetch is enough.
-- **No component-level swaps.** Only whole-island swaps in v1.
-- **No JSON APIs.** Wire format is always HTML fragments (with a special
-  side-effect envelope for tiny client-only actions).
+- **No client-side routing / chrome / fragment protocol.** The prior
+  version of this repo had one; it was intentionally removed to keep the
+  library focused on primitives.
+- **No dependency on any Rust web framework.** The DSL only produces
+  `String`s. Wire it into whatever server framework you like.
+- **No CSS-in-JS or Tailwind coupling.** Components read design tokens
+  from `:root` (see `lit-components/assets/tokens.css`).

@@ -21,6 +21,10 @@ import './primitives/ui-switch.js';
 import './primitives/ui-tooltip.js';
 import './primitives/ui-datepicker.js';
 import './primitives/ui-daterange.js';
+import './primitives/ui-slider.js';
+import './primitives/ui-progress.js';
+import './primitives/ui-color-swatch.js';
+import './primitives/ui-theme-toggle.js';
 
 // Layout primitives — must be defined before first paint so children
 // don't reflow when the tag upgrades (avoids CLS). Compose these to build

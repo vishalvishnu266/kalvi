@@ -34,3 +34,14 @@ pub mod badge;
 pub mod avatar;
 pub mod tooltip;
 pub mod skeleton;
+
+// Utility / feedback primitives
+pub mod slider;
+pub mod progress;
+pub mod color_swatch;
+pub mod theme_toggle;
+
+// Top-level document primitive — renders a full <!doctype html> document
+// with the correct <head> wired up for the Lit asset tree. This is the
+// outer envelope you drop a shell (or any composed page) into.
+pub mod page;

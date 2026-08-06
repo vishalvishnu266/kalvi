@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ui-color-swatch · demo</title>
+  <link rel="stylesheet" href="../assets/tokens.css">
+  <link rel="stylesheet" href="../assets/global.css">
+  <link rel="stylesheet" href="./_page.css">
+  <script type="module" src="../components/index.js"></script>
+  <script type="module" src="./_shell.js"></script>
+</head>
+<body>
+  <header class="demo-header">
+    <a class="brand" href="./index.html">← Lit playground</a>
+    <h1>ui-color-swatch</h1>
+    <button id="demo-theme">Toggle theme</button>
+  </header>
+  <nav id="demo-nav"></nav>
+
+  <main class="demo">
+    <section>
+      <h2>Sizes</h2>
+      <ui-cluster gap="sm" align="center">
+        <ui-color-swatch color="#4f46e5" size="sm"></ui-color-swatch>
+        <ui-color-swatch color="#4f46e5" size="md"></ui-color-swatch>
+        <ui-color-swatch color="#4f46e5" size="lg"></ui-color-swatch>
+      </ui-cluster>
+    </section>
+
+    <section>
+      <h2>Palette (non-interactive)</h2>
+      <ui-cluster gap="sm">
+        <ui-color-swatch color="#ef4444"></ui-color-swatch>
+        <ui-color-swatch color="#f97316"></ui-color-swatch>
+        <ui-color-swatch color="#eab308"></ui-color-swatch>
+        <ui-color-swatch color="#22c55e"></ui-color-swatch>
+        <ui-color-swatch color="#06b6d4"></ui-color-swatch>
+        <ui-color-swatch color="#3b82f6"></ui-color-swatch>
+        <ui-color-swatch color="#8b5cf6"></ui-color-swatch>
+        <ui-color-swatch color="#ec4899"></ui-color-swatch>
+      </ui-cluster>
+    </section>
+
+    <section>
+      <h2>Interactive palette</h2>
+      <p class="muted">Click a swatch to select. Only one is selected at a time — the container manages state.</p>
+      <ui-cluster id="pal" gap="sm">
+        <ui-color-swatch color="#ef4444" selectable></ui-color-swatch>
+        <ui-color-swatch color="#f97316" selectable></ui-color-swatch>
+        <ui-color-swatch color="#eab308" selectable></ui-color-swatch>
+        <ui-color-swatch color="#22c55e" selectable></ui-color-swatch>
+        <ui-color-swatch color="#06b6d4" selectable></ui-color-swatch>
+        <ui-color-swatch color="#3b82f6" selectable selected></ui-color-swatch>
+        <ui-color-swatch color="#8b5cf6" selectable></ui-color-swatch>
+        <ui-color-swatch color="#ec4899" selectable></ui-color-swatch>
+      </ui-cluster>
+      <pre class="code" id="log">selected: #3b82f6</pre>
+      <script type="module">
+        const pal = document.getElementById('pal');
+        const log = document.getElementById('log');
+        pal.addEventListener('ui-select', (e) => {
+          pal.querySelectorAll('ui-color-swatch').forEach((s) => s.removeAttribute('selected'));
+          e.target.setAttribute('selected', '');
+          log.textContent = `selected: ${e.detail.color}`;
+        });
+      </script>
+    </section>
+  </main>
+</body>
+</html>

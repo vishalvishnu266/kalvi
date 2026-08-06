@@ -18,6 +18,11 @@ const COMPONENTS = [
   ['ui-tooltip',     'tooltips.html'],
   ['ui-datepicker',  'datepicker.html'],
   ['ui-daterange',   'daterange.html'],
+  // ── Utility / feedback ──
+  ['ui-slider',        'sliders.html'],
+  ['ui-progress',      'progress.html'],
+  ['ui-color-swatch',  'color-swatch.html'],
+  ['ui-theme-toggle',  'theme-toggle.html'],
   // ── Layout primitives ──
   ['ui-columns',     'columns.html'],
   ['layout kit',     'layout.html'],

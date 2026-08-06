@@ -71,4 +71,13 @@ pub mod prelude {
     pub use crate::components::avatar::{avatar, Avatar, AvatarSize};
     pub use crate::components::tooltip::{tooltip, Tooltip, Placement};
     pub use crate::components::skeleton::{skeleton, Skeleton, Shape as SkeletonShape};
+
+    // Utility / feedback primitives
+    pub use crate::components::slider::{slider, Slider};
+    pub use crate::components::progress::{progress, Progress, ProgressTone};
+    pub use crate::components::color_swatch::{color_swatch, ColorSwatch, SwatchSize};
+    pub use crate::components::theme_toggle::{theme_toggle, ThemeToggle};
+
+    // Top-level document envelope.
+    pub use crate::components::page::{page, Page};
 }
