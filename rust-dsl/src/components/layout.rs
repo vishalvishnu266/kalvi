@@ -218,7 +218,7 @@ mod tests {
         assert_eq!(grid().render(), "<ui-grid></ui-grid>");
         assert_eq!(grid().dense().render(), "<ui-grid dense></ui-grid>");
         assert_eq!(
-            grid().set_min_col(180).render(),
+            grid().min_col(180).render(),
             r#"<ui-grid min-col="180"></ui-grid>"#,
         );
         // Explicit cols wins in the JS component; we mirror the wire format.

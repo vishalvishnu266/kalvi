@@ -292,7 +292,7 @@ fn layout_stories() -> Vec<Story> {
             .add(cell(1)).add(cell(2)).add(cell(3)).add(cell(4))),
         story("stack (vertical)", stack().gap(Gap::Sm)
             .add(cell(1)).add(cell(2)).add(cell(3))),
-        story("grid auto-fit min 180", grid().set_min_col(180).gap(Gap::Sm)
+        story("grid auto-fit min 180", grid().min_col(180).gap(Gap::Sm)
             .add(cell(1)).add(cell(2)).add(cell(3))
             .add(cell(4)).add(cell(5)).add(cell(6))),
         story("cluster (wraps)", cluster_row()
