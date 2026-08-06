@@ -32,10 +32,22 @@ async fn main() {
         .expect("server crate must have a workspace parent")
         .join("lit-components");
 
+    // Serve every non-`/` request from the workspace root, exposing the
+    // whole tree at its real paths. That means the browser can request
+    // `/lit-components/components/index.js` and get it directly, with
+    // ServeDir handling MIME + range headers correctly. We use
+    // `fallback_service` instead of `nest_service` because the latter
+    // has surprising path-stripping behaviour that varies across
+    // tower-http versions and can turn a valid request into a 404.
+    let workspace_root: PathBuf = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("server crate must have a workspace parent")
+        .to_path_buf();
+    let _ = lit_components_dir; // keep the variable for future reference/logging
+
     let app = Router::new()
         .route("/", get(storybook))
-        // Matches the default `assets_base` of `lit_ui::page()`.
-        .nest_service("/lit-components", ServeDir::new(&lit_components_dir))
+        .fallback_service(ServeDir::new(&workspace_root))
         .layer(TraceLayer::new_for_http());
 
     let addr: SocketAddr = BIND_ADDR.parse().expect("valid bind address");
