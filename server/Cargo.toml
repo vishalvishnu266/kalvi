@@ -19,3 +19,8 @@ tower-http = { version = "0.6", features = ["fs", "trace"] }
 # Logging.
 tracing            = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+
+# The Rust DSL. Every storybook page is built with it — the server has
+# no `<html>` string literals of its own; even the outer envelope is
+# produced by `lit_ui::prelude::page()`.
+lit-ui = { path = "../rust-dsl" }
