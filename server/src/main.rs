@@ -10,7 +10,14 @@
 
 mod stories;
 
-use axum::{response::Html, routing::get, Router};
+use axum::{
+    body::Body,
+    http::{header, HeaderValue, Request, Response},
+    middleware::{self, Next},
+    response::Html,
+    routing::get,
+    Router,
+};
 use lit_ui::prelude::*;
 use std::net::SocketAddr;
 use std::path::PathBuf;
@@ -48,6 +55,13 @@ async fn main() {
     let app = Router::new()
         .route("/", get(storybook))
         .fallback_service(ServeDir::new(&workspace_root))
+        // Force the correct Content-Type for JS / CSS files. `ServeDir`
+        // usually gets this right via `mime_guess`, but on some Linux
+        // configurations (or when `mime_guess`'s DB is stale) `.js` can
+        // come back as `text/plain`, which browsers refuse to execute
+        // as an ES module — silently, with no console error. This
+        // middleware normalizes the header after `ServeDir` has run.
+        .layer(middleware::from_fn(force_correct_mime))
         .layer(TraceLayer::new_for_http());
 
     let addr: SocketAddr = BIND_ADDR.parse().expect("valid bind address");
@@ -102,6 +116,31 @@ async fn storybook() -> Html<String> {
         .add(centered)
         .render();
     Html(html)
+}
+
+/// Middleware: after the inner service (ServeDir) produces a response,
+/// overwrite Content-Type based on the URL extension so browsers accept
+/// `.js` as an ES module and `.css` as a stylesheet regardless of how
+/// `mime_guess` classified the file.
+async fn force_correct_mime(req: Request<Body>, next: Next) -> Response<Body> {
+    let path = req.uri().path().to_string();
+    let mut resp = next.run(req).await;
+    let override_ct = if path.ends_with(".js") || path.ends_with(".mjs") {
+        Some("application/javascript; charset=utf-8")
+    } else if path.ends_with(".css") {
+        Some("text/css; charset=utf-8")
+    } else if path.ends_with(".html") {
+        Some("text/html; charset=utf-8")
+    } else if path.ends_with(".json") {
+        Some("application/json; charset=utf-8")
+    } else {
+        None
+    };
+    if let Some(ct) = override_ct {
+        resp.headers_mut()
+            .insert(header::CONTENT_TYPE, HeaderValue::from_static(ct));
+    }
+    resp
 }
 
 async fn shutdown_signal() {
