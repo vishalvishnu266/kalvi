@@ -1,30 +1,54 @@
-//! `<ui-avatar>` typed builder.
+//! `<ui-avatar>` typed builder — refactored onto `#[derive(UiComponent)]`.
 
-use crate::core::{wrap, Attr, Component};
+#[allow(unused_imports)]
+use crate::core::Component;
+use lit_ui_macros::{AttrEnum, UiComponent};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AvatarSize { Sm, Md, Lg, Xl }
-impl AvatarSize {
-    fn as_str(self) -> &'static str {
-        match self { AvatarSize::Sm=>"sm", AvatarSize::Md=>"md", AvatarSize::Lg=>"lg", AvatarSize::Xl=>"xl" }
-    }
+#[derive(AttrEnum, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AvatarSize {
+    #[attr("sm")] Sm,
+    #[attr("md")] #[attr_enum(default)] Md,
+    #[attr("lg")] Lg,
+    #[attr("xl")] Xl,
 }
 
-pub struct Avatar { name: String, src: Option<String>, size: AvatarSize }
+/// Custom `avatar(name)` constructor — the name is required.
 pub fn avatar(name: impl Into<String>) -> Avatar {
-    Avatar { name: name.into(), src: None, size: AvatarSize::Md }
+    let mut a = <Avatar as Default>::default();
+    a.name = name.into();
+    a
 }
-impl Avatar {
-    pub fn src(mut self, url: impl Into<String>) -> Self { self.src = Some(url.into()); self }
-    pub fn size(mut self, s: AvatarSize) -> Self { self.size = s; self }
+
+#[derive(UiComponent)]
+#[ui(tag = "ui-avatar", no_ctor)]
+pub struct Avatar {
+    #[ui(attr = "name")]           pub name: String,
+    #[ui(attr = "src")]            pub src: Option<String>,
+    #[ui(enum_attr = "size")]      pub size: AvatarSize,
 }
-impl Component for Avatar {
-    fn render(&self) -> String {
-        let mut attrs = vec![
-            Attr::kv("name", self.name.as_str()),
-            Attr::kv("size", self.size.as_str()),
-        ];
-        if let Some(ref s) = self.src { attrs.push(Attr::kv("src", s.as_str())); }
-        wrap("ui-avatar", &attrs, "")
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_md_no_src() {
+        let html = avatar("Ada").render();
+        assert_eq!(html, r#"<ui-avatar name="Ada" size="md"></ui-avatar>"#);
+    }
+
+    #[test]
+    fn with_src() {
+        let html = avatar("Ada").src("/u/1.png").render();
+        assert_eq!(
+            html,
+            r#"<ui-avatar name="Ada" src="/u/1.png" size="md"></ui-avatar>"#
+        );
+    }
+
+    #[test]
+    fn size_override() {
+        let html = avatar("Ada").size(AvatarSize::Lg).render();
+        assert_eq!(html, r#"<ui-avatar name="Ada" size="lg"></ui-avatar>"#);
     }
 }

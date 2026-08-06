@@ -1,43 +1,33 @@
 //! `<ui-icon>` typed builder + a typed catalogue of well-known icon names.
 //!
-//! Two ways to use it:
+//! Refactored onto `#[derive(UiComponent)]`. The catalogue and the
+//! `IntoIconName` trait are unchanged from the pre-macro version — only
+//! the `Icon` builder itself is shrunk down.
 //!
+//! Two ways to use it:
 //! ```ignore
 //! use lit_ui::prelude::*;
-//!
-//! // 1. Typed constant — compile-time checked, autocompletes, no typos:
-//! button().label("Save").icon(Icons::CHECK);
-//!
-//! // 2. Raw string — still works for one-off / dynamic names:
-//! button().label("Save").icon("check");
+//! button().label("Save").icon(Icons::CHECK);   // typed
+//! button().label("Save").icon("check");        // stringy
 //! ```
-//!
-//! To add a new icon: add one `pub const NAME: IconName = IconName("bs-name");`
-//! to the [`Icons`] module below. The string is whatever your underlying icon
-//! set (Bootstrap Icons in the Lit web components) expects.
 
-use crate::core::{wrap, Attr, Component};
+#[allow(unused_imports)]
+use crate::core::Component;
+use lit_ui_macros::UiComponent;
 
 /// A well-known icon identifier. Wraps a `&'static str` so it costs nothing
 /// at runtime but gives you typed autocomplete and rename-safety.
-///
-/// You can freely pass either an [`IconName`] constant from [`Icons`] or a
-/// plain string to any DSL method that accepts an icon — see the
-/// [`IntoIconName`] trait.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct IconName(pub &'static str);
-
 impl IconName {
-    /// The underlying icon-set string (e.g. `"check"`, `"x"`, `"info-circle"`).
     pub fn as_str(self) -> &'static str { self.0 }
 }
-
 impl From<IconName> for String {
     fn from(i: IconName) -> String { i.0.to_string() }
 }
 
-/// Anything convertible to an icon name — a typed [`IconName`] constant,
-/// a `&str`, or a `String`. Lets `.icon(...)` accept all three.
+/// Anything convertible to an icon name — a typed [`IconName`], a `&str`,
+/// or a `String`. Lets `.icon(...)` accept all three.
 pub trait IntoIconName {
     fn into_icon_name(self) -> String;
 }
@@ -47,20 +37,8 @@ impl IntoIconName for String          { fn into_icon_name(self) -> String { self
 impl IntoIconName for &String         { fn into_icon_name(self) -> String { self.clone()       } }
 
 /// Central catalogue of icons **that actually exist** in the underlying
-/// `<ui-icon>` component (see `lit-components/components/ui-icon.js`,
+/// `<ui-icon>` component (see `lit-components/components/primitives/ui-icon.js`,
 /// the `PATHS` map).
-///
-/// Every constant here is verified to render an SVG — any name not in
-/// the JS map silently falls back to a "help" question mark. So we only
-/// expose the ones we've hand-checked.
-///
-/// The string values use **camelCase** because that's how the JS map is
-/// keyed (`chevronRight`, not `chevron-right`).
-///
-/// ## To add a new icon
-/// 1. Add its SVG path to `PATHS` in `ui-icon.js`.
-/// 2. Add a matching `pub const NAME: IconName = IconName("jsKey");` here.
-/// 3. Keep the two in sync — the JS side is the source of truth.
 #[allow(non_snake_case)]
 pub mod Icons {
     use super::IconName;
@@ -81,12 +59,10 @@ pub mod Icons {
     pub const REFRESH:  IconName = IconName("refresh");
     pub const MORE:     IconName = IconName("more");
     pub const MENU:     IconName = IconName("menu");
-
     // ── Feedback ──
     pub const INFO:     IconName = IconName("info");
     pub const WARNING:  IconName = IconName("warning");
-    pub const BELL:     IconName = IconName("bell");     // notifications / late
-
+    pub const BELL:     IconName = IconName("bell");
     // ── Navigation ──
     pub const HOME:          IconName = IconName("home");
     pub const CHEVRON_DOWN:  IconName = IconName("chevronDown");
@@ -97,11 +73,9 @@ pub mod Icons {
     pub const ARROW_RIGHT:   IconName = IconName("arrowRight");
     pub const ARROW_UP:      IconName = IconName("arrowUp");
     pub const ARROW_DOWN:    IconName = IconName("arrowDown");
-
     // ── Theme ──
     pub const SUN:      IconName = IconName("sun");
     pub const MOON:     IconName = IconName("moon");
-
     // ── Domain ──
     pub const USERS:     IconName = IconName("users");
     pub const STUDENT:   IconName = IconName("student");
@@ -110,40 +84,55 @@ pub mod Icons {
     pub const BOOKMARK:  IconName = IconName("bookmark");
     pub const LIBRARY:   IconName = IconName("library");
     pub const CLIPBOARD: IconName = IconName("clipboard");
-    pub const CARD:      IconName = IconName("card");     // payments / fees
+    pub const CARD:      IconName = IconName("card");
     pub const WALLET:    IconName = IconName("wallet");
     pub const CHART:     IconName = IconName("chart");
-    pub const GRID:      IconName = IconName("grid");     // dashboard
-    pub const ACTIVITY:  IconName = IconName("activity"); // timeline default
+    pub const GRID:      IconName = IconName("grid");
+    pub const ACTIVITY:  IconName = IconName("activity");
     pub const MAIL:      IconName = IconName("mail");
     pub const CLOCK:     IconName = IconName("clock");
     pub const FILE:      IconName = IconName("file");
     pub const STAR:      IconName = IconName("star");
-
-    // Legacy alias so old code compiles — `DASHBOARD` maps to the closest
-    // available icon (the grid).
+    // Legacy alias.
     pub const DASHBOARD: IconName = GRID;
 }
 
 // ── Component ──
 
-pub struct Icon { name: String, size: u32 }
-
-/// Start building a `<ui-icon>`. Accepts an [`IconName`] constant or a string.
+/// Custom `icon(name)` constructor: accepts anything `IntoIconName`, so
+/// we opt out of the derived free ctor via `#[ui(no_ctor)]`.
 pub fn icon(name: impl IntoIconName) -> Icon {
-    Icon { name: name.into_icon_name(), size: 18 }
+    let mut i = <Icon as Default>::default();
+    i.name = name.into_icon_name();
+    i
 }
 
-impl Icon {
-    pub fn size(mut self, px: u32) -> Self { self.size = px; self }
+#[derive(UiComponent)]
+#[ui(tag = "ui-icon", no_ctor)]
+pub struct Icon {
+    #[ui(attr = "name")]                pub name: String,
+    #[ui(attr = "size", default = "18")] pub size: u32,
 }
 
-impl Component for Icon {
-    fn render(&self) -> String {
-        let attrs = [
-            Attr::kv("name", self.name.as_str()),
-            Attr::kv("size", self.size.to_string()),
-        ];
-        wrap("ui-icon", &attrs, "")
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_size_18() {
+        let html = icon(Icons::CHECK).render();
+        assert_eq!(html, r#"<ui-icon name="check" size="18"></ui-icon>"#);
+    }
+
+    #[test]
+    fn accepts_string() {
+        let html = icon("info").render();
+        assert_eq!(html, r#"<ui-icon name="info" size="18"></ui-icon>"#);
+    }
+
+    #[test]
+    fn size_override() {
+        let html = icon(Icons::SEARCH).size(24).render();
+        assert_eq!(html, r#"<ui-icon name="search" size="24"></ui-icon>"#);
     }
 }

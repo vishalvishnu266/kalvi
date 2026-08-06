@@ -1,29 +1,50 @@
 //! `<ui-radio>` + `<ui-radio-group>` typed builders.
+//!
+//! * `Radio` is fully derived — pure primitive.
+//! * `RadioGroup` keeps a hand-written `Component` impl because its body
+//!   is a typed `Vec<Radio>` (not `Vec<Child>`), so the derive's
+//!   `#[ui(children)]` — which assumes `Vec<Child>` — doesn't apply. The
+//!   typed vec is deliberate: it prevents callers from putting arbitrary
+//!   components (e.g. a `Button`) into a radio group.
 
-use crate::core::{escape_html, wrap, Attr, Component};
+use crate::core::{wrap, Attr, Component};
+use lit_ui_macros::UiComponent;
 
-pub struct Radio { value: String, label: String, disabled: bool }
+// ── Radio (leaf) ────────────────────────────────────────────────────────
+
 pub fn radio(value: impl Into<String>, label: impl Into<String>) -> Radio {
-    Radio { value: value.into(), label: label.into(), disabled: false }
+    let mut r = <Radio as Default>::default();
+    r.value = value.into();
+    r.label = label.into();
+    r
 }
-impl Radio { pub fn disabled(mut self) -> Self { self.disabled = true; self } }
-impl Component for Radio {
-    fn render(&self) -> String {
-        let mut attrs = vec![Attr::kv("value", self.value.as_str())];
-        if self.disabled { attrs.push(Attr::flag("disabled")); }
-        wrap("ui-radio", &attrs, &escape_html(&self.label))
+
+#[derive(UiComponent)]
+#[ui(tag = "ui-radio", no_ctor)]
+pub struct Radio {
+    #[ui(attr = "value")]     pub value: String,
+    #[ui(slot)]               pub label: String,
+    #[ui(flag = "disabled")]  pub disabled: bool,
+}
+
+// ── RadioGroup (container over typed Vec<Radio>) ────────────────────────
+
+pub struct RadioGroup {
+    name: String,
+    value: Option<String>,
+    orientation_horizontal: bool,
+    error: Option<String>,
+    invalid: bool,
+    options: Vec<Radio>,
+}
+
+pub fn radio_group(name: impl Into<String>) -> RadioGroup {
+    RadioGroup {
+        name: name.into(), value: None, orientation_horizontal: false,
+        error: None, invalid: false, options: Vec::new(),
     }
 }
 
-pub struct RadioGroup {
-    name: String, value: Option<String>, orientation_horizontal: bool,
-    error: Option<String>, invalid: bool,
-    options: Vec<Radio>,
-}
-pub fn radio_group(name: impl Into<String>) -> RadioGroup {
-    RadioGroup { name: name.into(), value: None, orientation_horizontal: false,
-                 error: None, invalid: false, options: Vec::new() }
-}
 impl RadioGroup {
     pub fn value(mut self, v: impl Into<String>) -> Self { self.value = Some(v.into()); self }
     pub fn horizontal(mut self)                  -> Self { self.orientation_horizontal = true; self }
@@ -39,6 +60,7 @@ impl RadioGroup {
         match msg { Some(m) => self.error(m), None => self }
     }
 }
+
 impl Component for RadioGroup {
     fn render(&self) -> String {
         let mut attrs = vec![Attr::kv("name", self.name.as_str())];
@@ -48,5 +70,43 @@ impl Component for RadioGroup {
         if self.invalid { attrs.push(Attr::flag("invalid")); }
         let body: String = self.options.iter().map(|o| o.render()).collect();
         wrap("ui-radio-group", &attrs, &body)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn single_radio() {
+        let html = radio("a", "Apples").render();
+        assert_eq!(html, r#"<ui-radio value="a">Apples</ui-radio>"#);
+    }
+
+    #[test]
+    fn radio_disabled() {
+        let html = radio("b", "Bananas").disabled().render();
+        assert_eq!(html, r#"<ui-radio value="b" disabled>Bananas</ui-radio>"#);
+    }
+
+    #[test]
+    fn radio_group_defaults() {
+        let html = radio_group("fruit").render();
+        assert_eq!(html, r#"<ui-radio-group name="fruit"></ui-radio-group>"#);
+    }
+
+    #[test]
+    fn radio_group_with_options_and_error() {
+        let html = radio_group("fruit")
+            .value("a")
+            .horizontal()
+            .option(radio("a", "Apples"))
+            .option(radio("b", "Bananas"))
+            .error("Pick one")
+            .render();
+        assert_eq!(
+            html,
+            r#"<ui-radio-group name="fruit" value="a" error="Pick one" orientation="horizontal" invalid><ui-radio value="a">Apples</ui-radio><ui-radio value="b">Bananas</ui-radio></ui-radio-group>"#
+        );
     }
 }

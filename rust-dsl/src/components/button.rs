@@ -1,4 +1,12 @@
-//! `<ui-button>` — Vaadin-style typed builder.
+//! `<ui-button>` — Vaadin-style typed builder, refactored onto the derive.
+//!
+//! Notable per-field choices:
+//! * `variant`, `size`, `kind` use `enum_attr` so they render via the
+//!   enum's `as_str()` (produced by `#[derive(AttrEnum)]`).
+//! * `icon` uses `no_setter` so we can hand-write a setter that accepts
+//!   anything implementing `IntoIconName` (typed constants OR strings).
+//! * `label` + `children` render in that order in the body, matching the
+//!   pre-refactor output byte-for-byte.
 //!
 //! ```ignore
 //! use lit_ui::prelude::*;
@@ -7,148 +15,103 @@
 //!     .label("Save")
 //!     .variant(Variant::Primary)
 //!     .size(Size::Md)
-//!     .icon("check")
+//!     .icon(Icons::CHECK)
 //!     .render();
 //! ```
 
 use crate::components::icon::IntoIconName;
-use crate::core::{escape_html, wrap, Attr, Child, Component};
+#[allow(unused_imports)]
+use crate::core::{Child, Component};
+use lit_ui_macros::{AttrEnum, UiComponent};
 
 /// Visual variant of a button.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(AttrEnum, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Variant {
-    Primary,
-    Secondary,
-    Ghost,
-    Danger,
-}
-impl Variant {
-    fn as_str(self) -> &'static str {
-        match self {
-            Variant::Primary   => "primary",
-            Variant::Secondary => "secondary",
-            Variant::Ghost     => "ghost",
-            Variant::Danger    => "danger",
-        }
-    }
+    #[attr("primary")] #[attr_enum(default)] Primary,
+    #[attr("secondary")] Secondary,
+    #[attr("ghost")]     Ghost,
+    #[attr("danger")]    Danger,
 }
 
 /// Button size.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Size { Sm, Md, Lg }
-impl Size {
-    fn as_str(self) -> &'static str {
-        match self { Size::Sm => "sm", Size::Md => "md", Size::Lg => "lg" }
-    }
+#[derive(AttrEnum, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Size {
+    #[attr("sm")] Sm,
+    #[attr("md")] #[attr_enum(default)] Md,
+    #[attr("lg")] Lg,
 }
 
 /// Native `type` attribute on the underlying `<button>`. Defaults to
-/// [`ButtonType::Button`] to match the HTML default that ships in every
-/// modern browser (avoids accidental form-submits from stray buttons).
-/// Use [`ButtonType::Submit`] to have `<ui-form>` treat a click as a submit.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ButtonType { Button, Submit, Reset }
-impl ButtonType {
-    fn as_str(self) -> &'static str {
-        match self {
-            ButtonType::Button => "button",
-            ButtonType::Submit => "submit",
-            ButtonType::Reset  => "reset",
-        }
-    }
+/// `Button` to match the HTML default (no accidental form submits).
+#[derive(AttrEnum, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ButtonType {
+    #[attr("button")] #[attr_enum(default)] Button,
+    #[attr("submit")] Submit,
+    #[attr("reset")]  Reset,
 }
 
 /// `<ui-button>` builder.
-///
-/// Prefer the free function [`button()`] over `Button::default()` — it reads
-/// better in a chain: `button().label("Save").variant(Variant::Primary)`.
+#[derive(UiComponent)]
+#[ui(tag = "ui-button")]
 pub struct Button {
-    label: String,
-    variant: Variant,
-    size: Size,
-    icon: Option<String>,
-    full: bool,
-    disabled: bool,
-    kind: ButtonType,
-    children: Vec<Child>,
-}
-
-/// Start building a new button. See [`Button`] for the full method surface.
-pub fn button() -> Button {
-    Button {
-        label: String::new(),
-        variant: Variant::Primary,
-        size: Size::Md,
-        icon: None,
-        full: false,
-        disabled: false,
-        kind: ButtonType::Button,
-        children: Vec::new(),
-    }
+    #[ui(slot)]                                  pub label: String,
+    #[ui(enum_attr = "variant")]                 pub variant: Variant,
+    #[ui(enum_attr = "size")]                    pub size: Size,
+    #[ui(enum_attr = "type")]                    pub kind: ButtonType,
+    #[ui(attr = "icon", no_setter)]              pub icon: Option<String>,
+    #[ui(flag = "full")]                         pub full: bool,
+    #[ui(flag = "disabled")]                     pub disabled: bool,
+    #[ui(children)]                              pub children: Vec<Child>,
 }
 
 impl Button {
-    /// Set the button's text (slotted as the button's default child).
-    ///
-    /// Prefer this over `.add(...)` for simple labels; use `.add()` when you
-    /// need mixed inline content (icons, badges, formatting).
-    pub fn label(mut self, s: impl Into<String>) -> Self {
-        self.label = s.into();
-        self
-    }
-
-    pub fn variant(mut self, v: Variant) -> Self { self.variant = v; self }
-    pub fn size(mut self, s: Size)       -> Self { self.size = s; self }
-    /// Attach an icon. Accepts:
-    ///   * a typed [`crate::components::icon::IconName`] constant
-    ///     (e.g. `Icons::CHECK`) — recommended, autocompletes,
-    ///   * a `&'static str` or `String` for one-off / dynamic names.
+    /// Attach an icon. Accepts a typed [`crate::components::icon::IconName`]
+    /// constant (e.g. `Icons::CHECK`) or a raw string.
     pub fn icon(mut self, name: impl IntoIconName) -> Self {
         self.icon = Some(name.into_icon_name()); self
     }
-    pub fn full(mut self)     -> Self { self.full = true; self }
-    pub fn disabled(mut self) -> Self { self.disabled = true; self }
-
-    /// Set the underlying `<button type="…">`. Use [`ButtonType::Submit`] on
-    /// the primary button inside a `<ui-form>` so a click is treated as a
-    /// form submit rather than a plain click event.
-    pub fn kind(mut self, t: ButtonType) -> Self { self.kind = t; self }
-    /// Shorthand for `kind(ButtonType::Submit)` — reads well in chains.
+    /// Shorthand for `.kind(ButtonType::Submit)` — reads well in chains.
     pub fn submit(self) -> Self { self.kind(ButtonType::Submit) }
-    /// Shorthand for `kind(ButtonType::Reset)`.
+    /// Shorthand for `.kind(ButtonType::Reset)`.
     pub fn reset(self)  -> Self { self.kind(ButtonType::Reset) }
-
-    /// Add a single child (icon, badge, span, another component…).
-    pub fn add(mut self, child: impl Component + 'static) -> Self {
-        self.children.push(Box::new(child)); self
-    }
-
-    /// Add many children in one call.
-    pub fn children<I, C>(mut self, iter: I) -> Self
-    where
-        I: IntoIterator<Item = C>,
-        C: Component + 'static,
-    {
-        for c in iter { self.children.push(Box::new(c)); }
-        self
-    }
 }
 
-impl Component for Button {
-    fn render(&self) -> String {
-        let mut attrs = vec![
-            Attr::kv("variant", self.variant.as_str()),
-            Attr::kv("size",    self.size.as_str()),
-            Attr::kv("type",    self.kind.as_str()),
-        ];
-        if let Some(ref i) = self.icon { attrs.push(Attr::kv("icon", i.as_str())); }
-        if self.full     { attrs.push(Attr::flag("full")); }
-        if self.disabled { attrs.push(Attr::flag("disabled")); }
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-        let mut body = String::new();
-        if !self.label.is_empty() { body.push_str(&escape_html(&self.label)); }
-        for c in &self.children { body.push_str(&c.render()); }
+    #[test]
+    fn defaults() {
+        let html = button().label("Save").render();
+        assert_eq!(
+            html,
+            r#"<ui-button variant="primary" size="md" type="button">Save</ui-button>"#
+        );
+    }
 
-        wrap("ui-button", &attrs, &body)
+    #[test]
+    fn all_attrs() {
+        let html = button()
+            .label("Delete")
+            .variant(Variant::Danger)
+            .size(Size::Lg)
+            .icon("trash")
+            .full()
+            .disabled()
+            .submit()
+            .render();
+        assert_eq!(
+            html,
+            r#"<ui-button variant="danger" size="lg" type="submit" icon="trash" full disabled>Delete</ui-button>"#
+        );
+    }
+
+    #[test]
+    fn label_escaped() {
+        let html = button().label("<x>").render();
+        assert_eq!(
+            html,
+            r#"<ui-button variant="primary" size="md" type="button">&lt;x&gt;</ui-button>"#
+        );
     }
 }

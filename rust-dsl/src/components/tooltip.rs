@@ -1,32 +1,55 @@
-//! `<ui-tooltip>` typed builder.
+//! `<ui-tooltip>` typed builder — refactored onto `#[derive(UiComponent)]`.
+//!
+//! Uses `#[ui(children)]` to auto-derive `.add()` / `.children()` from the
+//! `Vec<Child>` field.
 
-use crate::core::{wrap, Attr, Child, Component};
+#[allow(unused_imports)]
+use crate::core::{Child, Component};
+use lit_ui_macros::{AttrEnum, UiComponent};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Placement { Top, Bottom, Left, Right }
-impl Placement {
-    fn as_str(self) -> &'static str {
-        match self { Placement::Top=>"top", Placement::Bottom=>"bottom", Placement::Left=>"left", Placement::Right=>"right" }
-    }
+#[derive(AttrEnum, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Placement {
+    #[attr("top")] #[attr_enum(default)] Top,
+    #[attr("bottom")] Bottom,
+    #[attr("left")]   Left,
+    #[attr("right")]  Right,
 }
 
-pub struct Tooltip { text: String, placement: Placement, delay: u32, children: Vec<Child> }
+/// Custom `tooltip(text)` constructor — the tooltip text is required.
 pub fn tooltip(text: impl Into<String>) -> Tooltip {
-    Tooltip { text: text.into(), placement: Placement::Top, delay: 250, children: Vec::new() }
+    let mut t = <Tooltip as Default>::default();
+    t.text = text.into();
+    t
 }
-impl Tooltip {
-    pub fn placement(mut self, p: Placement) -> Self { self.placement = p; self }
-    pub fn delay(mut self, ms: u32)          -> Self { self.delay = ms; self }
-    pub fn add(mut self, c: impl Component + 'static) -> Self { self.children.push(Box::new(c)); self }
+
+#[derive(UiComponent)]
+#[ui(tag = "ui-tooltip", no_ctor)]
+pub struct Tooltip {
+    #[ui(attr = "text")]                       pub text: String,
+    #[ui(enum_attr = "placement")]             pub placement: Placement,
+    #[ui(attr = "delay", default = "250")]     pub delay: u32,
+    #[ui(children)]                            pub children: Vec<Child>,
 }
-impl Component for Tooltip {
-    fn render(&self) -> String {
-        let attrs = [
-            Attr::kv("text",      self.text.as_str()),
-            Attr::kv("placement", self.placement.as_str()),
-            Attr::kv("delay",     self.delay.to_string()),
-        ];
-        let body: String = self.children.iter().map(|c| c.render()).collect();
-        wrap("ui-tooltip", &attrs, &body)
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn defaults() {
+        let html = tooltip("Save").render();
+        assert_eq!(
+            html,
+            r#"<ui-tooltip text="Save" placement="top" delay="250"></ui-tooltip>"#
+        );
+    }
+
+    #[test]
+    fn placement_and_delay() {
+        let html = tooltip("Save").placement(Placement::Bottom).delay(500).render();
+        assert_eq!(
+            html,
+            r#"<ui-tooltip text="Save" placement="bottom" delay="500"></ui-tooltip>"#
+        );
     }
 }

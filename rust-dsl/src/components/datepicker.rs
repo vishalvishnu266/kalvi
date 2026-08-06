@@ -1,28 +1,25 @@
-//! `<ui-datepicker>` typed builder.
+//! `<ui-datepicker>` typed builder — refactored onto `#[derive(UiComponent)]`.
+//!
+//! `hint` uses `no_setter` so the hand-written `.hint()` can coexist with
+//! the two-field `.error()` below.
 
-use crate::core::{wrap, Attr, Component};
+#[allow(unused_imports)]
+use crate::core::Component;
+use lit_ui_macros::UiComponent;
 
+#[derive(UiComponent)]
+#[ui(tag = "ui-datepicker")]
 pub struct Datepicker {
-    label: Option<String>,
-    name: Option<String>,
-    value: Option<String>,        // ISO YYYY-MM-DD
-    placeholder: Option<String>,
-    hint: Option<String>,
-    invalid: bool,
+    #[ui(attr = "label")]                  pub label: Option<String>,
+    #[ui(attr = "name")]                   pub name: Option<String>,
+    #[ui(attr = "value")]                  pub value: Option<String>,
+    #[ui(attr = "placeholder")]            pub placeholder: Option<String>,
+    #[ui(attr = "hint", no_setter)]        pub hint: Option<String>,
+    #[ui(flag = "invalid")]                pub invalid: bool,
 }
-pub fn datepicker() -> Datepicker {
-    Datepicker { label: None, name: None, value: None, placeholder: None, hint: None, invalid: false }
-}
-impl Datepicker {
-    pub fn label(mut self, s: impl Into<String>)       -> Self { self.label = Some(s.into()); self }
-    pub fn name(mut self, s: impl Into<String>)        -> Self { self.name  = Some(s.into()); self }
-    pub fn value(mut self, iso: impl Into<String>)     -> Self { self.value = Some(iso.into()); self }
-    pub fn placeholder(mut self, s: impl Into<String>) -> Self { self.placeholder = Some(s.into()); self }
-    pub fn hint(mut self, s: impl Into<String>)        -> Self { self.hint = Some(s.into()); self }
-    pub fn invalid(mut self)                            -> Self { self.invalid = true; self }
 
-    /// Field-level error — sets `invalid` and replaces the hint with the
-    /// error message so it renders red under the field.
+impl Datepicker {
+    pub fn hint(mut self, s: impl Into<String>) -> Self { self.hint = Some(s.into()); self }
     pub fn error(mut self, msg: impl Into<String>) -> Self {
         self.invalid = true; self.hint = Some(msg.into()); self
     }
@@ -30,15 +27,30 @@ impl Datepicker {
         match msg { Some(m) => self.error(m), None => self }
     }
 }
-impl Component for Datepicker {
-    fn render(&self) -> String {
-        let mut attrs = Vec::new();
-        if let Some(ref v) = self.label       { attrs.push(Attr::kv("label",       v.as_str())); }
-        if let Some(ref v) = self.name        { attrs.push(Attr::kv("name",        v.as_str())); }
-        if let Some(ref v) = self.value       { attrs.push(Attr::kv("value",       v.as_str())); }
-        if let Some(ref v) = self.placeholder { attrs.push(Attr::kv("placeholder", v.as_str())); }
-        if let Some(ref v) = self.hint        { attrs.push(Attr::kv("hint",        v.as_str())); }
-        if self.invalid { attrs.push(Attr::flag("invalid")); }
-        wrap("ui-datepicker", &attrs, "")
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn defaults_render_empty_tag() {
+        let html = datepicker().render();
+        assert_eq!(html, r#"<ui-datepicker></ui-datepicker>"#);
+    }
+
+    #[test]
+    fn full_field() {
+        let html = datepicker()
+            .label("DOB").name("dob").value("2020-01-01").placeholder("YYYY-MM-DD").render();
+        assert_eq!(
+            html,
+            r#"<ui-datepicker label="DOB" name="dob" value="2020-01-01" placeholder="YYYY-MM-DD"></ui-datepicker>"#
+        );
+    }
+
+    #[test]
+    fn error_replaces_hint() {
+        let html = datepicker().hint("optional").error("Required").render();
+        assert_eq!(html, r#"<ui-datepicker hint="Required" invalid></ui-datepicker>"#);
     }
 }

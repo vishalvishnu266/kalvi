@@ -196,6 +196,10 @@ struct FieldCfg {
     /// `self.<name>` inside the expression, so callers write
     /// `skip_if = "self.tone == Tone::Neutral"`.
     skip_if: Option<Expr>,
+    /// Do not generate a setter, but DO render the field. Use when the
+    /// module supplies a custom setter with the same name that mutates
+    /// multiple fields (e.g. `.error(msg)` setting `error` + `invalid`).
+    no_setter: bool,
 }
 
 fn parse_field_cfg(attrs: &[Attribute]) -> FieldCfg {
@@ -223,6 +227,7 @@ fn parse_field_cfg(attrs: &[Attribute]) -> FieldCfg {
                         if let Ok(expr) = syn::parse_str::<Expr>(&v.value()) { cfg.skip_if = Some(expr); }
                     }
                 }
+                "no_setter" => cfg.no_setter = true,
                 _ => {}
             }
             Ok(())
@@ -240,6 +245,11 @@ struct StructCfg {
     /// constructor. Use when the module wants a custom constructor with a
     /// different signature (e.g. `badge(label)` takes the label directly).
     no_ctor: bool,
+    /// If set, DO NOT emit `impl Component for X`. The module supplies
+    /// its own render() — e.g. `Select` renders native `<option>` HTML in
+    /// the body, which the derive can't express. All other codegen
+    /// (setters, Default, constructor) is unaffected.
+    no_component: bool,
 }
 
 fn parse_struct_cfg(attrs: &[Attribute]) -> StructCfg {
@@ -253,6 +263,7 @@ fn parse_struct_cfg(attrs: &[Attribute]) -> StructCfg {
                     if let Ok(v) = meta.value()?.parse::<syn::LitStr>() { cfg.tag = Some(v.value()); }
                 }
                 "no_ctor" => cfg.no_ctor = true,
+                "no_component" => cfg.no_component = true,
                 _ => {}
             }
             Ok(())
@@ -318,7 +329,8 @@ pub fn derive_ui_component(input: TokenStream) -> TokenStream {
         // --- Setter ------------------------------------------------------
         // For string / Option<String> we accept `impl Into<String>` for
         // ergonomics. For everything else we take the type by value.
-        if !cfg.children {
+        // Skip setter generation entirely when the module opts out.
+        if !cfg.children && !cfg.no_setter {
             let setter = if is_string(fty) {
                 quote! {
                     pub fn #fname(mut self, v: impl ::core::convert::Into<::std::string::String>) -> Self {
@@ -479,6 +491,25 @@ pub fn derive_ui_component(input: TokenStream) -> TokenStream {
         }
     };
 
+    // `impl Component for X { ... }`, unless the struct opts out via
+    // `#[ui(no_component)]` because it renders in a shape the derive
+    // can't express (native <option>, typed child list, etc.).
+    let component_tokens: proc_macro2::TokenStream = if struct_cfg.no_component {
+        proc_macro2::TokenStream::new()
+    } else {
+        quote! {
+            impl ::lit_ui::core::Component for #name {
+                fn render(&self) -> ::std::string::String {
+                    let mut attrs: ::std::vec::Vec<::lit_ui::core::Attr> = ::std::vec::Vec::new();
+                    #(#render_attrs)*
+                    let mut body = ::std::string::String::new();
+                    #(#render_body)*
+                    ::lit_ui::core::wrap(#tag, &attrs, &body)
+                }
+            }
+        }
+    };
+
     let expanded = quote! {
         impl ::core::default::Default for #name {
             fn default() -> Self {
@@ -494,15 +525,7 @@ pub fn derive_ui_component(input: TokenStream) -> TokenStream {
 
         #container_tokens
 
-        impl ::lit_ui::core::Component for #name {
-            fn render(&self) -> ::std::string::String {
-                let mut attrs: ::std::vec::Vec<::lit_ui::core::Attr> = ::std::vec::Vec::new();
-                #(#render_attrs)*
-                let mut body = ::std::string::String::new();
-                #(#render_body)*
-                ::lit_ui::core::wrap(#tag, &attrs, &body)
-            }
-        }
+        #component_tokens
     };
 
     expanded.into()
