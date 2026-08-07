@@ -1,34 +1,39 @@
 <template>
-  <div style="padding: 2rem; text-align: center;">
-    <h1>Vue OTA Demo (v{{ appVersion }})</h1>
-    <p>Status: {{ statusMessage }}</p>
-
-    <button :disabled="isUpdating" @click="checkForUpdate">
-      Check For Updates
-    </button>
-
-    <p style="margin-top:1rem; font-size:0.8rem; color:#888;">
-      Auto-checking for updates every {{ pollSeconds }}s in the background.
-    </p>
+  <div class="app-shell">
+    <main class="app-main">
+      <router-view v-slot="{ Component }">
+        <transition name="fade" mode="out-in">
+          <component :is="Component" />
+        </transition>
+      </router-view>
+    </main>
+    <TabBar />
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue';
-import { useOta } from './composables/useOta';
-
-// __APP_VERSION__ is injected at build time by vite.config.js
-declare const __APP_VERSION__: string;
-const appVersion = __APP_VERSION__;
-
-const pollSeconds = 15;
-const { checkForUpdate, statusMessage, isUpdating, startAutoUpdate, stopAutoUpdate } = useOta();
+import { onMounted } from 'vue';
+import TabBar from './components/TabBar.vue';
+import { initNative } from './composables/useNative';
 
 onMounted(() => {
-  startAutoUpdate(pollSeconds * 1000);
-});
-
-onUnmounted(() => {
-  stopAutoUpdate();
+  initNative();
 });
 </script>
+
+<style scoped>
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg, #f5f6f8);
+}
+.app-main {
+  flex: 1;
+  overflow-y: auto;
+  /* Leave room for the fixed bottom tab bar + safe area */
+  padding-bottom: calc(72px + env(safe-area-inset-bottom));
+}
+.fade-enter-active, .fade-leave-active { transition: opacity 0.15s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+</style>
