@@ -1,0 +1,28 @@
+{
+  "name": "task-finder",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "android": "npm run build && npx cap sync android && npx cap run android",
+    "bundle:ota": "npm run build && mkdir -p bundles && cd dist && zip -r ../bundles/v1.0.1.zip . && cd ..",
+    "server": "cd server && cargo run"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/core": "^8.5.0",
+    "@capacitor/ios": "^8.5.0",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capawesome/capacitor-live-update": "^8.3.0",
+    "@capgo/capacitor-updater": "^8.51.3",
+    "vue": "^3.5.40"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.0",
+    "@vitejs/plugin-vue": "^6.0.8",
+    "vite": "^8.2.0"
+  }
+}
