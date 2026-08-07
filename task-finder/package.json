@@ -8,11 +8,12 @@
     "build": "vite build",
     "preview": "vite preview",
     "android": "npm run build && npx cap sync android && npx cap run android",
-    "bundle:ota": "npm run build && mkdir -p bundles && cd dist && zip -r ../bundles/v1.0.1.zip . && cd ..",
+    "bundle:ota": "node scripts/build-bundle.mjs",
     "server": "cd server && cargo run"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",
+    "@capacitor/app": "^8.0.0",
     "@capacitor/core": "^8.5.0",
     "@capacitor/ios": "^8.5.0",
     "@capacitor/splash-screen": "^8.0.2",
