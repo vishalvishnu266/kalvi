@@ -8,6 +8,7 @@
       </router-view>
     </main>
     <TabBar />
+    <UpdateOverlay />
   </div>
 </template>
 
@@ -15,14 +16,20 @@
 import { onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import TabBar from './components/TabBar.vue';
+import UpdateOverlay from './components/UpdateOverlay.vue';
 import { initNative } from './composables/useNative';
 import { initDeepLinks } from './composables/useDeepLinks';
+import { useOta } from './composables/useOta';
 
 const router = useRouter();
+const { startAutoUpdate } = useOta();
 
 onMounted(() => {
   initNative();
   initDeepLinks(router);
+  // App-wide OTA poller. Runs regardless of which tab is active so a user
+  // stuck on the Sandbox tab still receives hot updates.
+  startAutoUpdate(15_000);
 });
 </script>
 

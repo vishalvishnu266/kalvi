@@ -6,129 +6,151 @@ import { CapacitorUpdater } from '@capgo/capacitor-updater';
 // Injected at build time via vite.config.js `define`
 declare const __APP_VERSION__: string;
 
-export function useOta() {
-    const statusMessage = ref('Idle');
-    const isUpdating = ref(false);
-    let pollTimer: any = null;
-    let appStateListener: any = null;
+// Shared reactive UI state (module-level so the loading overlay in App.vue
+// and the status text in Settings both react to the same source of truth).
+const isUpdating = ref(false);
+const isApplying = ref(false); // set true from "swap bundle" until reload fires
+const statusMessage = ref('Idle');
 
-    // Tell native we booted successfully (prevents rollback)
-    CapacitorUpdater.notifyAppReady();
+// Guard against re-applying the same version repeatedly (each poll would
+// otherwise call .set() again if we don't remember what we already applied).
+let lastAppliedVersion: string | null = null;
 
-    // Base URL of the Axum OTA server as seen from the client device.
-    //   * Physical phone on Wi-Fi  -> your Mac's LAN IP (e.g. 192.168.0.4)
-    //   * Android Emulator         -> 10.0.2.2 (special alias for host)
-    //   * Browser (npm run dev)    -> localhost
-    // Injected at build time via vite.config.js from the OTA_HOST env var.
-    // Falls back to the LAN IP so a physical device works out of the box.
-    const getApiUrl = () => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const host: string = (globalThis as any).__OTA_HOST__ || '192.168.0.4';
-        const port: number = (globalThis as any).__OTA_PORT__ || 3000;
-        return `http://${host}:${port}`;
-    };
+// Guard against overlapping polls (auto-poll + resume listener + manual click)
+let inFlight: Promise<void> | null = null;
 
-    async function getCurrentVersion(): Promise<string> {
-        try {
-            const current = await CapacitorUpdater.current();
-            // If an OTA bundle is active use its version, otherwise use the baked-in build version
-            const v = current?.bundle?.version;
-            if (v && v !== 'builtin') return v;
-        } catch (_) { /* ignore */ }
-        return __APP_VERSION__;
-    }
+let pollTimer: any = null;
+let appStateListener: any = null;
 
-    async function checkForUpdate(silent = false) {
-        if (isUpdating.value) return;
-        isUpdating.value = true;
-        if (!silent) statusMessage.value = 'Checking version...';
+// Tell native we booted successfully — must be called once per JS boot to
+// prevent the plugin from rolling back to the previous bundle.
+try { CapacitorUpdater.notifyAppReady(); } catch { /* web */ }
 
-        try {
-            const currentVersion = await getCurrentVersion();
+function getApiUrl() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const host: string = (globalThis as any).__OTA_HOST__ || '192.168.0.4';
+    const port: number = (globalThis as any).__OTA_PORT__ || 3000;
+    return `http://${host}:${port}`;
+}
 
-            const response = await fetch(
-                `${getApiUrl()}/api/check-update?version=${encodeURIComponent(currentVersion)}`
-            );
-            if (!response.ok) throw new Error('Failed to reach update server');
+async function getCurrentVersion(): Promise<string> {
+    try {
+        const current = await CapacitorUpdater.current();
+        const v = current?.bundle?.version;
+        if (v && v !== 'builtin') return v;
+    } catch { /* web / not native */ }
+    return __APP_VERSION__;
+}
 
-            const data = await response.json() as {
-                update_available: boolean;
-                version: string;
-                url?: string;
-            };
+async function doCheck(silent: boolean): Promise<void> {
+    if (isUpdating.value || isApplying.value) return;
+    isUpdating.value = true;
+    if (!silent) statusMessage.value = 'Checking version...';
 
-            if (!data.update_available || !data.url) {
-                statusMessage.value = `Up to date (v${currentVersion})`;
-                return;
-            }
+    try {
+        const currentVersion = await getCurrentVersion();
 
-            statusMessage.value = `Downloading v${data.version}...`;
-            const bundle = await CapacitorUpdater.download({
-                url: data.url,
-                version: data.version,
-            });
+        const response = await fetch(
+            `${getApiUrl()}/api/check-update?version=${encodeURIComponent(currentVersion)}`,
+            { cache: 'no-store' }
+        );
+        if (!response.ok) throw new Error('Failed to reach update server');
 
-            statusMessage.value = 'Applying update...';
-            await CapacitorUpdater.set({ id: bundle.id });
+        const data = await response.json() as {
+            update_available: boolean;
+            version: string;
+            url?: string;
+        };
 
-            // IMPORTANT: `CapacitorUpdater.reload()` only re-mounts the WebView
-            // but the Vue router restores the last route from history and any
-            // *lazy-loaded* chunks that were already imported stay cached.
-            // Result: the current page may look stale until the user navigates.
-            //
-            // To guarantee a clean boot with the freshly-swapped bundle we:
-            //   1. Ask the plugin to swap the active bundle (done above)
-            //   2. Force a full page reload of the WebView entry point (index.html)
-            //      which discards the module cache and re-runs main.js.
-            statusMessage.value = 'Reloading app...';
-            try {
-                await CapacitorUpdater.reload();
-            } catch (_) { /* falls through to window.location.reload */ }
-            // Belt-and-suspenders: guarantee a full page boot after ~200ms.
-            setTimeout(() => {
-                try { window.location.replace('index.html'); }
-                catch { window.location.reload(); }
-            }, 200);
-
-        } catch (err: any) {
-            console.error('[OTA]', err);
-            statusMessage.value = `Error: ${err?.message || 'Update failed'}`;
-        } finally {
-            isUpdating.value = false;
+        // Nothing new
+        if (!data.update_available || !data.url) {
+            statusMessage.value = `Up to date (v${currentVersion})`;
+            return;
         }
+
+        // Already applied this version in a previous poll — reload was likely
+        // pending. Do NOT re-download or re-set.
+        if (lastAppliedVersion === data.version) {
+            statusMessage.value = `Applied v${data.version}, waiting for reload…`;
+            return;
+        }
+
+        statusMessage.value = `Downloading v${data.version}...`;
+        const bundle = await CapacitorUpdater.download({
+            url: data.url,
+            version: data.version,
+        });
+
+        // From this moment we must not run another check / apply.
+        isApplying.value = true;
+        statusMessage.value = 'Applying update...';
+        await CapacitorUpdater.set({ id: bundle.id });
+        lastAppliedVersion = data.version;
+
+        // Give the WebView one clean reload. On native this replaces the
+        // running bundle; on web we fall back to a manual reload.
+        statusMessage.value = 'Reloading app...';
+        try {
+            await CapacitorUpdater.reload();
+            // reload() returns — but the WebView is being torn down; anything
+            // after this line may not run. That's fine.
+        } catch (e) {
+            // Native reload failed for some reason → force a full page reload
+            // ourselves so the new bundle actually takes effect.
+            console.warn('[OTA] CapacitorUpdater.reload() failed, falling back', e);
+            window.location.reload();
+        }
+    } catch (err: any) {
+        console.error('[OTA]', err);
+        statusMessage.value = `Error: ${err?.message || 'Update failed'}`;
+    } finally {
+        // Note: on a successful reload we never reach here (WebView is gone).
+        // On failure we release the lock so the user can retry.
+        isUpdating.value = false;
+    }
+}
+
+export function useOta() {
+    async function checkForUpdate(silent = false) {
+        // De-dupe concurrent triggers (poll + resume + manual click)
+        if (inFlight) return inFlight;
+        inFlight = doCheck(silent).finally(() => { inFlight = null; });
+        return inFlight;
     }
 
-    /**
-     * Poll the server for a new bundle at a fixed interval AND when the app
-     * comes back to the foreground. This lets us push updates while the user
-     * is still using the app.
-     */
     function startAutoUpdate(intervalMs = 15000) {
         stopAutoUpdate();
-        // Kick one off immediately
+
+        // Kick one off immediately (silent)
         checkForUpdate(true).catch(() => { /* noop */ });
+
         pollTimer = setInterval(() => {
+            // Extra guard: skip polling while an apply is in flight so we
+            // never get "old UI showing for a tick between reloads".
+            if (isApplying.value || isUpdating.value) return;
             checkForUpdate(true).catch(() => { /* noop */ });
         }, intervalMs);
 
-        // Also re-check when app resumes
+        // Re-check when the app returns to the foreground
         try {
             CapApp.addListener('appStateChange', (state: { isActive: boolean }) => {
                 if (state.isActive) checkForUpdate(true).catch(() => { /* noop */ });
             }).then((h) => { appStateListener = h; });
-        } catch (_) { /* @capacitor/app may not be installed on web */ }
+        } catch { /* not native */ }
     }
 
     function stopAutoUpdate() {
-        if (pollTimer) {
-            clearInterval(pollTimer);
-            pollTimer = null;
-        }
-        if (appStateListener?.remove) {
-            appStateListener.remove();
-            appStateListener = null;
-        }
+        if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+        if (appStateListener?.remove) { appStateListener.remove(); appStateListener = null; }
     }
 
-    return { checkForUpdate, statusMessage, isUpdating, startAutoUpdate, stopAutoUpdate };
+    return {
+        checkForUpdate,
+        startAutoUpdate,
+        stopAutoUpdate,
+        statusMessage,
+        isUpdating,
+        isApplying,
+        platform: Capacitor.getPlatform(),
+    };
 }

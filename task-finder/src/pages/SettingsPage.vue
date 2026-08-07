@@ -46,7 +46,6 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue';
 import PageHeader from '../components/PageHeader.vue';
 import { useOta } from '../composables/useOta';
 import { hapticTap } from '../composables/useNative';
@@ -54,20 +53,13 @@ import { hapticTap } from '../composables/useNative';
 declare const __APP_VERSION__: string;
 const appVersion = __APP_VERSION__;
 
-const { checkForUpdate, statusMessage, isUpdating, startAutoUpdate, stopAutoUpdate } = useOta();
+// Note: global auto-poll is started in App.vue — no need to start it here.
+const { checkForUpdate, statusMessage, isUpdating } = useOta();
 
 async function handleCheckUpdate() {
   await hapticTap();
   await checkForUpdate(false);
 }
-
-onMounted(() => {
-  // Keep background auto-check running while user is on Settings tab too
-  startAutoUpdate(30_000);
-});
-onUnmounted(() => {
-  stopAutoUpdate();
-});
 </script>
 
 <style scoped>
