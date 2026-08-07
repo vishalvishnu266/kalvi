@@ -71,9 +71,24 @@ export function useOta() {
             statusMessage.value = 'Applying update...';
             await CapacitorUpdater.set({ id: bundle.id });
 
-            // Hot reloads the webview WITHOUT the user closing the app
+            // IMPORTANT: `CapacitorUpdater.reload()` only re-mounts the WebView
+            // but the Vue router restores the last route from history and any
+            // *lazy-loaded* chunks that were already imported stay cached.
+            // Result: the current page may look stale until the user navigates.
+            //
+            // To guarantee a clean boot with the freshly-swapped bundle we:
+            //   1. Ask the plugin to swap the active bundle (done above)
+            //   2. Force a full page reload of the WebView entry point (index.html)
+            //      which discards the module cache and re-runs main.js.
             statusMessage.value = 'Reloading app...';
-            await CapacitorUpdater.reload();
+            try {
+                await CapacitorUpdater.reload();
+            } catch (_) { /* falls through to window.location.reload */ }
+            // Belt-and-suspenders: guarantee a full page boot after ~200ms.
+            setTimeout(() => {
+                try { window.location.replace('index.html'); }
+                catch { window.location.reload(); }
+            }, 200);
 
         } catch (err: any) {
             console.error('[OTA]', err);

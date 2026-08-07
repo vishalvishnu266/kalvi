@@ -12,8 +12,8 @@
       "autoDeleteFailed": true,
       "autoDeletePrevious": true,
       "resetWhenUpdate": true,
-      "directUpdate": true,
-      "keepUrlPathAfterReload": true
+      "directUpdate": false,
+      "keepUrlPathAfterReload": false
     }
   }
 }

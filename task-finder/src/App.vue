@@ -13,11 +13,16 @@
 
 <script setup lang="ts">
 import { onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import TabBar from './components/TabBar.vue';
 import { initNative } from './composables/useNative';
+import { initDeepLinks } from './composables/useDeepLinks';
+
+const router = useRouter();
 
 onMounted(() => {
   initNative();
+  initDeepLinks(router);
 });
 </script>
 
