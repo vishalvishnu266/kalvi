@@ -5,14 +5,19 @@ use axum::{
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
-use std::{fs, net::SocketAddr, path::PathBuf};
+use std::{env, fs, net::SocketAddr, path::PathBuf};
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::services::ServeDir;
 
 // The folder where `npm run bundle:ota` drops zipped Vue builds
 const BUNDLES_DIR: &str = "../bundles";
-// Public base URL used by the Android emulator (10.0.2.2 == host machine)
-const PUBLIC_BASE_URL: &str = "http://10.0.2.2:3000";
+// Default public base URL used by clients to download bundles.
+// Override at runtime with:
+//     OTA_HOST=192.168.0.4 cargo run
+// Physical phones on the same Wi-Fi should use your Mac's LAN IP.
+// The Android emulator uses the special alias 10.0.2.2.
+const DEFAULT_HOST: &str = "192.168.0.4";
+const DEFAULT_PORT: u16 = 3000;
 
 #[derive(Deserialize)]
 struct UpdateQuery {
@@ -34,13 +39,22 @@ struct LatestManifest {
     created_at: String,
 }
 
+/// Resolve the base URL announced in check-update responses.
+fn public_base_url() -> String {
+    let host = env::var("OTA_HOST").unwrap_or_else(|_| DEFAULT_HOST.to_string());
+    let port: u16 = env::var("OTA_PORT")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(DEFAULT_PORT);
+    format!("http://{}:{}", host, port)
+}
+
 /// Look up the newest bundle available on disk.
 /// Prefers `bundles/latest.json` (written by scripts/build-bundle.mjs) and
 /// falls back to picking the most recently modified `v*.zip` file.
 fn find_latest_bundle() -> Option<(String, String)> {
     let dir = PathBuf::from(BUNDLES_DIR);
 
-    // 1) Prefer explicit manifest
     let manifest_path = dir.join("latest.json");
     if let Ok(bytes) = fs::read(&manifest_path) {
         if let Ok(m) = serde_json::from_slice::<LatestManifest>(&bytes) {
@@ -50,7 +64,6 @@ fn find_latest_bundle() -> Option<(String, String)> {
         }
     }
 
-    // 2) Fallback: newest v*.zip on disk
     let entries = fs::read_dir(&dir).ok()?;
     let mut newest: Option<(std::time::SystemTime, String)> = None;
     for entry in entries.flatten() {
@@ -63,7 +76,6 @@ fn find_latest_bundle() -> Option<(String, String)> {
         }
     }
     newest.map(|(_, file)| {
-        // Strip leading 'v' and trailing '.zip' to derive the version
         let version = file.trim_start_matches('v').trim_end_matches(".zip").to_string();
         (version, file)
     })
@@ -82,16 +94,17 @@ async fn check_update(Query(params): Query<UpdateQuery>) -> impl IntoResponse {
     };
 
     let update_available = client_version != latest_version;
+    let base = public_base_url();
     println!(
-        "[Server] Check: client=v{} latest=v{} -> update_available={}",
-        client_version, latest_version, update_available
+        "[Server] Check: client=v{} latest=v{} -> update_available={} (base={})",
+        client_version, latest_version, update_available, base
     );
 
     Json(UpdateResponse {
         update_available,
         version: latest_version.clone(),
         url: if update_available {
-            Some(format!("{}/bundles/{}", PUBLIC_BASE_URL, latest_file))
+            Some(format!("{}/bundles/{}", base, latest_file))
         } else {
             None
         },
@@ -100,8 +113,17 @@ async fn check_update(Query(params): Query<UpdateQuery>) -> impl IntoResponse {
 
 async fn health() -> impl IntoResponse {
     match find_latest_bundle() {
-        Some((v, f)) => Json(serde_json::json!({ "ok": true, "latest": v, "file": f })),
-        None => Json(serde_json::json!({ "ok": true, "latest": null })),
+        Some((v, f)) => Json(serde_json::json!({
+            "ok": true,
+            "latest": v,
+            "file": f,
+            "base_url": public_base_url()
+        })),
+        None => Json(serde_json::json!({
+            "ok": true,
+            "latest": null,
+            "base_url": public_base_url()
+        })),
     }
 }
 
@@ -118,9 +140,11 @@ async fn main() {
         .nest_service("/bundles", ServeDir::new(BUNDLES_DIR))
         .layer(cors);
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
-    println!("🚀 Axum OTA Server listening on http://0.0.0.0:3000");
-    println!("   Bundles served from: {}", BUNDLES_DIR);
+    // Bind on 0.0.0.0 so devices on the LAN can reach the server
+    let addr = SocketAddr::from(([0, 0, 0, 0], DEFAULT_PORT));
+    println!("🚀 Axum OTA Server listening on http://0.0.0.0:{}", DEFAULT_PORT);
+    println!("   Announcing bundle URLs as: {}", public_base_url());
+    println!("   Bundles served from:       {}", BUNDLES_DIR);
 
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();

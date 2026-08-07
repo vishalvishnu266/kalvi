@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local dev config (LAN host/port for OTA server) — cached per developer
+.devrc
+
+# Generated OTA bundles (versioned zips + latest.json)
+bundles/

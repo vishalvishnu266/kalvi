@@ -15,12 +15,17 @@ export function useOta() {
     // Tell native we booted successfully (prevents rollback)
     CapacitorUpdater.notifyAppReady();
 
+    // Base URL of the Axum OTA server as seen from the client device.
+    //   * Physical phone on Wi-Fi  -> your Mac's LAN IP (e.g. 192.168.0.4)
+    //   * Android Emulator         -> 10.0.2.2 (special alias for host)
+    //   * Browser (npm run dev)    -> localhost
+    // Injected at build time via vite.config.js from the OTA_HOST env var.
+    // Falls back to the LAN IP so a physical device works out of the box.
     const getApiUrl = () => {
-        if (Capacitor.getPlatform() === 'android') {
-            // 10.0.2.2 = host machine as seen from Android Emulator
-            return 'http://10.0.2.2:3000';
-        }
-        return 'http://localhost:3000';
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const host: string = (globalThis as any).__OTA_HOST__ || '192.168.0.4';
+        const port: number = (globalThis as any).__OTA_PORT__ || 3000;
+        return `http://${host}:${port}`;
     };
 
     async function getCurrentVersion(): Promise<string> {
